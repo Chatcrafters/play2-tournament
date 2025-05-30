@@ -1,0 +1,2601 @@
+import { useState, useEffect, useRef } from 'react'
+
+function App() {
+  // ALLE useState Hooks
+  const [events, setEvents] = useState([])
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [showSchedule, setShowSchedule] = useState(false)
+  const [schedule, setSchedule] = useState(null)
+  const [showScheduleOptions, setShowScheduleOptions] = useState(false)
+  const [considerSkillLevel, setConsiderSkillLevel] = useState(false)
+  const [playMode, setPlayMode] = useState('continuous')
+  const [minGamesPerPlayer, setMinGamesPerPlayer] = useState(3)
+  const [minPlayTimeMinutes, setMinPlayTimeMinutes] = useState(45)
+  const [waitingTime, setWaitingTime] = useState(5)
+  const [showResults, setShowResults] = useState(false)
+  const [scoreSystem, setScoreSystem] = useState('americano')
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const [timerState, setTimerState] = useState({
+    isRunning: false,
+    isPaused: false,
+    currentRound: 0,
+    timeRemaining: 0,
+    totalTime: 0
+  })
+  const [timerInterval, setTimerInterval] = useState(null)
+  const [editingEvent, setEditingEvent] = useState(null)
+  const [playerName, setPlayerName] = useState('')
+  const [showEventInfoForm, setShowEventInfoForm] = useState(false)
+  const [showEventInfo, setShowEventInfo] = useState(false)
+  const [currentTimelinePosition, setCurrentTimelinePosition] = useState(0)
+  const [showPlayerDatabase, setShowPlayerDatabase] = useState(false)
+  const [savedPlayers, setSavedPlayers] = useState([])
+  const [formData, setFormData] = useState({
+    name: '',
+    sport: 'padel',
+    eventType: 'americano',
+    format: 'doubles',
+    date: '',
+    startTime: '',
+    endTime: '',
+    location: '',
+    phone: '',
+    courts: 1,
+    roundDuration: 15,
+    players: [],
+    maxPlayers: 16,
+    breaks: [],
+    playMode: 'continuous',
+    minGamesPerPlayer: 3,
+    minPlayTimeMinutes: 45,
+    waitingTime: 5,
+    spielmodus: 'durchgehend',
+    garantieSpiele: false,
+    mindestSpiele: 3,
+    garantieMinuten: false,
+    mindestMinuten: 45,
+    endDate: '',
+    spielPause: 30,
+    flexibleTimes: false,
+    dailySchedule: [],
+    showAdvancedOptions: false,
+    eventInfo: ''
+  })
+
+  // Load from localStorage
+  useEffect(() => {
+    const savedEvents = localStorage.getItem('play2_events')
+    if (savedEvents) {
+      try {
+        setEvents(JSON.parse(savedEvents))
+      } catch (error) {
+        console.error('Fehler beim Laden der Events:', error)
+      }
+    }
+    
+    const savedPlayersData = localStorage.getItem('play2_players')
+    if (savedPlayersData) {
+      try {
+        setSavedPlayers(JSON.parse(savedPlayersData))
+      } catch (error) {
+        console.error('Fehler beim Laden der Spieler:', error)
+      }
+    }
+  }, [])
+
+  // Save to localStorage
+  useEffect(() => {
+    if (events.length > 0) {
+      localStorage.setItem('play2_events', JSON.stringify(events))
+    }
+  }, [events])
+
+  useEffect(() => {
+    if (savedPlayers.length > 0) {
+      localStorage.setItem('play2_players', JSON.stringify(savedPlayers))
+    }
+  }, [savedPlayers])
+
+  // Timeline update effect
+  useEffect(() => {
+    const updateTimeline = () => {
+      if (!selectedEvent || !schedule || !showSchedule) return
+      
+      const now = new Date()
+      const eventStart = new Date(`${selectedEvent.date} ${selectedEvent.startTime}`)
+      const eventEnd = new Date(`${selectedEvent.date} ${selectedEvent.endTime}`)
+      
+      if (now.toDateString() === eventStart.toDateString()) {
+        if (now < eventStart) {
+          setCurrentTimelinePosition(0)
+        } else if (now > eventEnd) {
+          setCurrentTimelinePosition(100)
+        } else {
+          const totalMinutes = (eventEnd - eventStart) / 60000
+          const elapsedMinutes = (now - eventStart) / 60000
+          const percentage = (elapsedMinutes / totalMinutes) * 100
+          setCurrentTimelinePosition(percentage)
+        }
+      } else {
+        setCurrentTimelinePosition(-1)
+      }
+    }
+    
+    updateTimeline()
+    const interval = setInterval(updateTimeline, 60000)
+    
+    return () => clearInterval(interval)
+  }, [selectedEvent, schedule, showSchedule])
+
+  // Berechnet die Gesamtspielzeit in Minuten
+  const calculateTotalMinutes = () => {
+    if (!formData.startTime || !formData.endTime) return 0
+    
+    const start = new Date(`2000-01-01 ${formData.startTime}`)
+    const end = new Date(`2000-01-01 ${formData.endTime}`)
+    
+    let diff = (end - start) / 1000 / 60
+    if (diff < 0) diff += 24 * 60
+    
+    return Math.floor(diff)
+  }
+
+  // Berechnet die maximale Spieleranzahl
+  const calculateMaxPlayers = () => {
+    const totalMinutes = calculateTotalMinutes()
+    const courts = formData.courts || 1
+    const playersPerGame = formData.format === 'singles' ? 2 : 4
+    const roundDuration = formData.roundDuration || 15
+    
+    const breakMinutes = formData.breaks?.reduce((sum, b) => sum + (b.duration || 0), 0) || 0
+    const nettoMinutes = totalMinutes - breakMinutes
+    
+    const spieleProCourt = Math.floor(nettoMinutes / roundDuration)
+    const spieleGesamt = spieleProCourt * courts
+    
+    let maxPlayers = 0
+    
+    if (formData.garantieMinuten && formData.mindestMinuten) {
+      const spieleProSpieler = Math.ceil(formData.mindestMinuten / roundDuration)
+      maxPlayers = Math.floor((spieleGesamt * playersPerGame) / spieleProSpieler)
+    } else if (formData.garantieSpiele && formData.mindestSpiele) {
+      maxPlayers = Math.floor((spieleGesamt * playersPerGame) / formData.mindestSpiele)
+    } else {
+      maxPlayers = Math.floor((spieleGesamt * playersPerGame) / 3)
+    }
+    
+    maxPlayers = Math.floor(maxPlayers / 2) * 2
+    
+    const minPlayers = formData.format === 'singles' ? 2 : 4
+    return Math.max(maxPlayers, minPlayers)
+  }
+
+  // Berechnet optimale Spieleranzahl
+  const calculateOptimalPlayers = (event) => {
+    const totalMinutes = (new Date(`2000-01-01 ${event.endTime}`) - new Date(`2000-01-01 ${event.startTime}`)) / 60000
+    const breakMinutes = event.breaks?.reduce((sum, b) => sum + b.duration, 0) || 0
+    const availableMinutes = totalMinutes - breakMinutes
+    const roundsNeeded = Math.floor(availableMinutes / event.roundDuration)
+    
+    let playersPerRound
+    if (event.sport === 'padel') {
+      playersPerRound = event.courts * 4
+    } else if (event.sport === 'pickleball' || event.sport === 'spinxball') {
+      playersPerRound = event.courts * (event.format === 'singles' ? 2 : 4)
+    } else {
+      playersPerRound = event.courts * 4
+    }
+
+    if (event.playMode === 'rotation') {
+      const totalPlayers = Math.ceil(playersPerRound * 1.5)
+      return { min: playersPerRound + 2, max: totalPlayers, recommended: Math.ceil((playersPerRound + totalPlayers) / 2) }
+    } else if (event.playMode === 'minGames') {
+      const totalPlayers = Math.ceil((roundsNeeded * playersPerRound) / event.minGamesPerPlayer)
+      return { min: playersPerRound, max: totalPlayers + 4, recommended: totalPlayers }
+    } else if (event.playMode === 'minTime') {
+      const roundsPerPlayer = Math.ceil(event.minPlayTimeMinutes / event.roundDuration)
+      const totalPlayers = Math.ceil((roundsNeeded * playersPerRound) / roundsPerPlayer)
+      return { min: playersPerRound, max: totalPlayers + 4, recommended: totalPlayers }
+    } else {
+      return { min: playersPerRound, max: playersPerRound + 4, recommended: playersPerRound }
+    }
+  }
+
+  // Effect um maxPlayers automatisch zu aktualisieren
+  useEffect(() => {
+    if (formData.startTime && formData.endTime && formData.courts && formData.roundDuration) {
+      const newMaxPlayers = calculateMaxPlayers()
+      if (newMaxPlayers !== formData.maxPlayers) {
+        setFormData(prev => ({ ...prev, maxPlayers: newMaxPlayers }))
+      }
+    }
+  }, [
+    formData.startTime, 
+    formData.endTime, 
+    formData.courts, 
+    formData.roundDuration,
+    formData.format,
+    formData.garantieSpiele,
+    formData.mindestSpiele,
+    formData.garantieMinuten,
+    formData.mindestMinuten,
+    formData.breaks
+  ])
+  // Event Management Functions
+  const handleCreateEvent = () => {
+    const newEvent = {
+      ...formData,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      results: {},
+      players: [],
+      eventInfo: formData.eventInfo || ''
+    }
+    
+    setEvents([...events, newEvent])
+    setShowCreateForm(false)
+    resetForm()
+  }
+
+  const handleUpdateEvent = () => {
+    const updatedEvent = {
+      ...formData,
+      id: editingEvent.id,
+      createdAt: editingEvent.createdAt,
+      results: editingEvent.results || {},
+      eventInfo: formData.eventInfo || ''
+    }
+    
+    setEvents(events.map(event => 
+      event.id === updatedEvent.id ? updatedEvent : event
+    ))
+    setEditingEvent(null)
+    setShowCreateForm(false)
+    resetForm()
+  }
+
+  const handleDeleteEvent = (eventId) => {
+    if (window.confirm('Möchten Sie dieses Event wirklich löschen?')) {
+      setEvents(events.filter(event => event.id !== eventId))
+      if (selectedEvent?.id === eventId) {
+        setSelectedEvent(null)
+        setShowSchedule(false)
+      }
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      sport: 'padel',
+      eventType: 'americano',
+      format: 'doubles',
+      date: '',
+      startTime: '',
+      endTime: '',
+      location: '',
+      phone: '',
+      courts: 1,
+      roundDuration: 15,
+      players: [],
+      maxPlayers: 16,
+      breaks: [],
+      playMode: 'continuous',
+      minGamesPerPlayer: 3,
+      minPlayTimeMinutes: 45,
+      waitingTime: 5,
+      spielmodus: 'durchgehend',
+      garantieSpiele: false,
+      mindestSpiele: 3,
+      garantieMinuten: false,
+      mindestMinuten: 45,
+      endDate: '',
+      spielPause: 30,
+      flexibleTimes: false,
+      dailySchedule: [],
+      showAdvancedOptions: false,
+      eventInfo: ''
+    })
+  }
+
+  const addPlayer = (name) => {
+    if (name.trim() && formData.players.length < formData.maxPlayers) {
+      setFormData({
+        ...formData,
+        players: [...formData.players, { 
+          id: Date.now().toString(), 
+          name: name.trim(),
+          skillLevel: 3
+        }]
+      })
+    }
+  }
+
+  const removePlayer = (playerId) => {
+    setFormData({
+      ...formData,
+      players: formData.players.filter(p => p.id !== playerId)
+    })
+  }
+
+  const addBreak = () => {
+    setFormData({
+      ...formData,
+      breaks: [...formData.breaks, { startTime: '', duration: 15 }]
+    })
+  }
+
+  const updateBreak = (index, field, value) => {
+    const newBreaks = [...formData.breaks]
+    newBreaks[index][field] = value
+    setFormData({ ...formData, breaks: newBreaks })
+  }
+
+  const removeBreak = (index) => {
+    setFormData({
+      ...formData,
+      breaks: formData.breaks.filter((_, i) => i !== index)
+    })
+  }
+
+  const handleAddPlayer = () => {
+    if (playerName.trim() && formData.players.length < formData.maxPlayers) {
+      addPlayer(playerName.trim())
+      setPlayerName('')
+    }
+  }
+
+  // Match Creation Algorithm
+  const createOptimalMatches = (players, courts, previousMatches, round, playersPerMatch, considerSkill = false) => {
+    const availablePlayers = [...players]
+    const matches = []
+    const maxAttempts = 50
+    const penaltyThreshold = Math.max(3, Math.floor(round / 5))
+
+    for (let court = 0; court < courts; court++) {
+      let bestMatch = null
+      let bestScore = Infinity
+      let attempts = 0
+
+      while (attempts < maxAttempts && availablePlayers.length >= playersPerMatch) {
+        const selectedPlayers = []
+        const tempAvailable = [...availablePlayers]
+        
+        for (let i = 0; i < playersPerMatch; i++) {
+          const randomIndex = Math.floor(Math.random() * tempAvailable.length)
+          selectedPlayers.push(tempAvailable[randomIndex])
+          tempAvailable.splice(randomIndex, 1)
+        }
+
+        let score = 0
+        
+        for (let i = 0; i < selectedPlayers.length; i++) {
+          for (let j = i + 1; j < selectedPlayers.length; j++) {
+            const p1 = selectedPlayers[i]
+            const p2 = selectedPlayers[j]
+            const isTeammate = playersPerMatch === 4 && 
+              ((i < 2 && j < 2) || (i >= 2 && j >= 2))
+            
+            const history = previousMatches.filter(m => 
+              m.players.includes(p1.id) && m.players.includes(p2.id)
+            )
+            
+            if (isTeammate) {
+              const partnerCount = history.filter(m => {
+                const p1Index = m.players.indexOf(p1.id)
+                const p2Index = m.players.indexOf(p2.id)
+                return (p1Index < 2 && p2Index < 2) || (p1Index >= 2 && p2Index >= 2)
+              }).length
+              
+              if (partnerCount >= penaltyThreshold) {
+                score += partnerCount * 10
+              }
+            } else {
+              const opponentCount = history.filter(m => {
+                const p1Index = m.players.indexOf(p1.id)
+                const p2Index = m.players.indexOf(p2.id)
+                return (p1Index < 2 && p2Index >= 2) || (p1Index >= 2 && p2Index < 2)
+              }).length
+              
+              if (opponentCount >= penaltyThreshold) {
+                score += opponentCount * 5
+              }
+            }
+          }
+        }
+
+        const gamesCounts = {}
+        players.forEach(p => {
+          gamesCounts[p.id] = previousMatches.filter(m => m.players.includes(p.id)).length
+        })
+        
+        selectedPlayers.forEach(p => {
+          const diff = Math.abs(gamesCounts[p.id] - Math.min(...Object.values(gamesCounts)))
+          score += diff * 3
+        })
+
+        if (considerSkill && playersPerMatch === 4) {
+          const team1Skill = (selectedPlayers[0].skillLevel + selectedPlayers[1].skillLevel) / 2
+          const team2Skill = (selectedPlayers[2].skillLevel + selectedPlayers[3].skillLevel) / 2
+          const skillDiff = Math.abs(team1Skill - team2Skill)
+          score += skillDiff * 20
+        }
+
+        if (score < bestScore || bestMatch === null) {
+          bestMatch = selectedPlayers
+          bestScore = score
+        }
+
+        attempts++
+        
+        if (score === 0) break
+      }
+
+      if (bestMatch && bestMatch.length === playersPerMatch) {
+        matches.push({
+          court: court + 1,
+          players: bestMatch.map(p => p.id),
+          playerNames: playersPerMatch === 4 
+            ? [
+                `${bestMatch[0].name} / ${bestMatch[1].name}`,
+                `${bestMatch[2].name} / ${bestMatch[3].name}`
+              ]
+            : bestMatch.map(p => p.name)
+        })
+        
+        bestMatch.forEach(player => {
+          const index = availablePlayers.findIndex(p => p.id === player.id)
+          if (index !== -1) availablePlayers.splice(index, 1)
+        })
+      }
+    }
+
+    return { matches, restingPlayers: availablePlayers }
+  }
+  // Schedule Generation
+  const generateSchedule = () => {
+    const currentMode = selectedEvent.playMode || playMode
+    const currentMinGames = selectedEvent.minGamesPerPlayer || minGamesPerPlayer
+    const currentMinTime = selectedEvent.minPlayTimeMinutes || minPlayTimeMinutes
+    const currentWaitingTime = selectedEvent.waitingTime || waitingTime
+
+    const event = { ...selectedEvent, schedule: null, results: selectedEvent.results || {} }
+    const startDate = new Date(`${event.date} ${event.startTime}`)
+    const endDate = new Date(`${event.date} ${event.endTime}`)
+    const totalMinutes = (endDate - startDate) / 60000
+    const breakMinutes = event.breaks?.reduce((sum, b) => sum + b.duration, 0) || 0
+    const availableMinutes = totalMinutes - breakMinutes
+    const maxRounds = Math.floor(availableMinutes / event.roundDuration)
+    
+    const playersPerMatch = event.format === 'singles' ? 2 : 4
+    const playersPerRound = event.courts * playersPerMatch
+    const allPlayers = [...event.players]
+    
+    const rounds = []
+    let currentTime = new Date(startDate)
+    const previousMatches = []
+    let round = 0
+    
+    const playerStats = {}
+    allPlayers.forEach(p => {
+      playerStats[p.id] = {
+        games: 0,
+        playTime: 0,
+        lastPlayed: -999
+      }
+    })
+
+    while (round < maxRounds && round < 50) {
+      let skipRound = false
+      for (const breakTime of (event.breaks || [])) {
+        const breakStart = new Date(`${event.date} ${breakTime.startTime}`)
+        const breakEnd = new Date(breakStart.getTime() + breakTime.duration * 60000)
+        
+        if (currentTime >= breakStart && currentTime < breakEnd) {
+          rounds.push({
+            round: rounds.length + 1,
+            startTime: currentTime.toTimeString().slice(0, 5),
+            endTime: breakEnd.toTimeString().slice(0, 5),
+            matches: [],
+            isBreak: true
+          })
+          currentTime = breakEnd
+          skipRound = true
+          break
+        }
+      }
+      
+      if (skipRound) continue
+
+      const availablePlayers = []
+      const waitingPlayers = []
+      
+      for (const player of allPlayers) {
+        const stats = playerStats[player.id]
+        const roundsSinceLastGame = round - stats.lastPlayed
+        
+        if (currentMode === 'rotation' && roundsSinceLastGame < currentWaitingTime && stats.games > 0) {
+          waitingPlayers.push(player)
+        } else {
+          availablePlayers.push(player)
+        }
+      }
+
+      if (availablePlayers.length < playersPerRound) {
+        const needed = playersPerRound - availablePlayers.length
+        const sortedWaiting = waitingPlayers.sort((a, b) => {
+          const aLast = playerStats[a.id].lastPlayed
+          const bLast = playerStats[b.id].lastPlayed
+          return aLast - bLast
+        })
+        
+        availablePlayers.push(...sortedWaiting.slice(0, needed))
+      }
+
+      if (availablePlayers.length < playersPerRound) {
+        break
+      }
+
+      const { matches, restingPlayers } = createOptimalMatches(
+        availablePlayers, 
+        event.courts, 
+        previousMatches, 
+        round, 
+        playersPerMatch,
+        considerSkillLevel
+      )
+
+      if (matches.length === 0) {
+        break
+      }
+
+      const roundEndTime = new Date(currentTime.getTime() + event.roundDuration * 60000)
+      
+      rounds.push({
+        round: rounds.length + 1,
+        startTime: currentTime.toTimeString().slice(0, 5),
+        endTime: roundEndTime.toTimeString().slice(0, 5),
+        matches: matches,
+        restingPlayers: restingPlayers.map(p => p.name)
+      })
+
+      matches.forEach(match => {
+        previousMatches.push(match)
+        match.players.forEach(playerId => {
+          playerStats[playerId].games++
+          playerStats[playerId].playTime += event.roundDuration
+          playerStats[playerId].lastPlayed = round
+        })
+      })
+
+      currentTime = roundEndTime
+      round++
+      
+      if (currentTime >= endDate) break
+    }
+
+    const finalStats = allPlayers.map(player => {
+      const stats = playerStats[player.id]
+      const partners = new Set()
+      const opponents = new Set()
+      
+      previousMatches.forEach(match => {
+        if (match.players.includes(player.id)) {
+          const playerIndex = match.players.indexOf(player.id)
+          match.players.forEach((otherId, otherIndex) => {
+            if (otherId !== player.id) {
+              if (playersPerMatch === 4) {
+                if ((playerIndex < 2 && otherIndex < 2) || (playerIndex >= 2 && otherIndex >= 2)) {
+                  partners.add(otherId)
+                } else {
+                  opponents.add(otherId)
+                }
+              } else {
+                opponents.add(otherId)
+              }
+            }
+          })
+        }
+      })
+      
+      return {
+        name: player.name,
+        games: stats.games,
+        playTime: stats.playTime,
+        partners: partners.size,
+        opponents: opponents.size
+      }
+    })
+
+    const generatedSchedule = { rounds, stats: finalStats }
+    setSchedule(generatedSchedule)
+    setShowSchedule(true)
+    
+    const updatedEvent = { ...selectedEvent, schedule: generatedSchedule }
+    setSelectedEvent(updatedEvent)
+    const updatedEvents = events.map(e => e.id === event.id ? updatedEvent : e)
+    setEvents(updatedEvents)
+  }
+
+  // Timer Functions
+  const startTimer = () => {
+    if (!schedule || schedule.rounds.length === 0) return
+
+    let nextRoundIndex = timerState.currentRound
+    
+    if (!timerState.isRunning && !timerState.isPaused) {
+      nextRoundIndex = 0
+      for (let i = 0; i < schedule.rounds.length; i++) {
+        const round = schedule.rounds[i]
+        if (round.isBreak) continue
+        
+        let hasAllResults = true
+        round.matches.forEach((match, matchIndex) => {
+          const result = selectedEvent.results?.[`${i}-${matchIndex}`]
+          if (!result || (result.team1Score === 0 && result.team2Score === 0)) {
+            hasAllResults = false
+          }
+        })
+        
+        if (!hasAllResults) {
+          nextRoundIndex = i
+          break
+        }
+      }
+    }
+
+    const round = schedule.rounds[nextRoundIndex]
+    if (!round || round.isBreak) {
+      for (let i = nextRoundIndex + 1; i < schedule.rounds.length; i++) {
+        if (!schedule.rounds[i].isBreak) {
+          nextRoundIndex = i
+          break
+        }
+      }
+    }
+
+    const totalTime = selectedEvent.roundDuration * 60
+
+    setTimerState({
+      isRunning: true,
+      isPaused: false,
+      currentRound: nextRoundIndex,
+      totalTime: totalTime,
+      timeRemaining: totalTime
+    })
+
+    const interval = setInterval(() => {
+      setTimerState(prev => {
+        if (prev.timeRemaining <= 1) {
+          clearInterval(interval)
+          playSound()
+          
+          let nextRound = prev.currentRound + 1
+          while (nextRound < schedule.rounds.length) {
+            const round = schedule.rounds[nextRound]
+            if (!round.isBreak) {
+              let hasAllResults = true
+              round.matches.forEach((match, matchIndex) => {
+                const result = selectedEvent.results?.[`${nextRound}-${matchIndex}`]
+                if (!result || (result.team1Score === 0 && result.team2Score === 0)) {
+                  hasAllResults = false
+                }
+              })
+              
+              if (!hasAllResults) {
+                return {
+                  ...prev,
+                  currentRound: nextRound,
+                  timeRemaining: selectedEvent.roundDuration * 60,
+                  isRunning: false
+                }
+              }
+            }
+            nextRound++
+          }
+          
+          return {
+            ...prev,
+            timeRemaining: 0,
+            isRunning: false
+          }
+        }
+        
+        return {
+          ...prev,
+          timeRemaining: prev.timeRemaining - 1
+        }
+      })
+    }, 1000)
+
+    setTimerInterval(interval)
+  }
+
+  const pauseTimer = () => {
+    if (timerInterval) {
+      clearInterval(timerInterval)
+      setTimerInterval(null)
+    }
+    setTimerState({
+      ...timerState,
+      isRunning: false,
+      isPaused: true
+    })
+  }
+
+  const stopTimer = () => {
+    if (timerInterval) {
+      clearInterval(timerInterval)
+      setTimerInterval(null)
+    }
+    setTimerState({
+      isRunning: false,
+      isPaused: false,
+      currentRound: 0,
+      timeRemaining: 0,
+      totalTime: 0
+    })
+  }
+
+  const playSound = () => {
+    const audioContext = new AudioContext()
+    const oscillator = audioContext.createOscillator()
+    const gainNode = audioContext.createGain()
+    
+    oscillator.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+    
+    oscillator.frequency.value = 800
+    oscillator.type = 'sine'
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
+    
+    oscillator.start(audioContext.currentTime)
+    oscillator.stop(audioContext.currentTime + 0.5)
+    
+    setTimeout(() => {
+      const oscillator2 = audioContext.createOscillator()
+      const gainNode2 = audioContext.createGain()
+      
+      oscillator2.connect(gainNode2)
+      gainNode2.connect(audioContext.destination)
+      
+      oscillator2.frequency.value = 800
+      oscillator2.type = 'sine'
+      
+      gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime)
+      gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
+      
+      oscillator2.start(audioContext.currentTime)
+      oscillator2.stop(audioContext.currentTime + 0.5)
+    }, 600)
+  }
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Result Management
+  const updateMatchResult = (roundIndex, matchIndex, team1Score, team2Score) => {
+    const newResults = { ...selectedEvent.results } || {}
+    const matchKey = `${roundIndex}-${matchIndex}`
+    
+    newResults[matchKey] = {
+      team1Score: parseInt(team1Score) || 0,
+      team2Score: parseInt(team2Score) || 0
+    }
+    
+    const updatedEvent = { ...selectedEvent, results: newResults }
+    setSelectedEvent(updatedEvent)
+    
+    const updatedEvents = events.map(event => 
+      event.id === selectedEvent.id ? updatedEvent : event
+    )
+    setEvents(updatedEvents)
+  }
+
+  const calculateStandings = () => {
+    if (!selectedEvent || !schedule) return []
+
+    const standings = {}
+    
+    selectedEvent.players.forEach(player => {
+      standings[player.id] = {
+        name: player.name,
+        played: 0,
+        won: 0,
+        drawn: 0,
+        lost: 0,
+        goalsFor: 0,
+        goalsAgainst: 0,
+        goalDifference: 0,
+        points: 0
+      }
+    })
+
+    schedule.rounds.forEach((round, roundIndex) => {
+      if (round.isBreak) return
+      
+      round.matches.forEach((match, matchIndex) => {
+        const result = selectedEvent.results?.[`${roundIndex}-${matchIndex}`]
+        if (!result) return
+
+        const { team1Score, team2Score } = result
+        const playersPerMatch = selectedEvent.format === 'singles' ? 2 : 4
+        
+        if (playersPerMatch === 4) {
+          const team1Players = [match.players[0], match.players[1]]
+          const team2Players = [match.players[2], match.players[3]]
+          
+          team1Players.forEach(playerId => {
+            if (standings[playerId]) {
+              standings[playerId].played++
+              standings[playerId].goalsFor += team1Score
+              standings[playerId].goalsAgainst += team2Score
+              
+              if (scoreSystem === 'americano') {
+                standings[playerId].points += team1Score
+              } else {
+                if (team1Score > team2Score) {
+                  standings[playerId].won++
+                  standings[playerId].points += 3
+                } else if (team1Score < team2Score) {
+                  standings[playerId].lost++
+                } else {
+                  standings[playerId].drawn++
+                  standings[playerId].points += 1
+                }
+              }
+            }
+          })
+          
+          team2Players.forEach(playerId => {
+            if (standings[playerId]) {
+              standings[playerId].played++
+              standings[playerId].goalsFor += team2Score
+              standings[playerId].goalsAgainst += team1Score
+              
+              if (scoreSystem === 'americano') {
+                standings[playerId].points += team2Score
+              } else {
+                if (team2Score > team1Score) {
+                  standings[playerId].won++
+                  standings[playerId].points += 3
+                } else if (team2Score < team1Score) {
+                  standings[playerId].lost++
+                } else {
+                  standings[playerId].drawn++
+                  standings[playerId].points += 1
+                }
+              }
+            }
+          })
+        } else {
+          const player1Id = match.players[0]
+          const player2Id = match.players[1]
+          
+          if (standings[player1Id]) {
+            standings[player1Id].played++
+            standings[player1Id].goalsFor += team1Score
+            standings[player1Id].goalsAgainst += team2Score
+          }
+          
+          if (standings[player2Id]) {
+            standings[player2Id].played++
+            standings[player2Id].goalsFor += team2Score
+            standings[player2Id].goalsAgainst += team1Score
+          }
+          
+          if (scoreSystem === 'americano') {
+            if (standings[player1Id]) standings[player1Id].points += team1Score
+            if (standings[player2Id]) standings[player2Id].points += team2Score
+          } else {
+            if (team1Score > team2Score) {
+              if (standings[player1Id]) {
+                standings[player1Id].won++
+                standings[player1Id].points += 3
+              }
+              if (standings[player2Id]) standings[player2Id].lost++
+            } else if (team2Score < team1Score) {
+              if (standings[player2Id]) {
+                standings[player2Id].won++
+                standings[player2Id].points += 3
+              }
+              if (standings[player1Id]) standings[player1Id].lost++
+            } else {
+              if (standings[player1Id]) {
+                standings[player1Id].drawn++
+                standings[player1Id].points += 1
+              }
+              if (standings[player2Id]) {
+                standings[player2Id].drawn++
+                standings[player2Id].points += 1
+              }
+            }
+          }
+        }
+      })
+    })
+
+    Object.values(standings).forEach(player => {
+      player.goalDifference = player.goalsFor - player.goalsAgainst
+    })
+
+    return Object.values(standings).sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points
+      if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference
+      return b.goalsFor - a.goalsFor
+    })
+  }
+  // Export Functions
+  const exportToPDF = () => {
+    const printContent = `
+      <html>
+        <head>
+          <title>${selectedEvent.name} - Spielplan</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1, h2 { color: #333; }
+            .info { margin-bottom: 20px; }
+            .round { margin-bottom: 30px; page-break-inside: avoid; }
+            .match { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+            .break { background: #ffe5e5; padding: 10px; }
+            .stats { margin-top: 30px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background: #f0f0f0; }
+            @media print { .round { page-break-inside: avoid; } }
+          </style>
+        </head>
+        <body>
+          <h1>${selectedEvent.name}</h1>
+          <div class="info">
+            <p><strong>Datum:</strong> ${new Date(selectedEvent.date).toLocaleDateString('de-DE')}</p>
+            <p><strong>Zeit:</strong> ${selectedEvent.startTime} - ${selectedEvent.endTime}</p>
+            <p><strong>Sportart:</strong> ${selectedEvent.sport.toUpperCase()}</p>
+            <p><strong>Format:</strong> ${selectedEvent.eventType}</p>
+            <p><strong>Spieler:</strong> ${selectedEvent.players.length}</p>
+            <p><strong>Courts:</strong> ${selectedEvent.courts}</p>
+          </div>
+          
+          <h2>Teilnehmer</h2>
+          <p>${selectedEvent.players.map(p => p.name).join(', ')}</p>
+          
+          <h2>Spielplan</h2>
+          ${schedule.rounds.map(round => `
+            <div class="round">
+              ${round.isBreak ? `
+                <div class="break">
+                  <strong>PAUSE</strong> ${round.startTime} - ${round.endTime}
+                </div>
+              ` : `
+                <h3>Runde ${round.round} (${round.startTime} - ${round.endTime})</h3>
+                ${round.matches.map(match => `
+                  <div class="match">
+                    <strong>Court ${match.court}:</strong> 
+                    ${match.playerNames[0]} vs ${match.playerNames[1]}
+                  </div>
+                `).join('')}
+                ${round.restingPlayers.length > 0 ? `
+                  <p><em>Pausieren: ${round.restingPlayers.join(', ')}</em></p>
+                ` : ''}
+              `}
+            </div>
+          `).join('')}
+          
+          ${showResults ? `
+            <h2>Ergebnisse</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Pos</th>
+                  <th>Spieler</th>
+                  <th>Spiele</th>
+                  <th>S</th>
+                  <th>U</th>
+                  <th>N</th>
+                  <th>Tore</th>
+                  <th>Diff</th>
+                  <th>Punkte</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${calculateStandings().map((player, index) => `
+                  <tr>
+                    <td>${index + 1}</td>
+                    <td>${player.name}</td>
+                    <td>${player.played}</td>
+                    <td>${player.won}</td>
+                    <td>${player.drawn}</td>
+                    <td>${player.lost}</td>
+                    <td>${player.goalsFor}:${player.goalsAgainst}</td>
+                    <td>${player.goalDifference > 0 ? '+' : ''}${player.goalDifference}</td>
+                    <td><strong>${player.points}</strong></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : ''}
+        </body>
+      </html>
+    `
+    
+    const printWindow = window.open('', '_blank')
+    printWindow.document.write(printContent)
+    printWindow.document.close()
+    printWindow.print()
+  }
+
+  const shareViaWhatsApp = () => {
+    if (!schedule || !selectedEvent) return
+    
+    const standings = calculateStandings()
+    
+    let message = `🏆 *${selectedEvent.name}*\n`
+    message += `📍 ${selectedEvent.location || 'Standort'}\n`
+    message += `📅 ${new Date(selectedEvent.date).toLocaleDateString('de-DE')}\n`
+    message += `⏰ ${selectedEvent.startTime} - ${selectedEvent.endTime}\n`
+    message += `👥 ${selectedEvent.players.length} Spieler\n\n`
+    
+    message += `*🏁 ENDSTAND:*\n`
+    message += `━━━━━━━━━━━━━━━\n`
+    
+    standings.forEach((player, index) => {
+      const position = index + 1
+      let medal = ''
+      
+      if (position === 1) medal = '🥇'
+      else if (position === 2) medal = '🥈'
+      else if (position === 3) medal = '🥉'
+      else medal = `${position}.`
+      
+      message += `${medal} *${player.name}*\n`
+      message += `   ${player.won}S ${player.drawn}U ${player.lost}N | `
+      message += `${player.goalsFor}:${player.goalsAgainst} | `
+      message += `*${player.points} Pkt*\n`
+      
+      if (index < standings.length - 1) {
+        message += `───────────────\n`
+      }
+    })
+    
+    message += `━━━━━━━━━━━━━━━\n\n`
+    
+    message += `*📋 ALLE ERGEBNISSE:*\n\n`
+    
+    schedule.rounds.forEach((round, roundIndex) => {
+      if (round.isBreak) return
+      
+      message += `_Runde ${round.round}_\n`
+      
+      round.matches.forEach((match, matchIndex) => {
+        const result = selectedEvent.results?.[`${roundIndex}-${matchIndex}`]
+        const score1 = result?.team1Score ?? '-'
+        const score2 = result?.team2Score ?? '-'
+        
+        message += `${match.playerNames[0]}\n`
+        message += `   ${score1} : ${score2}\n`
+        message += `${match.playerNames[1]}\n\n`
+      })
+    })
+    
+    message += `_Erstellt mit Play2 Tournament_`
+    
+    const encodedMessage = encodeURIComponent(message)
+    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`
+    
+    window.open(whatsappUrl, '_blank')
+  }
+
+  const sharePlayerSchedule = (playerId) => {
+    const player = selectedEvent.players.find(p => p.id === playerId)
+    if (!player || !schedule) return
+   
+    let message = `🏆 *${selectedEvent.name}*\n`
+    message += `📅 ${new Date(selectedEvent.date).toLocaleDateString('de-DE')}\n`
+    message += `⏰ ${selectedEvent.startTime} - ${selectedEvent.endTime}\n`
+    message += `📍 ${selectedEvent.location || 'Standort'}\n\n`
+    message += `🎾 *Deine Spiele, ${player.name}:*\n\n`
+   
+    let gameCount = 0
+    let pauseRounds = []
+   
+    schedule.rounds.forEach((round, roundIndex) => {
+      if (round.isBreak) return
+     
+      const matchInRound = round.matches.find(m => m.players.includes(playerId))
+     
+      if (matchInRound) {
+        gameCount++
+        const playerIndex = matchInRound.players.indexOf(playerId)
+        const isTeam1 = playerIndex < 2
+        
+        const result = selectedEvent.results?.[`${roundIndex}-${round.matches.indexOf(matchInRound)}`]
+        const score1 = result?.team1Score ?? '-'
+        const score2 = result?.team2Score ?? '-'
+       
+        message += `━━━━━━━━━━━━━━━\n`
+        message += `*Runde ${round.round}* (${round.startTime})\n`
+        message += `📍 Court ${matchInRound.court}\n\n`
+        message += `${isTeam1 ? '👉 ' : '      '}${matchInRound.playerNames[0]}\n`
+        message += `         *${score1} : ${score2}*\n`
+        message += `${!isTeam1 ? '👉 ' : '      '}${matchInRound.playerNames[1]}\n\n`
+      } else if (round.restingPlayers.includes(player.name)) {
+        pauseRounds.push(round.round)
+      }
+    })
+    
+    message += `━━━━━━━━━━━━━━━\n\n`
+    
+    if (pauseRounds.length > 0) {
+      message += `⏸️ *Pausen:* Runde ${pauseRounds.join(', ')}\n\n`
+    }
+   
+    message += `📊 *Gesamt:* ${gameCount} Spiele\n`
+    message += `💪 Viel Erfolg!`
+   
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
+    window.open(whatsappUrl, '_blank')
+  }
+
+  // Player Management Component
+  const PlayerManagement = ({ event, onUpdateEvent }) => {
+    const [newPlayerName, setNewPlayerName] = useState('')
+    const [playerSkillLevel, setPlayerSkillLevel] = useState(3)
+
+    const handleAddPlayer = () => {
+      if (newPlayerName.trim() && event.players.length < event.maxPlayers) {
+        const updatedEvent = {
+          ...event,
+          players: [...event.players, {
+            id: Date.now().toString(),
+            name: newPlayerName.trim(),
+            skillLevel: playerSkillLevel
+          }]
+        }
+        onUpdateEvent(updatedEvent)
+        setNewPlayerName('')
+      }
+    }
+
+    const handleRemovePlayer = (playerId) => {
+      const updatedEvent = {
+        ...event,
+        players: event.players.filter(p => p.id !== playerId)
+      }
+      onUpdateEvent(updatedEvent)
+    }
+
+    return (
+      <div className="bg-gray-50 p-4 rounded-lg mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">
+            Angemeldete Spieler ({event.players.length}/{event.maxPlayers})
+          </h3>
+        </div>
+
+        {event.players.length < event.maxPlayers && (
+          <div className="mb-4 p-3 bg-white rounded border border-gray-200">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newPlayerName}
+                onChange={(e) => setNewPlayerName(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleAddPlayer()
+                  }
+                }}
+                placeholder="Spielername eingeben und Enter drücken"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+              />
+              <select
+                value={playerSkillLevel}
+                onChange={(e) => setPlayerSkillLevel(parseInt(e.target.value))}
+                className="px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="1">Anfänger</option>
+                <option value="2">Fortgeschritten</option>
+                <option value="3">Gut</option>
+                <option value="4">Sehr gut</option>
+                <option value="5">Experte</option>
+              </select>
+              <button
+                onClick={handleAddPlayer}
+                disabled={!newPlayerName.trim() || event.players.length >= event.maxPlayers}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400"
+              >
+                Hinzufügen
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Tipp: Drücken Sie Enter nach jedem Namen für schnelle Eingabe
+            </p>
+          </div>
+        )}
+
+        {event.players.length >= event.maxPlayers && (
+          <p className="text-sm text-red-600 mb-4">
+            Maximale Spieleranzahl erreicht!
+          </p>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+          {event.players.map((player) => (
+            <div key={player.id} className="bg-white p-2 rounded flex justify-between items-center">
+              <div>
+                <span className="font-medium">{player.name}</span>
+                <span className="text-sm text-gray-500 ml-2">
+                  (Level {player.skillLevel})
+                </span>
+              </div>
+              <button
+                onClick={() => handleRemovePlayer(player.id)}
+                className="text-red-600 hover:text-red-700"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {event.players.length === 0 && (
+          <p className="text-gray-500 text-center py-4">
+            Noch keine Spieler angemeldet
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  // Player Database Component
+  const PlayerDatabase = ({ onClose }) => {
+    const [editingPlayer, setEditingPlayer] = useState(null)
+    const [searchTerm, setSearchTerm] = useState('')
+    const [playerForm, setPlayerForm] = useState({
+      name: '',
+      email: '',
+      phone: '',
+      skillLevel: 3,
+      preferredSports: [],
+      notes: ''
+    })
+
+    const filteredPlayers = savedPlayers.filter(player =>
+      player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      player.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    const handleSavePlayer = () => {
+      if (!playerForm.name.trim()) return
+
+      if (editingPlayer) {
+        setSavedPlayers(savedPlayers.map(p =>
+          p.id === editingPlayer.id ? { ...playerForm, id: editingPlayer.id } : p
+        ))
+      } else {
+        setSavedPlayers([...savedPlayers, {
+          ...playerForm,
+          id: Date.now().toString()
+        }])
+      }
+
+      setPlayerForm({
+        name: '',
+        email: '',
+        phone: '',
+        skillLevel: 3,
+        preferredSports: [],
+        notes: ''
+      })
+      setEditingPlayer(null)
+    }
+
+    const handleDeletePlayer = (id) => {
+      if (window.confirm('Spieler wirklich löschen?')) {
+        setSavedPlayers(savedPlayers.filter(p => p.id !== id))
+      }
+    }
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">Spieler-Datenbank</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 text-2xl"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Spieler suchen..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg"
+            />
+          </div>
+
+          {/* Player Form */}
+          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+            <h3 className="font-semibold mb-3">
+              {editingPlayer ? 'Spieler bearbeiten' : 'Neuer Spieler'}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Name *</label>
+                <input
+                  type="text"
+                  value={playerForm.name}
+                  onChange={(e) => setPlayerForm({...playerForm, name: e.target.value})}
+                  className="w-full px-3 py-2 border rounded"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">E-Mail</label>
+                <input
+                  type="email"
+                  value={playerForm.email}
+                  onChange={(e) => setPlayerForm({...playerForm, email: e.target.value})}
+                  className="w-full px-3 py-2 border rounded"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Telefon</label>
+                <input
+                  type="tel"
+                  value={playerForm.phone}
+                  onChange={(e) => setPlayerForm({...playerForm, phone: e.target.value})}
+                  className="w-full px-3 py-2 border rounded"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Skill Level</label>
+                <select
+                  value={playerForm.skillLevel}
+                  onChange={(e) => setPlayerForm({...playerForm, skillLevel: parseInt(e.target.value)})}
+                  className="w-full px-3 py-2 border rounded"
+                >
+                  <option value="1">1 - Anfänger</option>
+                  <option value="2">2 - Fortgeschritten</option>
+                  <option value="3">3 - Gut</option>
+                  <option value="4">4 - Sehr gut</option>
+                  <option value="5">5 - Experte</option>
+                </select>
+              </div>
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-1">Bevorzugte Sportarten</label>
+              <div className="flex gap-4">
+                {['padel', 'pickleball', 'spinxball'].map(sport => (
+                  <label key={sport} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={playerForm.preferredSports?.includes(sport) || false}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setPlayerForm({
+                            ...playerForm,
+                            preferredSports: [...(playerForm.preferredSports || []), sport]
+                          })
+                        } else {
+                          setPlayerForm({
+                            ...playerForm,
+                            preferredSports: (playerForm.preferredSports || []).filter(s => s !== sport)
+                          })
+                        }
+                      }}
+                      className="mr-2"
+                    />
+                    <span className="capitalize">{sport}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-1">Notizen</label>
+              <textarea
+                value={playerForm.notes}
+                onChange={(e) => setPlayerForm({...playerForm, notes: e.target.value})}
+                className="w-full px-3 py-2 border rounded"
+                rows="2"
+              />
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={handleSavePlayer}
+                disabled={!playerForm.name.trim()}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+              >
+                {editingPlayer ? 'Aktualisieren' : 'Speichern'}
+              </button>
+              {editingPlayer && (
+                <button
+                  onClick={() => {
+                    setEditingPlayer(null)
+                    setPlayerForm({
+                      name: '',
+                      email: '',
+                      phone: '',
+                      skillLevel: 3,
+                      preferredSports: [],
+                      notes: ''
+                    })
+                  }}
+                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                >
+                  Abbrechen
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Players List */}
+          <div className="space-y-2">
+            {filteredPlayers.map(player => (
+              <div key={player.id} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h4 className="font-semibold">{player.name}</h4>
+                    <p className="text-sm text-gray-600">
+                      Level: {player.skillLevel} | 
+                      {player.email && ` ${player.email} |`}
+                      {player.phone && ` ${player.phone}`}
+                    </p>
+                    {player.preferredSports && player.preferredSports.length > 0 && (
+                      <p className="text-sm text-gray-500">
+                        Sportarten: {player.preferredSports.join(', ')}
+                      </p>
+                    )}
+                    {player.notes && (
+                      <p className="text-sm text-gray-500 mt-1">{player.notes}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    <button
+                      onClick={() => {
+                        setEditingPlayer(player)
+                        setPlayerForm(player)
+                      }}
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      Bearbeiten
+                    </button>
+                    <button
+                      onClick={() => handleDeletePlayer(player.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      Löschen
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {filteredPlayers.length === 0 && (
+            <p className="text-center text-gray-500 py-8">
+              {searchTerm ? 'Keine Spieler gefunden' : 'Noch keine Spieler in der Datenbank'}
+            </p>
+          )}
+        </div>
+      </div>
+    )
+  }
+// MAIN RENDER
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800">Play2 Tournament</h1>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowPlayerDatabase(true)}
+              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+            >
+              👥 Spieler-Datenbank
+            </button>
+          </div>
+        </div>
+
+        {/* Player Database Modal */}
+        {showPlayerDatabase && (
+          <PlayerDatabase onClose={() => setShowPlayerDatabase(false)} />
+        )}
+
+        {!selectedEvent && (
+          <>
+            <div className="mb-6 flex justify-between items-center">
+              <p className="text-gray-600">Verwalten Sie Ihre Padel, Pickleball und SpinXball Events</p>
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <span className="text-xl">+</span>
+                Neues Event erstellen
+              </button>
+            </div>
+
+            {/* Events Liste */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {events.map((event) => (
+                <div key={event.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+                  <h3 className="text-xl font-semibold mb-2">{event.name}</h3>
+                  <p className="text-gray-600 mb-1">{event.sport}</p>
+                  <p className="text-gray-600 mb-1">{new Date(event.date).toLocaleDateString('de-DE')}</p>
+                  <p className="text-gray-600 mb-3">{event.startTime} - {event.endTime}</p>
+                  <p className="text-gray-600 mb-4">{event.players?.length || 0} Spieler</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const eventToOpen = events.find(e => e.id === event.id)
+                        if (eventToOpen) {
+                          setSelectedEvent(eventToOpen)
+                          setShowSchedule(false)
+                          setSchedule(null)
+                          setShowResults(false)
+                          setShowExportMenu(false)
+                          setTimerState({
+                            isRunning: false,
+                            isPaused: false,
+                            currentRound: 0,
+                            timeRemaining: 0,
+                            totalTime: 0
+                          })
+                          if (eventToOpen.schedule) {
+                            setSchedule(eventToOpen.schedule)
+                            setShowSchedule(true)
+                          }
+                        }
+                      }}
+                      className="flex-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+                    >
+                      Öffnen
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingEvent(event)
+                        setFormData({
+                          ...event,
+                          showAdvancedOptions: false,
+                          eventInfo: event.eventInfo || ''
+                        })
+                        setShowCreateForm(true)
+                      }}
+                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+                    >
+                      Bearbeiten
+                    </button>
+                    <button
+                      onClick={() => handleDeleteEvent(event.id)}
+                      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+                    >
+                      Löschen
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Event Creation/Edit Form */}
+        {showCreateForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-4">
+                {editingEvent ? 'Event bearbeiten' : 'Neues Event erstellen'}
+              </h2>
+              
+              <form onSubmit={(e) => {
+                e.preventDefault()
+                if (editingEvent) {
+                  handleUpdateEvent()
+                } else {
+                  handleCreateEvent()
+                }
+              }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-1 font-semibold">Event Name</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      className="w-full px-3 py-2 border rounded"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block mb-1 font-semibold">Sportart</label>
+                    <select
+                      value={formData.sport}
+                      onChange={(e) => setFormData({...formData, sport: e.target.value})}
+                      className="w-full px-3 py-2 border rounded"
+                    >
+                      <option value="padel">Padel</option>
+                      <option value="pickleball">Pickleball</option>
+                      <option value="spinxball">SpinXball</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+          <div>
+                    <label className="block mb-1 font-semibold">Event-Typ</label>
+                    <select
+                      value={formData.eventType}
+                      onChange={(e) => setFormData({...formData, eventType: e.target.value})}
+                      className="w-full px-3 py-2 border rounded"
+                    >
+                      <option value="americano">Americano</option>
+                      <option value="openplay">Open Play</option>
+                      <option value="express">Tournament Express</option>
+                      <option value="tournament">Tournament</option>
+                      <option value="liga">Liga</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block mb-1 font-semibold">Format</label>
+                    <select
+                      value={formData.format}
+                      onChange={(e) => setFormData({...formData, format: e.target.value})}
+                      className="w-full px-3 py-2 border rounded"
+                    >
+                      <option value="doubles">Doppel</option>
+                      <option value="singles">Einzel</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block mb-1 font-semibold">Datum</label>
+                    <input
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({...formData, date: e.target.value})}
+                      className="w-full px-3 py-2 border rounded"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block mb-1 font-semibold">Enddatum (für mehrtägige Events)</label>
+                    <input
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                      className="w-full px-3 py-2 border rounded"
+                      min={formData.date}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block mb-1 font-semibold">Startzeit</label>
+                    <input
+                      type="time"
+                      value={formData.startTime}
+                      onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                      className="w-full px-3 py-2 border rounded"
+                      required={!formData.flexibleTimes}
+                      disabled={formData.flexibleTimes}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block mb-1 font-semibold">Endzeit</label>
+                    <input
+                      type="time"
+                      value={formData.endTime}
+                      onChange={(e) => setFormData({...formData, endTime: e.target.value})}
+                      className="w-full px-3 py-2 border rounded"
+                      required={!formData.flexibleTimes}
+                      disabled={formData.flexibleTimes}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block mb-1 font-semibold">Courts</label>
+                    <input
+                      type="number"
+                      value={formData.courts}
+                      onChange={(e) => setFormData({...formData, courts: parseInt(e.target.value) || 1})}
+                      className="w-full px-3 py-2 border rounded"
+                      min="1"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block mb-1 font-semibold">Rundenzeit (Minuten)</label>
+                    <input
+                      type="number"
+                      value={formData.roundDuration}
+                      onChange={(e) => setFormData({...formData, roundDuration: parseInt(e.target.value) || 15})}
+                      className="w-full px-3 py-2 border rounded"
+                      min="5"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block mb-1 font-semibold">Ort</label>
+                    <input
+                      type="text"
+                      value={formData.location}
+                      onChange={(e) => setFormData({...formData, location: e.target.value})}
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block mb-1 font-semibold">Telefon</label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                  </div>
+                </div>
+
+                {/* Erweiterte Optionen Toggle */}
+                <div className="mt-6 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({...formData, showAdvancedOptions: !formData.showAdvancedOptions})}
+                    className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2"
+                  >
+                    <span>{formData.showAdvancedOptions ? '▼' : '▶'}</span>
+                    Erweiterte Optionen
+                  </button>
+                </div>
+
+                {/* Erweiterte Optionen */}
+                {formData.showAdvancedOptions && (
+                  <div className="border-t pt-4 space-y-4">
+                    <div className="mb-4">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={formData.flexibleTimes}
+                          onChange={(e) => setFormData({...formData, flexibleTimes: e.target.checked})}
+                          className="mr-2"
+                        />
+                        <span>Flexible Zeiten (Täglicher Zeitplan für mehrtägige Events)</span>
+                      </label>
+                    </div>
+
+                    {formData.flexibleTimes && formData.endDate && (
+                      <div className="bg-gray-50 p-4 rounded">
+                        <h4 className="font-semibold mb-3">Täglicher Zeitplan</h4>
+                        {(() => {
+                          const startDate = new Date(formData.date)
+                          const endDate = new Date(formData.endDate)
+                          const days = []
+                          
+                          for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                            days.push(new Date(d))
+                          }
+                          
+                          return days.map((day, index) => (
+                            <div key={index} className="mb-3 p-3 bg-white rounded">
+                              <p className="font-medium mb-2">
+                                {day.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
+                              </p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <input
+                                  type="time"
+                                  placeholder="Startzeit"
+                                  value={formData.dailySchedule?.[index]?.start || ''}
+                                  onChange={(e) => {
+                                    const newSchedule = [...(formData.dailySchedule || [])]
+                                    newSchedule[index] = { ...newSchedule[index], start: e.target.value }
+                                    setFormData({...formData, dailySchedule: newSchedule})
+                                  }}
+                                  className="px-2 py-1 border rounded"
+                                />
+                                <input
+                                  type="time"
+                                  placeholder="Endzeit"
+                                  value={formData.dailySchedule?.[index]?.end || ''}
+                                  onChange={(e) => {
+                                    const newSchedule = [...(formData.dailySchedule || [])]
+                                    newSchedule[index] = { ...newSchedule[index], end: e.target.value }
+                                    setFormData({...formData, dailySchedule: newSchedule})
+                                  }}
+                                  className="px-2 py-1 border rounded"
+                                />
+                              </div>
+                            </div>
+                          ))
+                        })()}
+                      </div>
+                    )}
+
+                    <div>
+                      <h4 className="font-semibold mb-2">Spielmodus</h4>
+                      <select
+                        value={formData.spielmodus}
+                        onChange={(e) => setFormData({...formData, spielmodus: e.target.value})}
+                        className="w-full px-3 py-2 border rounded"
+                      >
+                        <option value="durchgehend">Durchgehend spielen</option>
+                        <option value="rotation">Rotation mit Pausen</option>
+                        <option value="garantie">Mit Garantien</option>
+                      </select>
+                    </div>
+
+                    {formData.spielmodus === 'garantie' && (
+                      <div className="bg-gray-50 p-4 rounded space-y-3">
+                        <label className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={formData.garantieSpiele}
+                            onChange={(e) => setFormData({...formData, garantieSpiele: e.target.checked})}
+                            className="mr-2"
+                          />
+                          <span>Mindestspiele garantieren</span>
+                        </label>
+                        
+                        {formData.garantieSpiele && (
+                          <div className="ml-6">
+                            <label className="block text-sm">Mindestanzahl Spiele pro Spieler:</label>
+                            <input
+                              type="number"
+                              value={formData.mindestSpiele}
+                              onChange={(e) => setFormData({...formData, mindestSpiele: parseInt(e.target.value) || 3})}
+                              className="px-2 py-1 border rounded w-20"
+                              min="1"
+                            />
+                          </div>
+                        )}
+                        
+                        <label className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={formData.garantieMinuten}
+                            onChange={(e) => setFormData({...formData, garantieMinuten: e.target.checked})}
+                            className="mr-2"
+                          />
+                          <span>Mindestspielzeit garantieren</span>
+                        </label>
+                        
+                        {formData.garantieMinuten && (
+                          <div className="ml-6">
+                            <label className="block text-sm">Mindestspielzeit pro Spieler (Minuten):</label>
+                            <input
+                              type="number"
+                              value={formData.mindestMinuten}
+                              onChange={(e) => setFormData({...formData, mindestMinuten: parseInt(e.target.value) || 45})}
+                              className="px-2 py-1 border rounded w-20"
+                              min="15"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Berechnung maximale Spieleranzahl */}
+                    {formData.startTime && formData.endTime && (
+                      <div className="bg-blue-50 p-4 rounded">
+                        <p className="text-sm text-blue-800">
+                          <strong>Maximale Spieleranzahl:</strong> {calculateMaxPlayers()} Spieler
+                          <br />
+                          <span className="text-xs">
+                            (Basierend auf {calculateTotalMinutes()} Minuten Spielzeit, {formData.courts} Court(s) 
+                            und {formData.roundDuration} Min pro Runde)
+                          </span>
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Pausen */}
+                    <div>
+                      <h4 className="font-semibold mb-2">Pausen</h4>
+                      {formData.breaks.map((breakItem, index) => (
+                        <div key={index} className="flex gap-2 mb-2">
+                          <input
+                            type="time"
+                            value={breakItem.startTime}
+                            onChange={(e) => updateBreak(index, 'startTime', e.target.value)}
+                            className="px-2 py-1 border rounded"
+                            placeholder="Startzeit"
+                          />
+                          <input
+                            type="number"
+                            value={breakItem.duration}
+                            onChange={(e) => updateBreak(index, 'duration', parseInt(e.target.value) || 15)}
+                            className="px-2 py-1 border rounded w-20"
+                            placeholder="Dauer"
+                            min="5"
+                          />
+                          <span className="py-1">Minuten</span>
+                          <button
+                            type="button"
+                            onClick={() => removeBreak(index)}
+                            className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                          >
+                            Entfernen
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={addBreak}
+                        className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm"
+                      >
+                        + Pause hinzufügen
+                      </button>
+                    </div>
+
+                    {/* Event Info Textarea */}
+                    <div>
+                      <label className="block mb-1 font-semibold">
+                        Event-Informationen (für Teilnehmer)
+                      </label>
+                      <textarea
+                        value={formData.eventInfo}
+                        onChange={(e) => setFormData({...formData, eventInfo: e.target.value})}
+                        className="w-full px-3 py-2 border rounded"
+                        rows="6"
+                        placeholder="Zusätzliche Informationen zum Event, Regeln, Hinweise, etc."
+                      />
+                    </div>
+                  </div>
+                )}
+<div className="mt-6 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateForm(false)
+                      setEditingEvent(null)
+                      resetForm()
+                    }}
+                    className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    {editingEvent ? 'Speichern' : 'Erstellen'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Selected Event View */}
+        {selectedEvent && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold">{selectedEvent.name || 'Unbenanntes Event'}</h2>
+                <p className="text-gray-600">
+                  {selectedEvent.date ? new Date(selectedEvent.date).toLocaleDateString('de-DE') : 'Kein Datum'} 
+                  {selectedEvent.endDate && selectedEvent.endDate !== selectedEvent.date && 
+                    ` - ${new Date(selectedEvent.endDate).toLocaleDateString('de-DE')}`}
+                </p>
+                {!selectedEvent.flexibleTimes && selectedEvent.startTime && (
+                  <p className="text-gray-600">
+                    {selectedEvent.startTime} - {selectedEvent.endTime} Uhr
+                  </p>
+                )}
+                <p className="text-gray-600">
+                  📍 {selectedEvent.location || 'Kein Ort angegeben'}
+                  {selectedEvent.phone && ` | 📞 ${selectedEvent.phone}`}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowEventInfo(true)}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+                >
+                  ℹ️ Event-Info
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedEvent(null)
+                    setShowSchedule(false)
+                    setSchedule(null)
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  ← Zurück
+                </button>
+              </div>
+            </div>
+
+            {/* Event Info Modal */}
+            {showEventInfo && selectedEvent && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+                  <div className="flex justify-between items-start mb-6">
+                    <h2 className="text-2xl font-bold">Event-Informationen</h2>
+                    <button
+                      onClick={() => setShowEventInfo(false)}
+                      className="text-gray-400 hover:text-gray-600 text-2xl"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  
+                  <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                    <h3 className="font-semibold mb-2">{selectedEvent.name}</h3>
+                    <p className="text-gray-600">📅 {new Date(selectedEvent.date).toLocaleDateString('de-DE')}</p>
+                    <p className="text-gray-600">⏰ {selectedEvent.startTime} - {selectedEvent.endTime} Uhr</p>
+                    <p className="text-gray-600">📍 {selectedEvent.location}</p>
+                    {selectedEvent.phone && <p className="text-gray-600">📞 {selectedEvent.phone}</p>}
+                    <p className="text-gray-600">🏸 {selectedEvent.sport.toUpperCase()} - {selectedEvent.eventType}</p>
+                  </div>
+
+                  <div className="prose max-w-none">
+                    <pre className="whitespace-pre-wrap font-sans text-gray-700">{selectedEvent.eventInfo || 'Keine zusätzlichen Informationen verfügbar.'}</pre>
+                  </div>
+
+                  <div className="flex justify-end mt-6 gap-3">
+                    <button
+                      onClick={() => {
+                        const text = `
+${selectedEvent.name}
+${new Date(selectedEvent.date).toLocaleDateString('de-DE')}
+${selectedEvent.startTime} - ${selectedEvent.endTime} Uhr
+${selectedEvent.location}
+${selectedEvent.phone ? `Tel: ${selectedEvent.phone}` : ''}
+
+${selectedEvent.eventInfo || 'Keine zusätzlichen Informationen verfügbar.'}
+                        `.trim()
+                        
+                        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`
+                        window.open(whatsappUrl, '_blank')
+                      }}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    >
+                      📱 Via WhatsApp teilen
+                    </button>
+                    <button
+                      onClick={() => setShowEventInfo(false)}
+                      className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                    >
+                      Schließen
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+             <div className="bg-gray-50 p-3 rounded">
+                <p className="text-sm text-gray-600">Event-Typ</p>
+                <p className="text-xl font-semibold capitalize">
+                  {selectedEvent.eventType === 'americano' ? 'Americano' :
+                   selectedEvent.eventType === 'openplay' ? 'Open Play' :
+                   selectedEvent.eventType === 'express' ? 'Tournament Express' :
+                   selectedEvent.eventType === 'tournament' ? 'Tournament' :
+                   selectedEvent.eventType === 'liga' ? 'Liga' : 
+                   selectedEvent.eventType || 'Nicht definiert'}
+                </p>
+              </div>
+              <div className="bg-gray-50 p-3 rounded">
+                <p className="text-sm text-gray-600">Courts</p>
+                <p className="text-xl font-semibold">{selectedEvent.courts || 0}</p>
+              </div>
+              <div className="bg-gray-50 p-3 rounded">
+                <p className="text-sm text-gray-600">Rundendauer</p>
+                <p className="text-xl font-semibold">{selectedEvent.roundDuration || 0} Min</p>
+              </div>
+              <div className="bg-gray-50 p-3 rounded">
+                <p className="text-sm text-gray-600">Spielmodus</p>
+                <p className="text-xl font-semibold capitalize">{selectedEvent.format || 'Nicht definiert'}</p>
+              </div>
+            </div>
+
+            {/* Player Management */}
+            <PlayerManagement 
+              event={selectedEvent} 
+              onUpdateEvent={(updatedEvent) => {
+                setSelectedEvent(updatedEvent)
+                const updatedEvents = events.map(e => 
+                  e.id === updatedEvent.id ? updatedEvent : e
+                )
+                setEvents(updatedEvents)
+              }} 
+            />
+
+            {/* Import Players from Database Button */}
+            {selectedEvent.players.length < selectedEvent.maxPlayers && (
+              <div className="mb-4 text-center">
+                <button
+                  onClick={() => {
+                    const playersToAdd = savedPlayers.filter(savedPlayer => 
+                      !selectedEvent.players.some(eventPlayer => 
+                        eventPlayer.name === savedPlayer.name
+                      )
+                    )
+                    
+                    if (playersToAdd.length === 0) {
+                      alert('Alle Spieler aus der Datenbank sind bereits angemeldet!')
+                      return
+                    }
+                    
+                    const selectedPlayers = window.confirm(
+                      `Möchten Sie alle ${playersToAdd.length} Spieler aus der Datenbank importieren?`
+                    )
+                    
+                    if (selectedPlayers) {
+                      const availableSlots = selectedEvent.maxPlayers - selectedEvent.players.length
+                      const playersToImport = playersToAdd.slice(0, availableSlots)
+                      
+                      const updatedEvent = {
+                        ...selectedEvent,
+                        players: [
+                          ...selectedEvent.players,
+                          ...playersToImport.map(p => ({
+                            id: Date.now().toString() + Math.random(),
+                            name: p.name,
+                            skillLevel: p.skillLevel || 3
+                          }))
+                        ]
+                      }
+                      
+                      setSelectedEvent(updatedEvent)
+                      setEvents(events.map(e => 
+                        e.id === updatedEvent.id ? updatedEvent : e
+                      ))
+                      
+                      alert(`${playersToImport.length} Spieler wurden importiert!`)
+                    }
+                  }}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                >
+                  📥 Spieler aus Datenbank importieren
+                </button>
+              </div>
+            )}
+
+            {/* Timer Section */}
+            {showSchedule && schedule && schedule.rounds.length > 0 && (
+              <div className="bg-green-50 p-4 rounded-lg mb-6">
+                <h3 className="text-lg font-semibold mb-4">Timer</h3>
+                <div className="text-center">
+                  <div className="text-5xl font-bold mb-4">
+                    {formatTime(timerState.timeRemaining)}
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Runde {timerState.currentRound + 1} von {schedule.rounds.length}
+                  </p>
+                  <div className="flex justify-center gap-3">
+                    {!timerState.isRunning && !timerState.isPaused && (
+                      <button
+                        onClick={startTimer}
+                        className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                      >
+                        ▶ Timer starten
+                      </button>
+                    )}
+                    {timerState.isRunning && (
+                      <button
+                        onClick={pauseTimer}
+                        className="px-6 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+                      >
+                        ⏸ Pausieren
+                      </button>
+                    )}
+                    {timerState.isPaused && (
+                      <button
+                        onClick={startTimer}
+                        className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                      >
+                        ▶ Fortsetzen
+                      </button>
+                    )}
+                    {(timerState.isRunning || timerState.isPaused) && (
+                      <button
+                        onClick={stopTimer}
+                        className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                      >
+                        ⏹ Stoppen
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!showSchedule ? (
+              // Schedule Generation Options
+              <>
+                {selectedEvent.players.length >= (selectedEvent.format === 'singles' ? 2 : 4) && (
+                  <div className="bg-gray-50 p-6 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-4">Spielplan-Optionen</h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Spielmodus
+                        </label>
+                        <select
+                          value={playMode}
+                          onChange={(e) => setPlayMode(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        >
+                          <option value="continuous">Durchgehend spielen</option>
+                          <option value="rotation">Rotation mit Wartezeit</option>
+                          <option value="minGames">Mindestspiele garantieren</option>
+                          <option value="minTime">Mindestspielzeit garantieren</option>
+                        </select>
+                      </div>
+                      
+                      {playMode === 'rotation' && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Wartezeit zwischen Spielen (Runden)
+                          </label>
+                          <input
+                            type="number"
+                            value={waitingTime}
+                            onChange={(e) => setWaitingTime(parseInt(e.target.value) || 5)}
+                            min="0"
+                            max="30"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                      )}
+                      
+                      {playMode === 'minGames' && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Mindestspiele pro Spieler
+                          </label>
+                          <input
+                            type="number"
+                            value={minGamesPerPlayer}
+                            onChange={(e) => setMinGamesPerPlayer(parseInt(e.target.value) || 3)}
+                            min="1"
+                            max="20"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                      )}
+                      
+                      {playMode === 'minTime' && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Mindestspielzeit pro Spieler (Minuten)
+                          </label>
+                          <input
+                            type="number"
+                            value={minPlayTimeMinutes}
+                            onChange={(e) => setMinPlayTimeMinutes(parseInt(e.target.value) || 45)}
+                            min="15"
+                            max="300"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                      )}
+                      
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={considerSkillLevel}
+                          onChange={(e) => setConsiderSkillLevel(e.target.checked)}
+                          className="mr-2"
+                        />
+                        <span className="text-sm">Spielstärke berücksichtigen (für ausgeglichene Teams)</span>
+                      </label>
+                    </div>
+                    
+                    <button
+                      onClick={generateSchedule}
+                      className="mt-6 w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium text-lg"
+                    >
+                      Spielplan generieren
+                    </button>
+                  </div>
+                )}
+                
+                {selectedEvent.players.length < (selectedEvent.format === 'singles' ? 2 : 4) && (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg">
+                    <p className="text-gray-600 mb-2">
+                      Mindestens {selectedEvent.format === 'singles' ? '2' : '4'} Spieler benötigt
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Aktuell angemeldet: {selectedEvent.players.length} Spieler
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              // Schedule Display
+              <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-semibold">Spielplan</h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowResults(!showResults)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    >
+                      {showResults ? 'Spielplan anzeigen' : 'Ergebnisse & Tabelle'}
+                    </button>
+                    <button
+                      onClick={() => setShowExportMenu(!showExportMenu)}
+                      className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                    >
+                      Export & Teilen
+                    </button>
+                  </div>
+                </div>
+
+                {showExportMenu && (
+                  <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <button
+                        onClick={exportToPDF}
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                      >
+                        📄 Als PDF drucken
+                      </button>
+                      <button
+                        onClick={shareViaWhatsApp}
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                      >
+                        📱 Ergebnisse teilen
+                      </button>
+                      <div className="relative">
+                        <select
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              sharePlayerSchedule(e.target.value)
+                              e.target.value = ''
+                            }
+                          }}
+                          className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer"
+                        >
+                          <option value="">📋 Spielerplan teilen</option>
+                          {selectedEvent.players.map(player => (
+                            <option key={player.id} value={player.id}>
+                              {player.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!showResults ? (
+                  <div className="space-y-4">
+                    {/* Zeitstatus-Anzeige */}
+                    {currentTimelinePosition >= 0 && (
+                      <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="font-semibold text-blue-900">Zeitplan-Status</h4>
+                          <span className="text-sm text-blue-700">
+                            {new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <div className="w-full bg-gray-200 rounded-full h-4">
+                            <div 
+                              className="bg-blue-600 h-4 rounded-full transition-all duration-300"
+                              style={{ width: `${currentTimelinePosition}%` }}
+                            />
+                          </div>
+                          <div 
+                            className="absolute top-0 h-4 w-1 bg-red-600"
+                            style={{ left: `${currentTimelinePosition}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600 mt-1">
+                          <span>{selectedEvent.startTime}</span>
+                          <span>
+                            {(() => {
+                              const now = new Date()
+                              const eventStart = new Date(`${selectedEvent.date} ${selectedEvent.startTime}`)
+                              const eventEnd = new Date(`${selectedEvent.date} ${selectedEvent.endTime}`)
+                              const totalMinutes = (eventEnd - eventStart) / 60000
+                              const elapsedMinutes = Math.max(0, (now - eventStart) / 60000)
+                              const currentRoundEstimate = Math.floor(elapsedMinutes / selectedEvent.roundDuration) + 1
+                              const totalRounds = schedule.rounds.filter(r => !r.isBreak).length
+                              
+                              if (currentTimelinePosition === 0) return "Event noch nicht gestartet"
+                              if (currentTimelinePosition === 100) return "Event beendet"
+                              
+                              return `Sollte bei Runde ${Math.min(currentRoundEstimate, totalRounds)} sein`
+                            })()}
+                          </span>
+                          <span>{selectedEvent.endTime}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Runden-Liste */}
+                    {schedule.rounds.map((round, roundIndex) => {
+                      const roundStartTime = new Date(`${selectedEvent.date} ${round.startTime}`)
+                      const now = new Date()
+                      const shouldBeActive = now >= roundStartTime && now < new Date(`${selectedEvent.date} ${round.endTime}`)
+                      const isPast = now > new Date(`${selectedEvent.date} ${round.endTime}`)
+                      
+                      return (
+                        <div 
+                          key={roundIndex} 
+                          className={`border rounded-lg p-4 relative ${
+                            round.isBreak ? 'bg-yellow-50 border-yellow-300' : 
+                            timerState.isRunning && roundIndex === timerState.currentRound ? 'bg-green-50 border-green-500' : 
+                            shouldBeActive && currentTimelinePosition >= 0 ? 'bg-blue-50 border-blue-400' :
+                            isPast && currentTimelinePosition >= 0 ? 'bg-gray-100 border-gray-300' :
+                            'bg-white border-gray-200'
+                          }`}
+                        >
+                          {currentTimelinePosition >= 0 && !round.isBreak && (
+                            <div className="absolute -left-3 top-1/2 transform -translate-y-1/2">
+                              {shouldBeActive && (
+                                <div className="w-6 h-6 bg-blue-600 rounded-full animate-pulse" title="Sollte jetzt gespielt werden" />
+                              )}
+                              {isPast && (
+                                <div className="w-6 h-6 bg-gray-400 rounded-full" title="Sollte bereits gespielt sein" />
+                              )}
+                            </div>
+                          )}
+                          
+                          {round.isBreak ? (
+                            <div className="text-center">
+                              <p className="font-semibold text-yellow-800">☕ PAUSE</p>
+                              <p className="text-sm text-yellow-600">{round.startTime} - {round.endTime}</p>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex justify-between items-center mb-3">
+                                <h4 className="font-semibold">
+                                  Runde {round.round} ({round.startTime} - {round.endTime})
+                                  {shouldBeActive && currentTimelinePosition >= 0 && (
+                                    <span className="ml-2 text-sm text-blue-600">(Sollte jetzt laufen)</span>
+                                  )}
+                                </h4>
+                                {timerState.isRunning && roundIndex === timerState.currentRound && (
+                                  <span className="text-sm text-green-600 font-semibold">
+                                    ▶ AKTIV
+                                  </span>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                {round.matches.map((match, matchIndex) => (
+                                  <div key={matchIndex} className="bg-gray-50 p-3 rounded flex items-center justify-between">
+                                    <div className="flex-1">
+                                      <span className="font-medium">Court {match.court}:</span>
+                                      <div className="text-sm">
+                                        {match.playerNames[0]} <span className="text-gray-400">vs</span> {match.playerNames[1]}
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2 items-center">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="99"
+                                        value={selectedEvent.results?.[`${roundIndex}-${matchIndex}`]?.team1Score || ''}
+                                        onChange={(e) => updateMatchResult(roundIndex, matchIndex, e.target.value, selectedEvent.results?.[`${roundIndex}-${matchIndex}`]?.team2Score || 0)}
+                                        className="w-12 px-2 py-1 border border-gray-300 rounded text-center"
+                                        placeholder="0"
+                                      />
+                                      <span className="text-gray-400">:</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="99"
+                                        value={selectedEvent.results?.[`${roundIndex}-${matchIndex}`]?.team2Score || ''}
+                                        onChange={(e) => updateMatchResult(roundIndex, matchIndex, selectedEvent.results?.[`${roundIndex}-${matchIndex}`]?.team1Score || 0, e.target.value)}
+                                        className="w-12 px-2 py-1 border border-gray-300 rounded text-center"
+                                        placeholder="0"
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                                {round.restingPlayers && round.restingPlayers.length > 0 && (
+                                  <p className="text-sm text-gray-500 italic mt-2">
+                                    Pausieren: {round.restingPlayers.join(', ')}
+                                  </p>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  // Results View
+                  <div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Punktesystem:
+                      </label>
+                      <select
+                        value={scoreSystem}
+                        onChange={(e) => setScoreSystem(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="americano">Americano (Punkte zählen)</option>
+                        <option value="normal">Normal (Sieg = 3 Pkt, Unentschieden = 1 Pkt)</option>
+                      </select>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="bg-gray-100">
+                            <th className="border border-gray-300 px-4 py-2 text-left">Pos</th>
+                            <th className="border border-gray-300 px-4 py-2 text-left">Spieler</th>
+                            <th className="border border-gray-300 px-4 py-2">Spiele</th>
+                            <th className="border border-gray-300 px-4 py-2">S</th>
+                            <th className="border border-gray-300 px-4 py-2">U</th>
+                            <th className="border border-gray-300 px-4 py-2">N</th>
+                            <th className="border border-gray-300 px-4 py-2">Tore</th>
+                            <th className="border border-gray-300 px-4 py-2">Diff</th>
+                            <th className="border border-gray-300 px-4 py-2">Punkte</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {calculateStandings().map((player, index) => (
+                            <tr key={player.name} className={index < 3 ? 'bg-green-50' : ''}>
+                              <td className="border border-gray-300 px-4 py-2">{index + 1}</td>
+                              <td className="border border-gray-300 px-4 py-2">{player.name}</td>
+                              <td className="border border-gray-300 px-4 py-2 text-center">{player.played}</td>
+                              <td className="border border-gray-300 px-4 py-2 text-center">{player.won}</td>
+                              <td className="border border-gray-300 px-4 py-2 text-center">{player.drawn}</td>
+                              <td className="border border-gray-300 px-4 py-2 text-center">{player.lost}</td>
+                              <td className="border border-gray-300 px-4 py-2 text-center">
+                                {player.goalsFor}:{player.goalsAgainst}
+                              </td>
+                              <td className="border border-gray-300 px-4 py-2 text-center">
+                                {player.goalDifference > 0 ? '+' : ''}{player.goalDifference}
+                              </td>
+                              <td className="border border-gray-300 px-4 py-2 text-center font-bold">
+                                {player.points}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+{/* Spieler-Statistiken */}
+                <div className="mt-6 bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-3">Spieler-Statistiken</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {schedule.stats.map((stat) => (
+                      <div key={stat.name} className="bg-white p-3 rounded border border-gray-200">
+                        <p className="font-medium">{stat.name}</p>
+                        <div className="text-sm text-gray-600 mt-1">
+                          <p>{stat.games} Spiele | {stat.playTime} Min</p>
+                          <p>{stat.partners} Partner | {stat.opponents} Gegner</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default App
