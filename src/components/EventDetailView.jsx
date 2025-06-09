@@ -270,86 +270,103 @@ export function EventDetailView({
   }
 
   // Calculate standings with fairness from schedule generation
-  const calculateStandings = () => {
-    const playerStats = {}
-    
-    // Initialize
-    localEvent.players.forEach(player => {
-      playerStats[player.id] = {
-        ...player,
-        points: 0,
-        gamesWon: 0,
-        gamesPlayed: 0,
-        partners: new Set(),
-        opponents: new Set()
-      }
-    })
-    
-    // Process all results
-    Object.entries(matchResults).forEach(([matchKey, matchData]) => {
-      if (!matchData.result) return
-      
-      const { team1, team2, result } = matchData
-      
-      // Update team 1
-      team1.forEach((player, i) => {
-        if (!playerStats[player.id]) return
-        
-        playerStats[player.id].gamesPlayed++
-        playerStats[player.id].gamesWon += result.team1Score || 0
-        playerStats[player.id].points += result.team1Points || 0
-        
-        const partnerId = team1[1-i]?.id
-        if (partnerId && playerStats[partnerId]) {
-          playerStats[player.id].partners.add(partnerId)
+const calculateStandings = () => {
+  const playerStats = {}
+  
+  // Initialize
+  localEvent.players.forEach(player => {
+    playerStats[player.id] = {
+      ...player,
+      points: 0,
+      gamesWon: 0,
+      gamesPlayed: 0,
+      partners: new Set(),
+      opponents: new Set()
+    }
+  })
+  
+  // Process schedule first to get partner/opponent data
+  schedule.forEach(round => {
+    round.matches?.forEach(match => {
+      if (match.team1 && match.team2) {
+        // Track partners
+        if (match.team1[0] && match.team1[1]) {
+          playerStats[match.team1[0].id]?.partners.add(match.team1[1].id)
+          playerStats[match.team1[1].id]?.partners.add(match.team1[0].id)
+        }
+        if (match.team2[0] && match.team2[1]) {
+          playerStats[match.team2[0].id]?.partners.add(match.team2[1].id)
+          playerStats[match.team2[1].id]?.partners.add(match.team2[0].id)
         }
         
-        team2.forEach(opp => {
-          if (opp?.id && playerStats[opp.id]) {
-            playerStats[player.id].opponents.add(opp.id)
-          }
+        // Track opponents
+        match.team1?.forEach(p1 => {
+          match.team2?.forEach(p2 => {
+            if (playerStats[p1.id] && playerStats[p2.id]) {
+              playerStats[p1.id].opponents.add(p2.id)
+              playerStats[p2.id].opponents.add(p1.id)
+            }
+          })
         })
-      })
-      
-      // Update team 2
-      team2.forEach((player, i) => {
-        if (!playerStats[player.id]) return
-        
-        playerStats[player.id].gamesPlayed++
-        playerStats[player.id].gamesWon += result.team2Score || 0
-        playerStats[player.id].points += result.team2Points || 0
-        
-        const partnerId = team2[1-i]?.id
-        if (partnerId && playerStats[partnerId]) {
-          playerStats[player.id].partners.add(partnerId)
-        }
-        
-        team1.forEach(opp => {
-          if (opp?.id && playerStats[opp.id]) {
-            playerStats[player.id].opponents.add(opp.id)
-          }
-        })
-      })
-    })
-    
-    // Verwende Fairness-Score aus der Spielplan-Generierung wenn verfügbar
-    const standings = Object.values(playerStats).map(player => {
-      const scheduleFairness = scheduleStats?.playerStats?.find(p => p.name === player.name)?.fairness
-      
-      return {
-        ...player,
-        uniquePartners: player.partners.size,
-        uniqueOpponents: player.opponents.size,
-        fairnessScore: scheduleFairness || Math.round((player.partners.size + player.opponents.size) / Math.max(1, player.gamesPlayed * 3) * 100)
       }
     })
+  })
+  
+  // Process all results
+  Object.entries(matchResults).forEach(([matchKey, matchData]) => {
+    if (!matchData.result) return
     
-    // Sort by points, then games won
-    return standings.sort((a, b) => {
-      if (b.points !== a.points) return b.points - a.points
-      return b.gamesWon - a.gamesWon
+    const { team1, team2, result } = matchData
+    
+    // Update team 1
+    team1?.forEach(player => {
+      if (!playerStats[player.id]) return
+      
+      playerStats[player.id].gamesPlayed++
+      playerStats[player.id].gamesWon += result.team1Score || 0
+      playerStats[player.id].points += result.team1Points || 0
     })
-  }
+    
+    // Update team 2
+    team2?.forEach(player => {
+      if (!playerStats[player.id]) return
+      
+      playerStats[player.id].gamesPlayed++
+      playerStats[player.id].gamesWon += result.team2Score || 0
+      playerStats[player.id].points += result.team2Points || 0
+    })
+  })
+  
+  // Verwende Fairness-Score aus der Spielplan-Generierung wenn verfügbar
+  const standings = Object.values(playerStats).map(player => {
+    const scheduleFairness = scheduleStats?.playerStats?.find(p => p.name === player.name)?.fairness
+    
+    // Berechne Fairness basierend auf verschiedenen Partnern/Gegnern
+    const maxPossiblePartners = localEvent.players.length - 1
+    const actualPartners = player.partners.size
+    const actualOpponents = player.opponents.size
+    
+    let fairnessScore = 0
+    if (maxPossiblePartners > 0) {
+      const partnerRatio = actualPartners / maxPossiblePartners
+      const opponentRatio = actualOpponents / maxPossiblePartners
+      fairnessScore = Math.round(((partnerRatio + opponentRatio) / 2) * 100)
+    }
+    
+    return {
+      ...player,
+      uniquePartners: actualPartners,
+      uniqueOpponents: actualOpponents,
+      fairnessScore: scheduleFairness || fairnessScore
+    }
+  })
+  
+  // Sort by points, then games won
+  return standings.sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points
+    return b.gamesWon - a.gamesWon
+  })
+}
 
   const formatTime = (minutes) => {
     const [startHours, startMins] = localEvent.startTime.split(':').map(Number)
