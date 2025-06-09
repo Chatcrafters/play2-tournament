@@ -169,7 +169,7 @@ export const EventForm = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
-      <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg p-6 max-w-4xl w-full h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold mb-4">
           {editingEvent ? 'Event bearbeiten' : 'Neues Event erstellen'}
         </h2>
@@ -253,7 +253,7 @@ export const EventForm = ({
             {/* Americano Erklärung */}
             {formData.eventType === 'americano' && (
               <div className="mt-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="border border-blue-200 rounded-lg p-4">
                   <h4 className="font-semibold text-blue-900 mb-2">ℹ️ Americano Format</h4>
                   <p className="text-sm text-gray-700">
                     Beim Americano spielt jeder Teilnehmer in wechselnden 2er-Teams. 
@@ -362,14 +362,14 @@ export const EventForm = ({
                 
                 {/* Live-Berechnung für eintägiges Event */}
                 {formData.startTime && formData.endTime && formData.courts && (
-                  <div className="mt-4 p-3 bg-blue-50 rounded">
-                    <p className="text-sm text-blue-800">
-                      <strong>Spielzeit:</strong> {calculateTotalMinutes ? calculateTotalMinutes(formData) : 0} Minuten<br/>
-                      <strong>Empfohlene max. Spieler:</strong> {
-                        formData.courts * 4 + (formData.courts >= 2 ? 2 : 0)
-                      } Spieler
-                    </p>
-                  </div>
+                  <div className="mt-4 p-3 border border-blue-200 rounded">
+  <p className="text-sm text-blue-800">
+    <strong>Spielzeit:</strong> {calculateTotalMinutes ? calculateTotalMinutes(formData) : 0} Minuten<br/>
+    <strong>Empfohlene max. Spieler:</strong> {
+      formData.courts * 4 + (formData.courts >= 2 ? 2 : 0)
+    } Spieler
+  </p>
+</div>
                 )}
               </div>
             ) : (
@@ -463,7 +463,7 @@ export const EventForm = ({
                     {formData.dailySchedule?.[index]?.start && 
                      formData.dailySchedule?.[index]?.end && 
                      formData.dailySchedule?.[index]?.active !== false && (
-                      <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
+                      <div className="mt-2 p-2 border border-blue-200 rounded text-xs">
                         <strong>Spielzeit:</strong> {calculateDailyPlayTime(index)} Min • 
                         <strong> Max. Spieler:</strong> {calculateMaxPlayersPerDay(index)}
                       </div>
@@ -472,7 +472,7 @@ export const EventForm = ({
                 ))}
                 
                 {/* Gesamt-Übersicht */}
-                <div className="mt-4 p-3 bg-blue-100 rounded">
+                <div className="mt-4 p-3 border border-blue-300 rounded">
                   <p className="text-sm font-semibold text-blue-900">
                     Gesamt-Kapazität über alle Tage: {
                       getDaysArray().reduce((sum, _, idx) => 
@@ -624,7 +624,7 @@ export const EventForm = ({
 
               {/* Berechnung maximale Spieleranzahl */}
               {formData.startTime && formData.endTime && calculateTotalMinutes && calculateMaxPlayers && !isMultiDay && (
-                <div className="bg-blue-50 p-4 rounded">
+                <div className="border border-blue-200 p-4 rounded">
                   <p className="text-sm text-blue-800">
                     <strong>Maximale Spieleranzahl:</strong> {calculateMaxPlayers(formData)} Spieler
                     <br />
