@@ -380,7 +380,7 @@ export const EventForm = ({
                 </p>
                 
                 {getDaysArray().map((day, index) => (
-                  <div key={index} className="bg-gray-50 p-4 rounded">
+                  <div key={index} className="p-4 rounded border border-gray-200">
                     <h4 className="font-medium mb-3">
                       {day.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </h4>
@@ -573,7 +573,7 @@ export const EventForm = ({
               </div>
 
               {formData.spielmodus === 'garantie' && (
-                <div className="bg-gray-50 p-4 rounded space-y-3">
+                <div className="p-4 rounded border border-gray-200 space-y-3">
                   <label className="flex items-center">
                     <input
                       type="checkbox"
