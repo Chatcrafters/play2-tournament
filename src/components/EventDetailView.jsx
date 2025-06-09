@@ -235,41 +235,57 @@ export function EventDetailView({
   }
 
   const handleInlineScoreSubmit = (roundIdx, matchIdx) => {
-    const matchKey = `${roundIdx}-${matchIdx}`
-    const score = scores[matchKey]
-    const match = schedule[roundIdx].matches[matchIdx]
-    
-    if (!score || score.team1Score === undefined || score.team2Score === undefined) {
-      alert('Bitte beide Ergebnisse eingeben')
-      return
-    }
-    
-    const team1Points = score.team1Score > score.team2Score ? 2 : score.team1Score < score.team2Score ? 0 : 1
-    const team2Points = score.team1Score < score.team2Score ? 2 : score.team1Score > score.team2Score ? 0 : 1
-    
-    const result = {
-      ...match,
-      result: {
-        team1Score: score.team1Score,
-        team2Score: score.team2Score,
-        team1Points,
-        team2Points
-      }
-    }
-    
-    const updatedResults = { ...matchResults, [matchKey]: result }
-    setMatchResults(updatedResults)
-    handleUpdateEvent({ results: updatedResults })
-    
-    // Kurzes visuelles Feedback
-    const element = document.getElementById(`match-${matchKey}`)
-    if (element) {
-      element.classList.add('bg-green-50')
-      setTimeout(() => element.classList.remove('bg-green-50'), 1000)
+  const matchKey = `${roundIdx}-${matchIdx}`
+  const score = scores[matchKey]
+  const match = schedule[roundIdx].matches[matchIdx]
+  
+  if (!score || score.team1Score === undefined || score.team2Score === undefined) {
+    alert('Bitte beide Ergebnisse eingeben')
+    return
+  }
+  
+  const team1Points = score.team1Score > score.team2Score ? 2 : score.team1Score < score.team2Score ? 0 : 1
+  const team2Points = score.team1Score < score.team2Score ? 2 : score.team1Score > score.team2Score ? 0 : 1
+  
+  const result = {
+    ...match,
+    result: {
+      team1Score: score.team1Score,
+      team2Score: score.team2Score,
+      team1Points,
+      team2Points
     }
   }
+  
+  const updatedResults = { ...matchResults, [matchKey]: result }
+  setMatchResults(updatedResults)
+  
+  // WICHTIG: Hier müssen wir das komplette Event updaten, nicht nur results
+  const updatedEvent = {
+    ...localEvent,
+    results: updatedResults
+  }
+  
+  // Update both local state and database
+  setLocalEvent(updatedEvent)
+  onUpdateEvent(updatedEvent)
+  
+  // Clear the score input
+  setScores(prev => {
+    const newScores = { ...prev }
+    delete newScores[matchKey]
+    return newScores
+  })
+  
+  // Kurzes visuelles Feedback
+  const element = document.getElementById(`match-${matchKey}`)
+  if (element) {
+    element.classList.add('bg-green-50')
+    setTimeout(() => element.classList.remove('bg-green-50'), 1000)
+  }
+}
 
-  // Calculate standings with fairness from schedule generation
+ // Calculate standings with fairness from schedule generation
 const calculateStandings = () => {
   const playerStats = {}
   
@@ -320,7 +336,10 @@ const calculateStandings = () => {
     
     // Update team 1
     team1?.forEach(player => {
-      if (!playerStats[player.id]) return
+      if (!player?.id || !playerStats[player.id]) {
+        console.warn('Missing player in team1:', player)
+        return
+      }
       
       playerStats[player.id].gamesPlayed++
       playerStats[player.id].gamesWon += result.team1Score || 0
@@ -329,7 +348,10 @@ const calculateStandings = () => {
     
     // Update team 2
     team2?.forEach(player => {
-      if (!playerStats[player.id]) return
+      if (!player?.id || !playerStats[player.id]) {
+        console.warn('Missing player in team2:', player)
+        return
+      }
       
       playerStats[player.id].gamesPlayed++
       playerStats[player.id].gamesWon += result.team2Score || 0
@@ -342,7 +364,7 @@ const calculateStandings = () => {
     const scheduleFairness = scheduleStats?.playerStats?.find(p => p.name === player.name)?.fairness
     
     // Berechne Fairness basierend auf verschiedenen Partnern/Gegnern
-    const maxPossiblePartners = localEvent.players.length - 1
+    const maxPossiblePartners = Math.max(1, localEvent.players.length - 1)
     const actualPartners = player.partners.size
     const actualOpponents = player.opponents.size
     

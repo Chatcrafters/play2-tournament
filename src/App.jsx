@@ -162,34 +162,36 @@ function App() {
   }
 
   const handleUpdateEvent = async (updatedEvent) => {
-    try {
-      // Sicherstellen dass Zeitfelder nicht leer sind
-      const eventToUpdate = {
-        ...updatedEvent,
-        startTime: updatedEvent.startTime || '09:00',
-        endTime: updatedEvent.endTime || '18:00'
-      }
-      
-      const updated = await dbOperations.updateEvent(eventToUpdate.id, eventToUpdate)
-      
-      setEvents(events.map(event => 
-        event.id === updated.id ? updated : event
-      ))
-      
-      if (selectedEvent?.id === updated.id) {
-        setSelectedEvent(updated)
-      }
-      
-      if (editingEvent?.id === updated.id) {
-        setEditingEvent(null)
-        setShowCreateForm(false)
-        setFormData(getInitialFormData())
-      }
-    } catch (error) {
-      console.error('Error updating event:', error)
-      alert('Fehler beim Aktualisieren des Events')
+  try {
+    // Sicherstellen dass Zeitfelder nicht leer sind
+    const eventToUpdate = {
+      ...updatedEvent,
+      startTime: updatedEvent.startTime || '09:00',
+      endTime: updatedEvent.endTime || '18:00'
     }
+    
+    console.log('Updating event with results:', eventToUpdate.results)
+    
+    const updated = await dbOperations.updateEvent(eventToUpdate.id, eventToUpdate)
+    
+    setEvents(events.map(event => 
+      event.id === updated.id ? updated : event
+    ))
+    
+    if (selectedEvent?.id === updated.id) {
+      setSelectedEvent(updated)
+    }
+    
+    if (editingEvent?.id === updated.id) {
+      setEditingEvent(null)
+      setShowCreateForm(false)
+      setFormData(getInitialFormData())
+    }
+  } catch (error) {
+    console.error('Error updating event:', error)
+    alert('Fehler beim Aktualisieren des Events')
   }
+}
 
   const handleDeleteEvent = async (eventId) => {
     if (window.confirm('Möchten Sie dieses Event wirklich löschen?')) {
