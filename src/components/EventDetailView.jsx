@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { generateAmericanoSchedule, analyzeScheduleQuality, calculateFinalStats } from '../utils/americanoScheduleHelper'
 
-// Standalone EventDetailView Component - Komplett in sich geschlossen
+// Komplette EventDetailView mit Fairness-Anzeige, Inline-Ergebniseingabe und Tabellen-Optionen
 export function EventDetailView({ 
   selectedEvent, 
   onUpdateEvent, 
@@ -26,19 +27,21 @@ export function EventDetailView({
       roundDuration: selectedEvent.roundDuration || 15,
       startTime: selectedEvent.startTime || '09:00',
       endTime: selectedEvent.endTime || '13:00',
-      regenerateCount: selectedEvent.regenerateCount || 0
+      regenerateCount: selectedEvent.regenerateCount || 0,
+      showRealTimeTable: selectedEvent.showRealTimeTable !== false // Default: true
     }
   })
   
   const [schedule, setSchedule] = useState([])
+  const [scheduleStats, setScheduleStats] = useState(null) // NEU: Fairness-Statistiken
   const [currentRound, setCurrentRound] = useState(0)
   const [matchResults, setMatchResults] = useState({})
-  const [activeView, setActiveView] = useState('schedule')
   const [showAddPlayer, setShowAddPlayer] = useState(false)
   const [newPlayer, setNewPlayer] = useState({ name: '', gender: 'male', skillLevel: 'B' })
   const [scores, setScores] = useState({})
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
   const [showPlayerDatabase, setShowPlayerDatabase] = useState(false)
+  const [showTableSettings, setShowTableSettings] = useState(false) // NEU: Tabellen-Einstellungen
 
   // Initialize from selectedEvent
   useEffect(() => {
@@ -49,7 +52,8 @@ export function EventDetailView({
         schedule: Array.isArray(selectedEvent.schedule) ? selectedEvent.schedule : [],
         results: selectedEvent.results || {},
         currentRound: selectedEvent.currentRound || 0,
-        timerState: selectedEvent.timerState || 'stopped'
+        timerState: selectedEvent.timerState || 'stopped',
+        showRealTimeTable: selectedEvent.showRealTimeTable !== false
       }
       
       setLocalEvent(safeEvent)
@@ -103,136 +107,7 @@ export function EventDetailView({
     handleUpdateEvent({ players: updatedPlayers })
   }
 
-  // Americano Schedule Generation
-  const generateAmericanoSchedule = (players, courts, rounds) => {
-    const schedule = []
-    const playerCount = players.length
-    const playersPerMatch = 4
-    const matchesPerRound = Math.min(Math.floor(playerCount / playersPerMatch), courts)
-    
-    // Tracking
-    const partnerCount = {}
-    const opponentCount = {}
-    const gamesPlayed = {}
-    const lastPlayed = {}
-    
-    // Initialize tracking
-    players.forEach(p => {
-      gamesPlayed[p.id] = 0
-      lastPlayed[p.id] = -10
-      partnerCount[p.id] = {}
-      opponentCount[p.id] = {}
-      players.forEach(p2 => {
-        if (p.id !== p2.id) {
-          partnerCount[p.id][p2.id] = 0
-          opponentCount[p.id][p2.id] = 0
-        }
-      })
-    })
-    
-    // Generate rounds
-    for (let round = 0; round < rounds; round++) {
-      const roundMatches = []
-      const usedPlayers = new Set()
-      
-      // Sort players by games played (ascending)
-      const availablePlayers = [...players].sort((a, b) => {
-        const diff = gamesPlayed[a.id] - gamesPlayed[b.id]
-        if (diff !== 0) return diff
-        return (round - lastPlayed[b.id]) - (round - lastPlayed[a.id])
-      })
-      
-      // Create matches for this round
-      for (let court = 1; court <= matchesPerRound && availablePlayers.filter(p => !usedPlayers.has(p.id)).length >= 4; court++) {
-        // Get 4 players with least games
-        const matchPlayers = []
-        for (const player of availablePlayers) {
-          if (!usedPlayers.has(player.id) && matchPlayers.length < 4) {
-            matchPlayers.push(player)
-            usedPlayers.add(player.id)
-          }
-        }
-        
-        if (matchPlayers.length === 4) {
-          // Find best pairing
-          let bestPairing = null
-          let bestScore = Infinity
-          
-          const pairings = [
-            [[0, 1], [2, 3]],
-            [[0, 2], [1, 3]],
-            [[0, 3], [1, 2]]
-          ]
-          
-          for (const [[a, b], [c, d]] of pairings) {
-            const p1 = matchPlayers[a]
-            const p2 = matchPlayers[b]
-            const p3 = matchPlayers[c]
-            const p4 = matchPlayers[d]
-            
-            // Calculate score (lower is better)
-            let score = 0
-            score += partnerCount[p1.id][p2.id] * 100
-            score += partnerCount[p3.id][p4.id] * 100
-            score += opponentCount[p1.id][p3.id] * 10
-            score += opponentCount[p1.id][p4.id] * 10
-            score += opponentCount[p2.id][p3.id] * 10
-            score += opponentCount[p2.id][p4.id] * 10
-            
-            if (score < bestScore) {
-              bestScore = score
-              bestPairing = {
-                team1: [p1, p2],
-                team2: [p3, p4]
-              }
-            }
-          }
-          
-          if (bestPairing) {
-            roundMatches.push({
-              court,
-              team1: bestPairing.team1,
-              team2: bestPairing.team2
-            })
-            
-            // Update tracking
-            const { team1, team2 } = bestPairing
-            partnerCount[team1[0].id][team1[1].id]++
-            partnerCount[team1[1].id][team1[0].id]++
-            partnerCount[team2[0].id][team2[1].id]++
-            partnerCount[team2[1].id][team2[0].id]++
-            
-            team1.forEach(p1 => {
-              team2.forEach(p2 => {
-                opponentCount[p1.id][p2.id]++
-                opponentCount[p2.id][p1.id]++
-              })
-              gamesPlayed[p1.id]++
-              lastPlayed[p1.id] = round
-            })
-            
-            team2.forEach(p => {
-              gamesPlayed[p.id]++
-              lastPlayed[p.id] = round
-            })
-          }
-        }
-      }
-      
-      // Waiting players
-      const waitingPlayers = players.filter(p => !usedPlayers.has(p.id))
-      
-      schedule.push({
-        round: round + 1,
-        matches: roundMatches,
-        waitingPlayers,
-        startTime: round * localEvent.roundDuration || 0
-      })
-    }
-    
-    return schedule
-  }
-
+  // Erweiterte Spielplan-Generierung mit Fairness-Statistiken
   const generateSchedule = () => {
     const playerCount = localEvent.players?.length || 0
     
@@ -247,12 +122,94 @@ export function EventDetailView({
     const totalMinutes = (endHours * 60 + endMins) - (startHours * 60 + startMins)
     const totalRounds = Math.floor(totalMinutes / localEvent.roundDuration)
     
+    // Generiere Spielplan mit dem neuen Algorithmus
     const newSchedule = generateAmericanoSchedule(
       localEvent.players,
       localEvent.courts,
-      totalRounds
+      totalRounds,
+      localEvent.roundDuration
     )
     
+    // Berechne Fairness-Statistiken
+    const stats = calculateFinalStats(localEvent.players, {
+      gamesPlayed: {},
+      partnerCount: {},
+      opponentCount: {},
+      timesRested: {},
+      // Simuliere Stats aus Schedule
+      ...(() => {
+        const simStats = {
+          gamesPlayed: {},
+          partnerCount: {},
+          opponentCount: {},
+          timesRested: {}
+        }
+        
+        localEvent.players.forEach(p => {
+          simStats.gamesPlayed[p.id] = 0
+          simStats.partnerCount[p.id] = {}
+          simStats.opponentCount[p.id] = {}
+          simStats.timesRested[p.id] = 0
+          
+          localEvent.players.forEach(p2 => {
+            if (p.id !== p2.id) {
+              simStats.partnerCount[p.id][p2.id] = 0
+              simStats.opponentCount[p.id][p2.id] = 0
+            }
+          })
+        })
+        
+        // Analysiere Schedule
+        newSchedule.forEach(round => {
+          const playingPlayers = new Set()
+          
+          round.matches?.forEach(match => {
+            // Team 1
+            if (match.team1?.[0] && match.team1?.[1]) {
+              const p1 = match.team1[0]
+              const p2 = match.team1[1]
+              simStats.gamesPlayed[p1.id]++
+              simStats.gamesPlayed[p2.id]++
+              simStats.partnerCount[p1.id][p2.id]++
+              simStats.partnerCount[p2.id][p1.id]++
+              playingPlayers.add(p1.id)
+              playingPlayers.add(p2.id)
+              
+              // Gegner tracken
+              match.team2?.forEach(opp => {
+                simStats.opponentCount[p1.id][opp.id]++
+                simStats.opponentCount[p2.id][opp.id]++
+                simStats.opponentCount[opp.id][p1.id]++
+                simStats.opponentCount[opp.id][p2.id]++
+              })
+            }
+            
+            // Team 2
+            if (match.team2?.[0] && match.team2?.[1]) {
+              const p1 = match.team2[0]
+              const p2 = match.team2[1]
+              simStats.gamesPlayed[p1.id]++
+              simStats.gamesPlayed[p2.id]++
+              simStats.partnerCount[p1.id][p2.id]++
+              simStats.partnerCount[p2.id][p1.id]++
+              playingPlayers.add(p1.id)
+              playingPlayers.add(p2.id)
+            }
+          })
+          
+          // Pausende Spieler
+          localEvent.players.forEach(p => {
+            if (!playingPlayers.has(p.id)) {
+              simStats.timesRested[p.id]++
+            }
+          })
+        })
+        
+        return simStats
+      })()
+    })
+    
+    setScheduleStats(stats)
     setSchedule(newSchedule)
     handleUpdateEvent({ 
       schedule: newSchedule,
@@ -260,9 +217,9 @@ export function EventDetailView({
     })
   }
 
-  // Score handling
-  const handleScoreChange = (matchIdx, team, value) => {
-    const matchKey = `${currentRound}-${matchIdx}`
+  // Score handling mit inline Eingabe
+  const handleInlineScoreChange = (roundIdx, matchIdx, team, value) => {
+    const matchKey = `${roundIdx}-${matchIdx}`
     setScores(prev => ({
       ...prev,
       [matchKey]: {
@@ -272,80 +229,42 @@ export function EventDetailView({
     }))
   }
 
-  const handleSubmitScores = () => {
-    const roundData = schedule[currentRound]
-    if (!roundData) return
+  const handleInlineScoreSubmit = (roundIdx, matchIdx) => {
+    const matchKey = `${roundIdx}-${matchIdx}`
+    const score = scores[matchKey]
+    const match = schedule[roundIdx].matches[matchIdx]
     
-    const results = {}
+    if (!score || score.team1Score === undefined || score.team2Score === undefined) {
+      alert('Bitte beide Ergebnisse eingeben')
+      return
+    }
     
-    roundData.matches.forEach((match, idx) => {
-      const matchKey = `${currentRound}-${idx}`
-      const score = scores[matchKey]
-      
-      if (score && (score.team1Score !== undefined && score.team2Score !== undefined)) {
-        const team1Points = score.team1Score > score.team2Score ? 2 : score.team1Score < score.team2Score ? 0 : 1
-        const team2Points = score.team1Score < score.team2Score ? 2 : score.team1Score > score.team2Score ? 0 : 1
-        
-        results[matchKey] = {
-          ...match,
-          result: {
-            team1Score: score.team1Score,
-            team2Score: score.team2Score,
-            team1Points,
-            team2Points
-          }
-        }
+    const team1Points = score.team1Score > score.team2Score ? 2 : score.team1Score < score.team2Score ? 0 : 1
+    const team2Points = score.team1Score < score.team2Score ? 2 : score.team1Score > score.team2Score ? 0 : 1
+    
+    const result = {
+      ...match,
+      result: {
+        team1Score: score.team1Score,
+        team2Score: score.team2Score,
+        team1Points,
+        team2Points
       }
-    })
+    }
     
-    const updatedResults = { ...matchResults, ...results }
+    const updatedResults = { ...matchResults, [matchKey]: result }
     setMatchResults(updatedResults)
     handleUpdateEvent({ results: updatedResults })
     
-    setShowSuccessMessage(true)
-    setTimeout(() => setShowSuccessMessage(false), 3000)
-  }
-
-  const handleRoundChange = (newRound) => {
-    if (newRound === currentRound) return
-    
-    // Speichere aktuelle Runden-Ergebnisse bevor zur nächsten Runde gewechselt wird
-    const roundData = schedule[currentRound]
-    if (roundData) {
-      const hasUnsavedScores = roundData.matches.some((match, idx) => {
-        const matchKey = `${currentRound}-${idx}`
-        const score = scores[matchKey]
-        return score && (score.team1Score !== undefined || score.team2Score !== undefined) && !matchResults[matchKey]
-      })
-      
-      if (hasUnsavedScores) {
-        if (!confirm('Es gibt ungespeicherte Ergebnisse in dieser Runde. Möchten Sie fortfahren ohne zu speichern?')) {
-          return
-        }
-      }
-    }
-    
-    setCurrentRound(newRound)
-    handleUpdateEvent({ currentRound: newRound })
-    
-    // Initialize scores for new round
-    const newRoundData = schedule[newRound]
-    if (newRoundData) {
-      const initialScores = {}
-      newRoundData.matches.forEach((match, idx) => {
-        const matchKey = `${newRound}-${idx}`
-        if (matchResults[matchKey]) {
-          initialScores[matchKey] = {
-            team1Score: matchResults[matchKey].result?.team1Score || 0,
-            team2Score: matchResults[matchKey].result?.team2Score || 0
-          }
-        }
-      })
-      setScores(initialScores)
+    // Kurzes visuelles Feedback
+    const element = document.getElementById(`match-${matchKey}`)
+    if (element) {
+      element.classList.add('bg-green-50')
+      setTimeout(() => element.classList.remove('bg-green-50'), 1000)
     }
   }
 
-  // Calculate standings
+  // Calculate standings with fairness from schedule generation
   const calculateStandings = () => {
     const playerStats = {}
     
@@ -369,20 +288,17 @@ export function EventDetailView({
       
       // Update team 1
       team1.forEach((player, i) => {
-        // Skip if player no longer exists in the event
         if (!playerStats[player.id]) return
         
         playerStats[player.id].gamesPlayed++
         playerStats[player.id].gamesWon += result.team1Score || 0
         playerStats[player.id].points += result.team1Points || 0
         
-        // Track partner
         const partnerId = team1[1-i]?.id
         if (partnerId && playerStats[partnerId]) {
           playerStats[player.id].partners.add(partnerId)
         }
         
-        // Track opponents
         team2.forEach(opp => {
           if (opp?.id && playerStats[opp.id]) {
             playerStats[player.id].opponents.add(opp.id)
@@ -392,20 +308,17 @@ export function EventDetailView({
       
       // Update team 2
       team2.forEach((player, i) => {
-        // Skip if player no longer exists in the event
         if (!playerStats[player.id]) return
         
         playerStats[player.id].gamesPlayed++
         playerStats[player.id].gamesWon += result.team2Score || 0
         playerStats[player.id].points += result.team2Points || 0
         
-        // Track partner
         const partnerId = team2[1-i]?.id
         if (partnerId && playerStats[partnerId]) {
           playerStats[player.id].partners.add(partnerId)
         }
         
-        // Track opponents
         team1.forEach(opp => {
           if (opp?.id && playerStats[opp.id]) {
             playerStats[player.id].opponents.add(opp.id)
@@ -414,13 +327,17 @@ export function EventDetailView({
       })
     })
     
-    // Convert to array and calculate fairness
-    const standings = Object.values(playerStats).map(player => ({
-      ...player,
-      uniquePartners: player.partners.size,
-      uniqueOpponents: player.opponents.size,
-      fairnessScore: Math.round((player.partners.size + player.opponents.size) / Math.max(1, player.gamesPlayed * 3) * 100)
-    }))
+    // Verwende Fairness-Score aus der Spielplan-Generierung wenn verfügbar
+    const standings = Object.values(playerStats).map(player => {
+      const scheduleFairness = scheduleStats?.playerStats?.find(p => p.name === player.name)?.fairness
+      
+      return {
+        ...player,
+        uniquePartners: player.partners.size,
+        uniqueOpponents: player.opponents.size,
+        fairnessScore: scheduleFairness || Math.round((player.partners.size + player.opponents.size) / Math.max(1, player.gamesPlayed * 3) * 100)
+      }
+    })
     
     // Sort by points, then games won
     return standings.sort((a, b) => {
@@ -437,42 +354,10 @@ export function EventDetailView({
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
   }
 
-  // Components
-  const NavigationTabs = () => (
-    <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
-      <button
-        onClick={() => setActiveView('schedule')}
-        className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-          activeView === 'schedule' 
-            ? 'bg-white text-blue-600 shadow-sm' 
-            : 'text-gray-600 hover:text-gray-800'
-        }`}
-      >
-        Spielplan
-      </button>
-      <button
-        onClick={() => setActiveView('scores')}
-        className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-          activeView === 'scores' 
-            ? 'bg-white text-blue-600 shadow-sm' 
-            : 'text-gray-600 hover:text-gray-800'
-        }`}
-        disabled={!schedule || schedule.length === 0}
-      >
-        Ergebnisse
-      </button>
-      <button
-        onClick={() => setActiveView('standings')}
-        className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-          activeView === 'standings' 
-            ? 'bg-white text-blue-600 shadow-sm' 
-            : 'text-gray-600 hover:text-gray-800'
-        }`}
-      >
-        Tabelle
-      </button>
-    </div>
-  )
+  // Kann noch weitere Male regeneriert werden?
+  const canRegenerate = () => {
+    return (localEvent.regenerateCount || 0) < 3 // Initial + 2 weitere = max 3
+  }
 
   // Main Render
   return (
@@ -513,7 +398,6 @@ export function EventDetailView({
             </button>
             <button
               onClick={() => {
-                console.log('Aus Datenbank clicked');
                 if (onOpenPlayerDatabase) {
                   onOpenPlayerDatabase();
                 } else {
@@ -626,229 +510,219 @@ export function EventDetailView({
         </div>
       )}
 
-      {/* Main Content with Tabs */}
+      {/* Main Content - Schedule with inline scores */}
       {schedule && schedule.length > 0 && (
         <>
-          <div className="mb-4 flex justify-between items-center">
-            <div className="text-sm text-gray-600">
-              <span className="font-medium">{schedule.length}</span> Runden • 
-              <span className="font-medium"> {localEvent.players?.length || 0}</span> Spieler • 
-              <span className="font-medium"> {localEvent.courts || 1}</span> Plätze
+          {/* Header mit Regenerate Button und Stats */}
+          <div className="mb-4 bg-white rounded-lg shadow-md p-4">
+            <div className="flex justify-between items-center mb-2">
+              <div className="text-sm text-gray-600">
+                <span className="font-medium">{schedule.length}</span> Runden • 
+                <span className="font-medium"> {localEvent.players?.length || 0}</span> Spieler • 
+                <span className="font-medium"> {localEvent.courts || 1}</span> Plätze
+              </div>
+              
+              <div className="flex items-center gap-3">
+                {/* Tabellen-Einstellungen */}
+                <button
+                  onClick={() => setShowTableSettings(!showTableSettings)}
+                  className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                >
+                  ⚙️ Tabellen-Einstellungen
+                </button>
+                
+                {/* Regenerate Button mit Counter */}
+                {canRegenerate() && (
+                  <button
+                    onClick={() => {
+                      setSchedule([])
+                      setMatchResults({})
+                      setCurrentRound(0)
+                      setScheduleStats(null)
+                      handleUpdateEvent({ 
+                        schedule: [], 
+                        results: {},
+                        currentRound: 0
+                      })
+                      setTimeout(generateSchedule, 100)
+                    }}
+                    className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
+                  >
+                    🔄 Neu generieren ({localEvent.regenerateCount || 0}/2)
+                  </button>
+                )}
+              </div>
             </div>
             
-            <button
-              onClick={() => {
-                setSchedule([])
-                setMatchResults({})
-                setCurrentRound(0)
-                handleUpdateEvent({ 
-                  schedule: [], 
-                  results: {},
-                  currentRound: 0
-                })
-                setTimeout(generateSchedule, 100)
-              }}
-              className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
-            >
-              🔄 Neu generieren
-            </button>
+            {/* Tabellen-Einstellungen Dropdown */}
+            {showTableSettings && (
+              <div className="mt-3 p-3 bg-gray-50 rounded">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={localEvent.showRealTimeTable}
+                    onChange={(e) => handleUpdateEvent({ showRealTimeTable: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm">Real-Time Tabelle anzeigen (Tabelle wird nach jeder Ergebniseingabe aktualisiert)</span>
+                </label>
+                {!localEvent.showRealTimeTable && (
+                  <p className="text-xs text-gray-600 mt-1 ml-6">
+                    Die Tabelle wird erst angezeigt, wenn alle Ergebnisse eingegeben wurden.
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {/* Fairness-Statistiken anzeigen */}
+            {scheduleStats && (
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-blue-50 rounded">
+                  <div className="text-2xl font-bold text-blue-700">
+                    {scheduleStats.summary?.avgFairness || 0}%
+                  </div>
+                  <div className="text-xs text-gray-600">Durchschn. Fairness</div>
+                </div>
+                <div className="text-center p-3 bg-green-50 rounded">
+                  <div className="text-2xl font-bold text-green-700">
+                    {scheduleStats.summary?.avgUniquePartners || 0}
+                  </div>
+                  <div className="text-xs text-gray-600">Ø Verschiedene Partner</div>
+                </div>
+                <div className="text-center p-3 bg-purple-50 rounded">
+                  <div className="text-2xl font-bold text-purple-700">
+                    {scheduleStats.summary?.avgUniqueOpponents || 0}
+                  </div>
+                  <div className="text-xs text-gray-600">Ø Verschiedene Gegner</div>
+                </div>
+                <div className="text-center p-3 bg-orange-50 rounded">
+                  <div className="text-2xl font-bold text-orange-700">
+                    {scheduleStats.summary?.maxPartnerRepeats || 0}x
+                  </div>
+                  <div className="text-xs text-gray-600">Max. Partner-Wiederholung</div>
+                </div>
+              </div>
+            )}
           </div>
           
-          <NavigationTabs />
-          
-          {/* Schedule View */}
-          {activeView === 'schedule' && (
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-xl font-semibold mb-4">Spielplan</h3>
-              <div className="space-y-6">
-                {schedule.map((round, roundIndex) => (
-                  <div key={roundIndex} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-semibold text-lg">Runde {round.round}</h4>
-                      <span className="text-sm font-medium text-gray-600">
-                        {formatTime(round.startTime)}
-                      </span>
-                    </div>
-                    <div className="space-y-3">
-                      {round.matches?.map((match, matchIndex) => (
-                        <div key={matchIndex} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                          <span className="text-sm font-medium text-gray-600">
+          {/* Spielplan mit inline Ergebniseingabe */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-xl font-semibold mb-4">Spielplan & Ergebnisse</h3>
+            <div className="space-y-6">
+              {schedule.map((round, roundIndex) => (
+                <div key={roundIndex} className="border rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-semibold text-lg">Runde {round.round}</h4>
+                    <span className="text-sm font-medium text-gray-600">
+                      {formatTime(round.startTime)}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {round.matches?.map((match, matchIndex) => {
+                      const matchKey = `${roundIndex}-${matchIndex}`
+                      const result = matchResults[matchKey]
+                      const score = scores[matchKey] || {}
+                      
+                      return (
+                        <div 
+                          key={matchIndex} 
+                          id={`match-${matchKey}`}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded transition-colors"
+                        >
+                          <span className="text-sm font-medium text-gray-600 w-16">
                             Platz {match.court}
                           </span>
-                          <div className="flex-1 mx-4 text-center">
-                            <span className="font-medium">
-                              {match.team1?.map(p => p.name).join(' & ')}
-                            </span>
-                            <span className="mx-3 text-gray-500">vs</span>
-                            <span className="font-medium">
-                              {match.team2?.map(p => p.name).join(' & ')}
-                            </span>
+                          
+                          <div className="flex-1 flex items-center justify-center gap-4">
+                            <div className="text-right flex-1">
+                              <span className="font-medium">
+                                {match.team1?.map(p => p.name).join(' & ')}
+                              </span>
+                            </div>
+                            
+                            {/* Inline Score Entry oder Ergebnis-Anzeige */}
+                            <div className="flex items-center gap-2">
+                              {result?.result ? (
+                                // Ergebnis bereits eingetragen
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-lg">{result.result.team1Score}</span>
+                                  <span className="text-gray-500">-</span>
+                                  <span className="font-bold text-lg">{result.result.team2Score}</span>
+                                  <button
+                                    onClick={() => {
+                                      // Ergebnis löschen
+                                      const newResults = { ...matchResults }
+                                      delete newResults[matchKey]
+                                      setMatchResults(newResults)
+                                      handleUpdateEvent({ results: newResults })
+                                    }}
+                                    className="ml-2 text-xs text-red-600 hover:text-red-800"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : (
+                                // Ergebnis-Eingabe
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="99"
+                                    value={score.team1Score || ''}
+                                    onChange={(e) => handleInlineScoreChange(roundIndex, matchIndex, 1, e.target.value)}
+                                    className="w-12 text-center border rounded px-1 py-1 text-sm"
+                                    placeholder="0"
+                                  />
+                                  <span className="text-gray-500">-</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="99"
+                                    value={score.team2Score || ''}
+                                    onChange={(e) => handleInlineScoreChange(roundIndex, matchIndex, 2, e.target.value)}
+                                    className="w-12 text-center border rounded px-1 py-1 text-sm"
+                                    placeholder="0"
+                                  />
+                                  <button
+                                    onClick={() => handleInlineScoreSubmit(roundIndex, matchIndex)}
+                                    disabled={score.team1Score === undefined || score.team2Score === undefined}
+                                    className="ml-2 text-green-600 hover:text-green-800 disabled:text-gray-400"
+                                  >
+                                    ✓
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="text-left flex-1">
+                              <span className="font-medium">
+                                {match.team2?.map(p => p.name).join(' & ')}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      ))}
-                      {round.waitingPlayers?.length > 0 && (
-                        <div className="p-3 bg-yellow-50 rounded">
-                          <span className="font-medium text-sm">Pausiert: </span>
-                          <span className="text-sm">
-                            {round.waitingPlayers.map(p => p.name).join(', ')}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                      )
+                    })}
+                    {round.waitingPlayers?.length > 0 && (
+                      <div className="p-3 bg-yellow-50 rounded">
+                        <span className="font-medium text-sm">Pausiert: </span>
+                        <span className="text-sm">
+                          {round.waitingPlayers.map(p => p.name).join(', ')}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Score Entry View */}
-          {activeView === 'scores' && (
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-xl font-bold mb-4">
-                Ergebnisse eintragen - Runde {currentRound + 1}
-              </h3>
-              
-              {showSuccessMessage && (
-                <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-lg">
-                  Ergebnisse erfolgreich gespeichert!
                 </div>
-              )}
-              
-              {/* Round Navigation */}
-              <div className="flex items-center justify-between mb-6 p-4 bg-gray-50 rounded-lg">
-                <button
-                  onClick={() => handleRoundChange(currentRound - 1)}
-                  disabled={currentRound === 0}
-                  className={`px-4 py-2 rounded-lg font-medium ${
-                    currentRound === 0 
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  ← Vorherige Runde
-                </button>
-                
-                <span className="font-semibold text-lg">
-                  Runde {currentRound + 1} von {schedule.length}
-                </span>
-                
-                <button
-                  onClick={() => {
-                    // Prüfe ob alle Ergebnisse eingetragen sind
-                    const roundData = schedule[currentRound]
-                    const allScoresEntered = roundData?.matches?.every((_, idx) => {
-                      const matchKey = `${currentRound}-${idx}`
-                      const score = scores[matchKey]
-                      return score && score.team1Score !== undefined && score.team2Score !== undefined
-                    })
-                    
-                    if (!allScoresEntered) {
-                      alert('Bitte tragen Sie alle Ergebnisse ein bevor Sie zur nächsten Runde wechseln.')
-                      return
-                    }
-                    
-                    // Speichere Ergebnisse automatisch
-                    handleSubmitScores()
-                    
-                    // Wechsle zur nächsten Runde nach kurzer Verzögerung
-                    setTimeout(() => {
-                      handleRoundChange(currentRound + 1)
-                    }, 500)
-                  }}
-                  disabled={currentRound >= schedule.length - 1}
-                  className={`px-4 py-2 rounded-lg font-medium ${
-                    currentRound >= schedule.length - 1 
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  Nächste Runde →
-                </button>
-              </div>
-              
-              {/* Match Scores */}
-              <div className="space-y-4 mb-6">
-                {schedule[currentRound]?.matches?.map((match, idx) => {
-                  const matchKey = `${currentRound}-${idx}`
-                  const score = scores[matchKey] || {}
-                  
-                  return (
-                    <div key={idx} className="border rounded-lg p-4">
-                      <div className="text-sm font-semibold text-gray-600 mb-2">
-                        Platz {match.court}
-                      </div>
-                      
-                      <div className="grid grid-cols-3 gap-4 items-center">
-                        <div className="text-right">
-                          <div className="font-medium">
-                            {match.team1.map(p => p.name).join(' & ')}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-center gap-2">
-                          <input
-                            type="number"
-                            min="0"
-                            max="99"
-                            value={score.team1Score || ''}
-                            onChange={(e) => handleScoreChange(idx, 1, e.target.value)}
-                            className="w-16 text-center border rounded px-2 py-1 text-lg font-bold"
-                            placeholder="0"
-                          />
-                          <span className="text-gray-500">-</span>
-                          <input
-                            type="number"
-                            min="0"
-                            max="99"
-                            value={score.team2Score || ''}
-                            onChange={(e) => handleScoreChange(idx, 2, e.target.value)}
-                            className="w-16 text-center border rounded px-2 py-1 text-lg font-bold"
-                            placeholder="0"
-                          />
-                        </div>
-                        
-                        <div className="text-left">
-                          <div className="font-medium">
-                            {match.team2.map(p => p.name).join(' & ')}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-              
-              <button
-                onClick={handleSubmitScores}
-                className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-              >
-                Runden-Ergebnisse speichern
-              </button>
-              
-              {/* Zeige gespeicherte Ergebnisse */}
-              <div className="mt-6 p-4 bg-gray-50 rounded">
-                <h4 className="font-semibold mb-2">Gespeicherte Ergebnisse:</h4>
-                {schedule[currentRound]?.matches?.map((match, idx) => {
-                  const matchKey = `${currentRound}-${idx}`
-                  const savedResult = matchResults[matchKey]
-                  
-                  if (!savedResult?.result) return null
-                  
-                  return (
-                    <div key={idx} className="text-sm mb-1">
-                      <span className="font-medium">Platz {match.court}:</span> {savedResult.result.team1Score} - {savedResult.result.team2Score}
-                      <span className="text-green-600 ml-2">✓ Gespeichert</span>
-                    </div>
-                  )
-                })}
-              </div>
+              ))}
             </div>
-          )}
+          </div>
           
-          {/* Standings View */}
-          {activeView === 'standings' && (
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-xl font-bold mb-4">Turnierstand</h3>
+          {/* Tabelle - je nach Einstellung */}
+          {(localEvent.showRealTimeTable || Object.keys(matchResults).length === schedule.reduce((sum, round) => sum + round.matches.length, 0)) && (
+            <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-bold mb-4">
+                {localEvent.showRealTimeTable ? 'Live-Turnierstand' : 'Endstand'}
+              </h3>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -894,6 +768,31 @@ export function EventDetailView({
                   </tbody>
                 </table>
               </div>
+              
+              {/* Nur bei Endstand: Fairness-Legende */}
+              {!localEvent.showRealTimeTable && (
+                <div className="mt-4 p-4 bg-gray-50 rounded text-sm">
+                  <p className="font-semibold mb-2">Fairness-Score Erklärung:</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">80-100%</span>
+                      <span className="text-xs">Sehr gut durchmischt</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold">60-79%</span>
+                      <span className="text-xs">Gut durchmischt</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-semibold">40-59%</span>
+                      <span className="text-xs">Mittelmäßig</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-semibold">0-39%</span>
+                      <span className="text-xs">Wenig Variation</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>
