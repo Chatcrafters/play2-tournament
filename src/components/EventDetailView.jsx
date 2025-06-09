@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { generateAmericanoSchedule } from '../utils/americanoAlgorithm'
 
+console.log('EventDetailView loaded - Version 1.0');
+
 // Komplette EventDetailView mit Fairness-Anzeige, Inline-Ergebniseingabe und Tabellen-Optionen
 export function EventDetailView({ 
   selectedEvent, 
