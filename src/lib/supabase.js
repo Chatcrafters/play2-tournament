@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { transformFromDB, transformToDB, cleanEventData, sanitizeEventData } from '../utils/dbHelpers'
 
-// Diese Werte finden Sie in Supabase unter Settings > API
-const supabaseUrl = 'https://ycwavingkihnepinrxlx.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inljd2F2aW5na2lobmVwaW5yeGx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0MTMwOTUsImV4cCI6MjA2Mzk4OTA5NX0.FkUmAxmCOz9-jw_6VZkmmHmmMQTxjN2Gha3xxFjz120'
+// Diese Werte kommen aus der .env.local Datei
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Supabase URL und Anon Key müssen in .env definiert sein')
