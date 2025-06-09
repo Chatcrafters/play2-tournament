@@ -267,6 +267,8 @@ export function EventDetailView({
   }
   
   // Update both local state and database
+  console.log('Saving results to DB:', updatedResults);
+  console.log('Updated event:', updatedEvent);
   setLocalEvent(updatedEvent)
   onUpdateEvent(updatedEvent)
   
