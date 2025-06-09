@@ -64,7 +64,7 @@
 }
 
 body {
-  background-color: var(--play2-gray-50);
+  background-color: white;
   color: var(--play2-gray-900);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
