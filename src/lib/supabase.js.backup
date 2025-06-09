@@ -1,0 +1,258 @@
+import { createClient } from '@supabase/supabase-js'
+
+// Diese Werte finden Sie in Supabase unter Settings > API
+const supabaseUrl = 'https://ycwavingkihnepinrxlx.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inljd2F2aW5na2lobmVwaW5yeGx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0MTMwOTUsImV4cCI6MjA2Mzk4OTA5NX0.FkUmAxmCOz9-jw_6VZkmmHmmMQTxjN2Gha3xxFjz120'
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Database operations helper
+export const dbOperations = {
+  // Events
+  async createEvent(eventData) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Nicht angemeldet')
+    
+    // Konvertiere camelCase zu snake_case für die Datenbank
+    const dbData = {
+      ...eventData,
+      event_type: eventData.eventType,
+      start_time: eventData.startTime,
+      end_time: eventData.endTime,
+      round_duration: eventData.roundDuration,
+      max_players: eventData.maxPlayers,
+      play_mode: eventData.playMode,
+      min_games_per_player: eventData.minGamesPerPlayer,
+      min_play_time_minutes: eventData.minPlayTimeMinutes,
+      waiting_time: eventData.waitingTime,
+      garantie_spiele: eventData.garantieSpiele,
+      mindest_spiele: eventData.mindestSpiele,
+      garantie_minuten: eventData.garantieMinuten,
+      mindest_minuten: eventData.mindestMinuten,
+      end_date: eventData.endDate,
+      spiel_pause: eventData.spielPause,
+      flexible_times: eventData.flexibleTimes,
+      daily_schedule: eventData.dailySchedule,
+      show_advanced_options: eventData.showAdvancedOptions,
+      event_info: eventData.eventInfo,
+      is_public: eventData.isPublic,
+      regenerate_count: eventData.regenerateCount || 0,
+      user_id: user.id,
+      created_at: new Date().toISOString()
+    }
+    
+    // Entferne undefined Werte
+    Object.keys(dbData).forEach(key => {
+      if (dbData[key] === undefined || dbData[key] === '') {
+        delete dbData[key]
+      }
+    })
+    
+    const { data, error } = await supabase
+      .from('events')
+      .insert([dbData])
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  async updateEvent(id, updates) {
+    // Konvertiere camelCase zu snake_case für Updates
+    const dbUpdates = {}
+    
+    Object.keys(updates).forEach(key => {
+      const value = updates[key]
+      
+      // Map camelCase to snake_case
+      switch(key) {
+        case 'eventType': dbUpdates.event_type = value; break;
+        case 'startTime': dbUpdates.start_time = value; break;
+        case 'endTime': dbUpdates.end_time = value; break;
+        case 'roundDuration': dbUpdates.round_duration = value; break;
+        case 'maxPlayers': dbUpdates.max_players = value; break;
+        case 'playMode': dbUpdates.play_mode = value; break;
+        case 'minGamesPerPlayer': dbUpdates.min_games_per_player = value; break;
+        case 'minPlayTimeMinutes': dbUpdates.min_play_time_minutes = value; break;
+        case 'waitingTime': dbUpdates.waiting_time = value; break;
+        case 'garantieSpiele': dbUpdates.garantie_spiele = value; break;
+        case 'mindestSpiele': dbUpdates.mindest_spiele = value; break;
+        case 'garantieMinuten': dbUpdates.garantie_minuten = value; break;
+        case 'mindestMinuten': dbUpdates.mindest_minuten = value; break;
+        case 'endDate': dbUpdates.end_date = value; break;
+        case 'spielPause': dbUpdates.spiel_pause = value; break;
+        case 'flexibleTimes': dbUpdates.flexible_times = value; break;
+        case 'dailySchedule': dbUpdates.daily_schedule = value; break;
+        case 'showAdvancedOptions': dbUpdates.show_advanced_options = value; break;
+        case 'eventInfo': dbUpdates.event_info = value; break;
+        case 'isPublic': dbUpdates.is_public = value; break;
+        case 'regenerateCount': dbUpdates.regenerate_count = value; break;
+        default: dbUpdates[key] = value;
+      }
+    })
+    
+    const { data, error } = await supabase
+      .from('events')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  async deleteEvent(id) {
+    const { error } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', id)
+    
+    if (error) throw error
+  },
+
+  async getEvents() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Nicht angemeldet')
+    
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+    
+    if (error) throw error
+    
+    // Konvertiere snake_case zurück zu camelCase
+    return (data || []).map(event => ({
+      ...event,
+      eventType: event.event_type,
+      startTime: event.start_time,
+      endTime: event.end_time,
+      roundDuration: event.round_duration,
+      maxPlayers: event.max_players,
+      playMode: event.play_mode,
+      minGamesPerPlayer: event.min_games_per_player,
+      minPlayTimeMinutes: event.min_play_time_minutes,
+      waitingTime: event.waiting_time,
+      garantieSpiele: event.garantie_spiele,
+      mindestSpiele: event.mindest_spiele,
+      garantieMinuten: event.garantie_minuten,
+      mindestMinuten: event.mindest_minuten,
+      endDate: event.end_date,
+      spielPause: event.spiel_pause,
+      flexibleTimes: event.flexible_times,
+      dailySchedule: event.daily_schedule,
+      showAdvancedOptions: event.show_advanced_options,
+      eventInfo: event.event_info,
+      isPublic: event.is_public,
+      regenerateCount: event.regenerate_count
+    }))
+  },
+
+  // Players
+  async createPlayer(player) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Nicht angemeldet')
+    
+    const { data, error } = await supabase
+      .from('players')
+      .insert([{
+        ...player,
+        user_id: user.id
+      }])
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  async updatePlayer(id, updates) {
+    const { data, error } = await supabase
+      .from('players')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  async deletePlayer(id) {
+    const { error } = await supabase
+      .from('players')
+      .delete()
+      .eq('id', id)
+    
+    if (error) throw error
+  },
+
+  async getPlayers() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Nicht angemeldet')
+    
+    const { data, error } = await supabase
+      .from('players')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('name')
+    
+    if (error) throw error
+    return data || []
+  },
+
+  // Migration von localStorage
+  async migrateFromLocalStorage() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Nicht angemeldet')
+
+      // Events migrieren
+      const localEvents = localStorage.getItem('play2_events')
+      if (localEvents) {
+        const events = JSON.parse(localEvents)
+        console.log(`Migriere ${events.length} Events...`)
+        
+        for (const event of events) {
+          try {
+            await dbOperations.createEvent(event)
+            console.log(`✅ Event "${event.name}" migriert`)
+          } catch (error) {
+            console.error(`❌ Fehler bei Event "${event.name}":`, error)
+          }
+        }
+      }
+
+      // Players migrieren
+      const localPlayers = localStorage.getItem('play2_players')
+      if (localPlayers) {
+        const players = JSON.parse(localPlayers)
+        console.log(`Migriere ${players.length} Spieler...`)
+        
+        for (const player of players) {
+          try {
+            await dbOperations.createPlayer(player)
+            console.log(`✅ Spieler "${player.name}" migriert`)
+          } catch (error) {
+            console.error(`❌ Fehler bei Spieler "${player.name}":`, error)
+          }
+        }
+      }
+
+      // Nach erfolgreicher Migration localStorage leeren
+      if (window.confirm('Migration abgeschlossen. Lokale Daten löschen?')) {
+        localStorage.removeItem('play2_events')
+        localStorage.removeItem('play2_players')
+        console.log('✅ Lokale Daten gelöscht')
+      }
+
+      return true
+    } catch (error) {
+      console.error('Migrationsfehler:', error)
+      throw error
+    }
+  }
+}

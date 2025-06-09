@@ -5,40 +5,9 @@ import { EventDetailView } from './components/EventDetailView'
 import { EventForm } from './components/EventForm'
 import PlayerDatabase from './components/PlayerDatabase.jsx'
 import { LoginScreen } from './components/LoginScreen'
-import { PublicHomePage } from './components/PublicHomePage'
 import { calculateTotalMinutes, calculateMaxPlayers } from './utils/utils'
 import { supabase, dbOperations } from './lib/supabase'
-
-// Einfache cn Funktion
-const cn = (...classes) => classes.filter(Boolean).join(' ')
-
-// Einfache Style-Objekte
-const STYLES = {
-  button: {
-    base: 'px-4 py-2 rounded transition-all',
-    primary: 'bg-blue-600 text-white hover:bg-blue-700',
-    secondary: 'bg-purple-600 text-white hover:bg-purple-700',
-    success: 'bg-green-600 text-white hover:bg-green-700',
-    danger: 'bg-red-600 text-white hover:bg-red-700',
-    outline: 'border-2 border-gray-300 text-gray-700 hover:bg-gray-50'
-  },
-  card: {
-    base: 'bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow'
-  },
-  badge: {
-    base: 'inline-block px-2 py-1 text-xs font-semibold rounded-full',
-    sport: {
-      padel: 'bg-emerald-100 text-emerald-800',
-      pickleball: 'bg-amber-100 text-amber-800',
-      spinxball: 'bg-purple-100 text-purple-800'
-    }
-  }
-}
-
-const getSportTheme = (sport) => ({
-  color: sport === 'padel' ? '#10b981' : sport === 'pickleball' ? '#f59e0b' : '#8b5cf6',
-  badge: STYLES.badge.sport[sport] || STYLES.badge.sport.padel
-})
+import { STYLES, cn, getSportTheme } from './utils/play2-design'
 
 function App() {
   // State Management
@@ -50,7 +19,6 @@ function App() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingEvent, setEditingEvent] = useState(null)
   const [showPlayerDatabase, setShowPlayerDatabase] = useState(false)
-  const [showLogin, setShowLogin] = useState(false)
   
   // Initial form data
   const getInitialFormData = () => ({
@@ -251,15 +219,8 @@ function App() {
     )
   }
 
-  // Show public homepage if not authenticated
-  if (!user && !showLogin) {
-    return <PublicHomePage 
-      onLogin={() => setShowLogin(true)}
-    />
-  }
-
-  // Show login screen when requested
-  if (!user && showLogin) {
+  // Show login screen if not authenticated
+  if (!user) {
     return <LoginScreen 
       signIn={async (email, password) => {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -307,9 +268,9 @@ function App() {
 
   // Main App View
   return (
-    <div className="min-h-screen play2-bg-aurora">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--play2-gray-50)' }}>
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 relative z-10">
+      <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
@@ -344,7 +305,7 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8 play2-animate-in relative z-10">
+      <main className="max-w-7xl mx-auto px-4 py-8 play2-animate-in">
         {/* Player Database Modal */}
         {showPlayerDatabase && (
           <PlayerDatabase 
@@ -551,7 +512,7 @@ function App() {
         {events.length === 0 && (
           <div className="text-center py-16 play2-animate-in">
             <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <span className="text-4xl">🎾</span>
+              <span className="text-4xl">🏓</span>
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
               Noch keine Events vorhanden
@@ -571,7 +532,7 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-16 py-8 border-t border-gray-200 bg-white relative z-10">
+      <footer className="mt-16 py-8 border-t border-gray-200 bg-white">
         <div className="max-w-7xl mx-auto px-4 text-center text-gray-600">
           <p className="text-sm">
             © 2025 Play2 - app2.club | Tournament Management Platform

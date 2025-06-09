@@ -1,0 +1,330 @@
+import React, { useState, useEffect, useRef } from 'react'
+import { Play, Pause, RotateCcw, SkipForward, Volume2, VolumeX, Bell } from 'lucide-react'
+
+export const TimerSystem = ({ 
+  event, 
+  schedule, 
+  onRoundChange,
+  onTimerStateChange 
+}) => {
+  const [currentRound, setCurrentRound] = useState(0)
+  const [timeRemaining, setTimeRemaining] = useState(event.roundDuration * 60)
+  const [isRunning, setIsRunning] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
+  const [soundEnabled, setSoundEnabled] = useState(true)
+  const [showNotification, setShowNotification] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState('')
+  
+  const intervalRef = useRef(null)
+  const audioRef = useRef(null)
+  
+  // Audio Context für Sounds
+  useEffect(() => {
+    // Erstelle Audio-Objekte für verschiedene Sounds
+    const audio = new Audio()
+    audio.preload = 'auto'
+    audioRef.current = audio
+    
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [])
+  
+  // Timer Logic
+  useEffect(() => {
+    if (isRunning && !isPaused && timeRemaining > 0) {
+      intervalRef.current = setInterval(() => {
+        setTimeRemaining(prev => {
+          if (prev <= 1) {
+            handleRoundEnd()
+            return 0
+          }
+          
+          // Warnungen bei bestimmten Zeiten
+          if (prev === 60 && soundEnabled) {
+            playSound('warning')
+            showTimerNotification('⏰ Noch 1 Minute!')
+          } else if (prev === 300 && soundEnabled) {
+            playSound('warning')
+            showTimerNotification('⏰ Noch 5 Minuten!')
+          }
+          
+          return prev - 1
+        })
+      }, 1000)
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+    
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [isRunning, isPaused, timeRemaining, soundEnabled])
+  
+  // Update parent component
+  useEffect(() => {
+    if (onTimerStateChange) {
+      onTimerStateChange({
+        isRunning,
+        isPaused,
+        currentRound,
+        timeRemaining,
+        totalTime: event.roundDuration * 60
+      })
+    }
+  }, [isRunning, isPaused, currentRound, timeRemaining, event.roundDuration, onTimerStateChange])
+  
+  const playSound = (type) => {
+    if (!soundEnabled || !audioRef.current) return
+    
+    // Verwende Web Audio API für bessere Browser-Kompatibilität
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+    const oscillator = audioContext.createOscillator()
+    const gainNode = audioContext.createGain()
+    
+    oscillator.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+    
+    switch(type) {
+      case 'start':
+        oscillator.frequency.value = 523.25 // C5
+        gainNode.gain.value = 0.3
+        oscillator.start()
+        oscillator.stop(audioContext.currentTime + 0.2)
+        break
+      case 'warning':
+        oscillator.frequency.value = 440 // A4
+        gainNode.gain.value = 0.4
+        oscillator.start()
+        oscillator.stop(audioContext.currentTime + 0.1)
+        setTimeout(() => {
+          const osc2 = audioContext.createOscillator()
+          osc2.connect(gainNode)
+          osc2.frequency.value = 440
+          osc2.start()
+          osc2.stop(audioContext.currentTime + 0.1)
+        }, 150)
+        break
+      case 'end':
+        oscillator.frequency.value = 659.25 // E5
+        gainNode.gain.value = 0.5
+        oscillator.start()
+        oscillator.stop(audioContext.currentTime + 0.5)
+        break
+    }
+  }
+  
+  const showTimerNotification = (message) => {
+    setNotificationMessage(message)
+    setShowNotification(true)
+    setTimeout(() => setShowNotification(false), 5000)
+  }
+  
+  const handleStart = () => {
+    setIsRunning(true)
+    setIsPaused(false)
+    playSound('start')
+    showTimerNotification('🏁 Runde gestartet!')
+    if (onRoundChange) onRoundChange(currentRound)
+  }
+  
+  const handlePause = () => {
+    setIsPaused(!isPaused)
+    showTimerNotification(isPaused ? '▶️ Fortgesetzt' : '⏸️ Pausiert')
+  }
+  
+  const handleReset = () => {
+    setIsRunning(false)
+    setIsPaused(false)
+    setTimeRemaining(event.roundDuration * 60)
+    showTimerNotification('🔄 Timer zurückgesetzt')
+  }
+  
+  const handleSkipRound = () => {
+    if (currentRound < schedule.rounds.length - 1) {
+      handleRoundEnd()
+    }
+  }
+  
+  const handleRoundEnd = () => {
+    playSound('end')
+    showTimerNotification('🏁 Runde beendet!')
+    
+    // Prüfe ob es eine nächste Runde gibt
+    const nextRoundIndex = currentRound + 1
+    if (nextRoundIndex < schedule.rounds.length) {
+      const nextRound = schedule.rounds[nextRoundIndex]
+      
+      // Wenn die nächste Runde eine Pause ist
+      if (nextRound.isBreak) {
+        setCurrentRound(nextRoundIndex)
+        const breakDuration = calculateBreakDuration(nextRound)
+        setTimeRemaining(breakDuration * 60)
+        showTimerNotification(`☕ Pause: ${nextRound.breakName || 'Pause'}`)
+      } else {
+        setCurrentRound(nextRoundIndex)
+        setTimeRemaining(event.roundDuration * 60)
+      }
+      
+      if (onRoundChange) onRoundChange(nextRoundIndex)
+    } else {
+      // Event beendet
+      setIsRunning(false)
+      showTimerNotification('🎉 Event beendet!')
+    }
+  }
+  
+  const calculateBreakDuration = (breakRound) => {
+    if (!breakRound.isBreak) return 0
+    const start = new Date(`2024-01-01 ${breakRound.startTime}`)
+    const end = new Date(`2024-01-01 ${breakRound.endTime}`)
+    return Math.round((end - start) / 60000)
+  }
+  
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+  
+  const getCurrentRoundInfo = () => {
+    if (!schedule || currentRound >= schedule.rounds.length) return null
+    return schedule.rounds[currentRound]
+  }
+  
+  const getProgressPercentage = () => {
+    const totalTime = event.roundDuration * 60
+    return ((totalTime - timeRemaining) / totalTime) * 100
+  }
+  
+  const currentRoundInfo = getCurrentRoundInfo()
+  
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-2xl font-bold">Event Timer</h3>
+        <button
+          onClick={() => setSoundEnabled(!soundEnabled)}
+          className="p-2 rounded hover:bg-gray-100"
+        >
+          {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+        </button>
+      </div>
+      
+      {/* Notification */}
+      {showNotification && (
+        <div className="mb-4 p-3 bg-blue-100 border border-blue-300 rounded-lg flex items-center animate-pulse">
+          <Bell className="w-5 h-5 mr-2 text-blue-600" />
+          <span className="text-blue-800 font-medium">{notificationMessage}</span>
+        </div>
+      )}
+      
+      {/* Current Round Info */}
+      {currentRoundInfo && (
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-sm text-gray-600">
+                {currentRoundInfo.isBreak ? 'Pause' : `Runde ${currentRound + 1} von ${schedule.rounds.filter(r => !r.isBreak).length}`}
+              </p>
+              <p className="text-lg font-semibold">
+                {currentRoundInfo.startTime} - {currentRoundInfo.endTime}
+              </p>
+            </div>
+            {!currentRoundInfo.isBreak && (
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Aktive Spieler</p>
+                <p className="text-lg font-semibold">
+                  {currentRoundInfo.matches.length * 4}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {/* Timer Display */}
+      <div className="text-center mb-6">
+        <div className="text-6xl font-mono font-bold mb-2">
+          {formatTime(timeRemaining)}
+        </div>
+        
+        {/* Progress Bar */}
+        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+          <div 
+            className={`h-full transition-all duration-1000 ${
+              currentRoundInfo?.isBreak ? 'bg-yellow-500' : 
+              timeRemaining <= 60 ? 'bg-red-500' : 
+              timeRemaining <= 300 ? 'bg-orange-500' : 
+              'bg-green-500'
+            }`}
+            style={{ width: `${getProgressPercentage()}%` }}
+          />
+        </div>
+      </div>
+      
+      {/* Control Buttons */}
+      <div className="flex justify-center space-x-4">
+        {!isRunning ? (
+          <button
+            onClick={handleStart}
+            className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            <Play className="w-5 h-5 mr-2" />
+            Start
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={handlePause}
+              className="flex items-center px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+            >
+              {isPaused ? <Play className="w-5 h-5 mr-2" /> : <Pause className="w-5 h-5 mr-2" />}
+              {isPaused ? 'Fortsetzen' : 'Pause'}
+            </button>
+            
+            <button
+              onClick={handleReset}
+              className="flex items-center px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              <RotateCcw className="w-5 h-5 mr-2" />
+              Reset
+            </button>
+            
+            {currentRound < schedule.rounds.length - 1 && (
+              <button
+                onClick={handleSkipRound}
+                className="flex items-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <SkipForward className="w-5 h-5 mr-2" />
+                Nächste
+              </button>
+            )}
+          </>
+        )}
+      </div>
+      
+      {/* Quick Stats */}
+      <div className="mt-6 grid grid-cols-3 gap-4 text-center">
+        <div className="p-3 bg-gray-50 rounded">
+          <p className="text-sm text-gray-600">Verbleibende Runden</p>
+          <p className="text-xl font-bold">
+            {schedule.rounds.filter((r, i) => i > currentRound && !r.isBreak).length}
+          </p>
+        </div>
+        <div className="p-3 bg-gray-50 rounded">
+          <p className="text-sm text-gray-600">Gesamtzeit Event</p>
+          <p className="text-xl font-bold">
+            {Math.round((new Date(`2024-01-01 ${event.endTime}`) - new Date(`2024-01-01 ${event.startTime}`)) / 60000)} Min
+          </p>
+        </div>
+        <div className="p-3 bg-gray-50 rounded">
+          <p className="text-sm text-gray-600">Status</p>
+          <p className="text-xl font-bold">
+            {isRunning ? (isPaused ? '⏸️' : '▶️') : '⏹️'}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}

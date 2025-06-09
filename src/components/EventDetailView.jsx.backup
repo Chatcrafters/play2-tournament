@@ -1,0 +1,367 @@
+﻿// src/components/EventDetailView.jsx
+import { useState, useEffect } from 'react'
+import { PlayerManagement } from './PlayerManagement'
+import { PlayerDatabase } from './PlayerDatabase'
+import { TimerSystem } from './TimerSystem'
+import { ScoreEntry } from './ScoreEntry'
+import { generateScheduleForEvent } from '../utils/scheduleHelpers'
+import { generateAmericanoSchedule, validateAmericanoSchedule } from '../utils/americanoScheduleHelper'
+import { transformFromDB, transformToDB } from '../lib/dbHelpers'
+import excelExportService from '../services/excelExportService'
+
+export const EventDetailView = ({ 
+  selectedEvent, 
+  onUpdateEvent, 
+  onBack, 
+  savedPlayers,
+  onOpenPlayerDatabase 
+}) => {
+  // State Management
+  const [localEvent, setLocalEvent] = useState(selectedEvent)
+  const [schedule, setSchedule] = useState(selectedEvent?.schedule || [])
+  const [showPlayerDatabase, setShowPlayerDatabase] = useState(false)
+  const [currentRound, setCurrentRound] = useState(selectedEvent?.currentRound || 0)
+  const [timerState, setTimerState] = useState(selectedEvent?.timerState || 'stopped')
+  const [matchResults, setMatchResults] = useState(selectedEvent?.results || {})
+  const [activeView, setActiveView] = useState('schedule')
+
+  // Load existing data
+  useEffect(() => {
+    if (selectedEvent) {
+      const transformed = transformFromDB(selectedEvent)
+      setLocalEvent(transformed)
+      setSchedule(transformed.schedule || [])
+      setMatchResults(transformed.results || {})
+      setCurrentRound(transformed.currentRound || 0)
+      setTimerState(transformed.timerState || 'stopped')
+    }
+  }, [selectedEvent])
+
+  // Update parent when local changes
+  const handleUpdateEvent = (updates) => {
+    const updatedEvent = { ...localEvent, ...updates }
+    setLocalEvent(updatedEvent)
+    onUpdateEvent(transformToDB(updatedEvent))
+  }
+
+  // Player Management
+  const handleAddPlayer = (player) => {
+    const updatedPlayers = [...localEvent.players, player]
+    handleUpdateEvent({ players: updatedPlayers })
+  }
+
+  const handleRemovePlayer = (playerId) => {
+    const updatedPlayers = localEvent.players.filter(p => p.id !== playerId)
+    handleUpdateEvent({ players: updatedPlayers })
+  }
+
+  const handleUpdatePlayer = (playerId, updates) => {
+    const updatedPlayers = localEvent.players.map(p => 
+      p.id === playerId ? { ...p, ...updates } : p
+    )
+    handleUpdateEvent({ players: updatedPlayers })
+  }
+
+  // Schedule Generation
+  const generateSchedule = () => {
+    if (!localEvent || localEvent.players.length < 4) {
+      alert('Mindestens 4 Spieler erforderlich')
+      return
+    }
+
+    let newSchedule = []
+    
+    if (localEvent.eventType === 'americano') {
+      const rounds = Math.floor(localEvent.minPlayTimeMinutes / localEvent.roundDuration)
+      newSchedule = generateAmericanoSchedule(
+        localEvent.players,
+        localEvent.courts,
+        rounds
+      )
+      
+      const validation = validateAmericanoSchedule(newSchedule, localEvent.players)
+      if (!validation.isValid) {
+        alert('Schedule Fehler: ' + validation.errors.join(', '))
+        return
+      }
+    } else {
+      newSchedule = generateScheduleForEvent(localEvent)
+    }
+    
+    setSchedule(newSchedule)
+    handleUpdateEvent({ schedule: newSchedule })
+  }
+
+  // Timer and Score Handlers
+  const handleScoreSubmit = (roundIndex, results) => {
+    const updatedResults = {
+      ...matchResults,
+      ...results
+    }
+    
+    setMatchResults(updatedResults)
+    handleUpdateEvent({ results: updatedResults })
+  }
+
+  const handleRoundChange = (newRound) => {
+    setCurrentRound(newRound)
+    handleUpdateEvent({ currentRound: newRound })
+  }
+
+  const handleTimerStateChange = (newState) => {
+    setTimerState(newState)
+    
+    if (newState === 'completed') {
+      handleUpdateEvent({
+        completedAt: new Date().toISOString(),
+        timerState: 'completed'
+      })
+      setActiveView('standings')
+    }
+  }
+
+  // Export Function
+  const handleExportToExcel = () => {
+    excelExportService.exportEventDetails(localEvent, schedule)
+  }
+
+  // Navigation Tabs
+  const NavigationTabs = () => (
+    <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
+      <button
+        onClick={() => setActiveView('schedule')}
+        className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
+          activeView === 'schedule' 
+            ? 'bg-white text-blue-600 shadow-sm' 
+            : 'text-gray-600 hover:text-gray-800'
+        }`}
+      >
+        Schedule
+      </button>
+      <button
+        onClick={() => setActiveView('timer')}
+        className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
+          activeView === 'timer' 
+            ? 'bg-white text-blue-600 shadow-sm' 
+            : 'text-gray-600 hover:text-gray-800'
+        }`}
+        disabled={!schedule || schedule.length === 0}
+      >
+        Timer
+      </button>
+      <button
+        onClick={() => setActiveView('scores')}
+        className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
+          activeView === 'scores' 
+            ? 'bg-white text-blue-600 shadow-sm' 
+            : 'text-gray-600 hover:text-gray-800'
+        }`}
+        disabled={!schedule || schedule.length === 0}
+      >
+        Scores
+      </button>
+      <button
+        onClick={() => setActiveView('standings')}
+        className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
+          activeView === 'standings' 
+            ? 'bg-white text-blue-600 shadow-sm' 
+            : 'text-gray-600 hover:text-gray-800'
+        }`}
+      >
+        Standings
+      </button>
+    </div>
+  )
+
+  // Tournament Status
+  const TournamentStatus = () => {
+    const getStatusColor = () => {
+      switch (timerState) {
+        case 'running': return 'bg-green-500'
+        case 'paused': return 'bg-yellow-500'
+        case 'completed': return 'bg-blue-500'
+        default: return 'bg-gray-500'
+      }
+    }
+    
+    const getStatusText = () => {
+      switch (timerState) {
+        case 'running': return 'Tournament läuft'
+        case 'paused': return 'Tournament pausiert'
+        case 'completed': return 'Tournament beendet'
+        default: return 'Tournament nicht gestartet'
+      }
+    }
+    
+    return (
+      <div className="flex items-center gap-2 mb-4">
+        <div className={`w-3 h-3 rounded-full ${getStatusColor()} animate-pulse`} />
+        <span className="font-medium text-gray-700">{getStatusText()}</span>
+        {timerState === 'running' && (
+          <span className="text-sm text-gray-500">
+            Runde {currentRound + 1} von {schedule?.length || 0}
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  // Schedule Display Component
+  const ScheduleDisplay = () => (
+    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h3 className="text-xl font-semibold mb-4">Spielplan</h3>
+      {schedule.map((round, roundIndex) => (
+        <div key={roundIndex} className="mb-6 p-4 border rounded-lg">
+          <h4 className="font-semibold mb-3">Runde {round.round}</h4>
+          <div className="grid gap-3">
+            {round.matches.map((match, matchIndex) => (
+              <div key={matchIndex} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                <span className="text-sm font-medium">Platz {match.court}</span>
+                <div className="flex-1 mx-4 text-center">
+                  <span className="font-medium">
+                    {match.team1.map(p => p.name).join(' & ')}
+                  </span>
+                  <span className="mx-2">vs</span>
+                  <span className="font-medium">
+                    {match.team2.map(p => p.name).join(' & ')}
+                  </span>
+                </div>
+                {matchResults[`${roundIndex}-${matchIndex}`] && (
+                  <span className="text-sm font-bold">
+                    {matchResults[`${roundIndex}-${matchIndex}`].result.team1Score} - 
+                    {matchResults[`${roundIndex}-${matchIndex}`].result.team2Score}
+                  </span>
+                )}
+              </div>
+            ))}
+            {round.waitingPlayers && round.waitingPlayers.length > 0 && (
+              <div className="p-3 bg-yellow-50 rounded text-sm">
+                <span className="font-medium">Wartet: </span>
+                {round.waitingPlayers.map(p => p.name).join(', ')}
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
+  if (!localEvent) return null
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Header */}
+      <div className="mb-6">
+        <button
+          onClick={onBack}
+          className="mb-4 text-blue-600 hover:text-blue-800"
+        >
+          ← Zurück zur Übersicht
+        </button>
+        
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-3xl font-bold mb-2">{localEvent.name}</h2>
+            <p className="text-gray-600">
+              {localEvent.sport} - {localEvent.eventType} - {localEvent.format}
+            </p>
+          </div>
+          <button
+            onClick={handleExportToExcel}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            📊 Excel Export
+          </button>
+        </div>
+      </div>
+
+      <TournamentStatus />
+
+      {/* Player Management Section */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <PlayerManagement
+          players={localEvent.players}
+          onAddPlayer={handleAddPlayer}
+          onRemovePlayer={handleRemovePlayer}
+          onUpdatePlayer={handleUpdatePlayer}
+          eventId={localEvent.id}
+          onOpenPlayerDatabase={() => setShowPlayerDatabase(true)}
+        />
+      </div>
+
+      {/* Schedule Generation */}
+      {(!schedule || schedule.length === 0) && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6 text-center">
+          <p className="text-gray-600 mb-4">Noch kein Spielplan erstellt</p>
+          <button
+            onClick={generateSchedule}
+            disabled={localEvent.players.length < 4}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+          >
+            Spielplan generieren
+          </button>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      {schedule && schedule.length > 0 && (
+        <>
+          <NavigationTabs />
+          
+          {activeView === 'schedule' && <ScheduleDisplay />}
+          
+          {activeView === 'timer' && (
+            <TimerSystem
+              event={localEvent}
+              schedule={schedule}
+              onRoundChange={handleRoundChange}
+              onTimerStateChange={handleTimerStateChange}
+            />
+          )}
+          
+          {activeView === 'scores' && (
+            <ScoreEntry
+              event={localEvent}
+              schedule={schedule}
+              currentRound={currentRound}
+              onScoreSubmit={handleScoreSubmit}
+              existingResults={matchResults}
+            />
+          )}
+          
+          {activeView === 'standings' && (
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-bold mb-4">Endstand</h3>
+              <ScoreEntry
+                event={localEvent}
+                schedule={schedule}
+                currentRound={schedule.length - 1}
+                onScoreSubmit={() => {}}
+                existingResults={matchResults}
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Player Database Modal */}
+      {showPlayerDatabase && (
+        <PlayerDatabase
+          isOpen={showPlayerDatabase}
+          onClose={() => setShowPlayerDatabase(false)}
+          eventSport={localEvent.sport}
+          onSelectPlayers={(players) => {
+            const newPlayers = players.map(p => ({
+              ...p,
+              id: p.id || Date.now().toString() + Math.random()
+            }))
+            handleUpdateEvent({
+              players: [...localEvent.players, ...newPlayers]
+            })
+            setShowPlayerDatabase(false)
+          }}
+        />
+      )}
+    </div>
+  )
+}
