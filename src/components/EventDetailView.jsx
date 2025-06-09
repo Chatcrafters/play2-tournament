@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { generateAmericanoSchedule, analyzeScheduleQuality, calculateFinalStats } from '../utils/americanoScheduleHelper'
+import { generateAmericanoSchedule } from '../utils/americanoAlgorithm'
 
 // Komplette EventDetailView mit Fairness-Anzeige, Inline-Ergebniseingabe und Tabellen-Optionen
 export function EventDetailView({ 
@@ -123,91 +123,96 @@ export function EventDetailView({
     const totalRounds = Math.floor(totalMinutes / localEvent.roundDuration)
     
     // Generiere Spielplan mit dem neuen Algorithmus
-    const newSchedule = generateAmericanoSchedule(
+    const result = generateAmericanoSchedule(
       localEvent.players,
       localEvent.courts,
       totalRounds,
-      localEvent.roundDuration
+      {
+        regenerateCount: localEvent.regenerateCount || 0,
+        eventId: localEvent.id
+      }
     )
     
-    // Berechne Fairness-Statistiken
-    const stats = calculateFinalStats(localEvent.players, {
-      gamesPlayed: {},
-      partnerCount: {},
-      opponentCount: {},
-      timesRested: {},
-      // Simuliere Stats aus Schedule
-      ...(() => {
-        const simStats = {
-          gamesPlayed: {},
-          partnerCount: {},
-          opponentCount: {},
-          timesRested: {}
+    // Konvertiere zum erwarteten Format für EventDetailView
+    const newSchedule = result.schedule.map((round, index) => {
+      // Finde alle Spieler für diese Runde
+      const playingPlayerIds = new Set()
+      const matches = []
+      
+      round.matches.forEach(match => {
+        match.players.forEach(playerId => playingPlayerIds.add(playerId))
+        
+        // Konvertiere zum erwarteten Format mit team1 und team2
+        const playerObjects = match.players.map(id => 
+          localEvent.players.find(p => p.id === id)
+        ).filter(p => p) // Filter out undefined
+        
+        if (playerObjects.length === 4) {
+          matches.push({
+            court: match.court,
+            team1: [playerObjects[0], playerObjects[1]],
+            team2: [playerObjects[2], playerObjects[3]]
+          })
         }
-        
-        localEvent.players.forEach(p => {
-          simStats.gamesPlayed[p.id] = 0
-          simStats.partnerCount[p.id] = {}
-          simStats.opponentCount[p.id] = {}
-          simStats.timesRested[p.id] = 0
-          
-          localEvent.players.forEach(p2 => {
-            if (p.id !== p2.id) {
-              simStats.partnerCount[p.id][p2.id] = 0
-              simStats.opponentCount[p.id][p2.id] = 0
-            }
-          })
-        })
-        
-        // Analysiere Schedule
-        newSchedule.forEach(round => {
-          const playingPlayers = new Set()
-          
-          round.matches?.forEach(match => {
-            // Team 1
-            if (match.team1?.[0] && match.team1?.[1]) {
-              const p1 = match.team1[0]
-              const p2 = match.team1[1]
-              simStats.gamesPlayed[p1.id]++
-              simStats.gamesPlayed[p2.id]++
-              simStats.partnerCount[p1.id][p2.id]++
-              simStats.partnerCount[p2.id][p1.id]++
-              playingPlayers.add(p1.id)
-              playingPlayers.add(p2.id)
-              
-              // Gegner tracken
-              match.team2?.forEach(opp => {
-                simStats.opponentCount[p1.id][opp.id]++
-                simStats.opponentCount[p2.id][opp.id]++
-                simStats.opponentCount[opp.id][p1.id]++
-                simStats.opponentCount[opp.id][p2.id]++
-              })
-            }
-            
-            // Team 2
-            if (match.team2?.[0] && match.team2?.[1]) {
-              const p1 = match.team2[0]
-              const p2 = match.team2[1]
-              simStats.gamesPlayed[p1.id]++
-              simStats.gamesPlayed[p2.id]++
-              simStats.partnerCount[p1.id][p2.id]++
-              simStats.partnerCount[p2.id][p1.id]++
-              playingPlayers.add(p1.id)
-              playingPlayers.add(p2.id)
-            }
-          })
-          
-          // Pausende Spieler
-          localEvent.players.forEach(p => {
-            if (!playingPlayers.has(p.id)) {
-              simStats.timesRested[p.id]++
-            }
-          })
-        })
-        
-        return simStats
-      })()
+      })
+      
+      const waitingPlayers = localEvent.players.filter(p => 
+        !playingPlayerIds.has(p.id)
+      )
+      
+      const startMinutes = index * localEvent.roundDuration
+      
+      return {
+        round: round.round,
+        startTime: startMinutes,
+        matches,
+        waitingPlayers
+      }
     })
+    
+    // Berechne Fairness-Statistiken basierend auf dem Ergebnis
+    const stats = {
+      playerStats: localEvent.players.map((player, idx) => {
+        const games = result.statistics.gamesPlayed[idx] || 0
+        const partnerCount = Object.values(result.statistics.partnerMatrix[idx] || {}).filter(v => v > 0).length
+        const opponentCount = Object.values(result.statistics.opponentMatrix[idx] || {}).filter(v => v > 0).length
+        const maxPartners = localEvent.players.length - 1
+        const fairness = maxPartners > 0 ? Math.round((partnerCount / maxPartners) * 100) : 100
+        
+        return {
+          name: player.name,
+          games,
+          uniquePartners: partnerCount,
+          uniqueOpponents: opponentCount,
+          fairness
+        }
+      }),
+      summary: {
+        avgFairness: 0,
+        avgUniquePartners: 0,
+        avgUniqueOpponents: 0,
+        maxPartnerRepeats: 0
+      }
+    }
+    
+    // Berechne Zusammenfassung
+    if (stats.playerStats.length > 0) {
+      stats.summary.avgFairness = Math.round(
+        stats.playerStats.reduce((sum, p) => sum + p.fairness, 0) / stats.playerStats.length
+      )
+      stats.summary.avgUniquePartners = Math.round(
+        stats.playerStats.reduce((sum, p) => sum + p.uniquePartners, 0) / stats.playerStats.length
+      )
+      stats.summary.avgUniqueOpponents = Math.round(
+        stats.playerStats.reduce((sum, p) => sum + p.uniqueOpponents, 0) / stats.playerStats.length
+      )
+      
+      // Max Partner-Wiederholungen
+      const maxRepeats = Math.max(...Object.values(result.statistics.partnerMatrix).map(row => 
+        Math.max(...Object.values(row))
+      ))
+      stats.summary.maxPartnerRepeats = maxRepeats
+    }
     
     setScheduleStats(stats)
     setSchedule(newSchedule)
