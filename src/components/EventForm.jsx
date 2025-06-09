@@ -322,7 +322,7 @@ export const EventForm = ({
             
             {!isMultiDay ? (
               // Eintägiges Event
-              <div className="bg-gray-50 p-4 rounded">
+              <div className="p-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block mb-1 font-semibold">Startzeit</label>

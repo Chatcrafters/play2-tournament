@@ -560,3 +560,6 @@ export function analyzeScheduleQuality(schedule, players) {
   
   return analysis
 }
+
+// Exportiere calculateFinalStats am Ende der Datei
+export { calculateFinalStats }
