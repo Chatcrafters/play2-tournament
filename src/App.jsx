@@ -571,13 +571,7 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-16 py-8 border-t border-gray-200 bg-white relative z-10">
-        <div className="max-w-7xl mx-auto px-4 text-center text-gray-600">
-          <p className="text-sm">
-            © 2025 Play2 - app2.club | Tournament Management Platform
-          </p>
-        </div>
-      </footer>
+     {/* Footer entfernt */}
     </div>
   )
 }
