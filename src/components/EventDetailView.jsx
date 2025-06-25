@@ -1,3 +1,4 @@
+import { EventShare } from './EventShare'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { generateAmericanoSchedule } from '../utils/americanoAlgorithm'
 
@@ -411,27 +412,32 @@ const calculateStandings = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={onBack}
-          className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-2"
-        >
-          ← Zurück zur Übersicht
-        </button>
-        
-        <div className="flex justify-between items-start">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">{localEvent.name}</h2>
-            <p className="text-gray-600">
-              {localEvent.sport} • {localEvent.eventType} • {localEvent.format}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              {localEvent.date ? new Date(localEvent.date).toLocaleDateString('de-DE') : 'Kein Datum'} • 
-              {localEvent.location || 'Kein Ort angegeben'}
-            </p>
-          </div>
-        </div>
-      </div>
+<div className="mb-6">
+  <button
+    onClick={onBack}
+    className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-2"
+  >
+    ← Zurück zur Übersicht
+  </button>
+  
+  <div className="flex justify-between items-start">
+    <div>
+      <h2 className="text-3xl font-bold mb-2">{localEvent.name}</h2>
+      <p className="text-gray-600">
+        {localEvent.sport} • {localEvent.eventType} • {localEvent.format}
+      </p>
+      <p className="text-sm text-gray-500 mt-1">
+        {localEvent.date ? new Date(localEvent.date).toLocaleDateString('de-DE') : 'Kein Datum'} • 
+        {localEvent.location || 'Kein Ort angegeben'}
+      </p>
+    </div>
+    
+    {/* NEU: Event Share Button */}
+    <div>
+      <EventShare event={localEvent} />
+    </div>
+  </div>
+</div>
 
       {/* Player Management */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">

@@ -350,7 +350,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
     setSelectedPlayers([])
   }
 
-  // Filter players based on search and sport
+  // Filter players based on search, sport and gender
   const getFilteredPlayers = () => {
     let filtered = [...players];
     
@@ -365,6 +365,20 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
             return player.sports?.pickleball === true;
           case 'spinxball':
             return player.sports?.spinxball === true;
+          default:
+            return true;
+        }
+      });
+    }
+    
+    // NEU: Filtere nach Geschlecht des Events
+    if (event?.genderMode && event.genderMode !== 'open') {
+      filtered = filtered.filter(player => {
+        switch(event.genderMode) {
+          case 'men':
+            return player.gender === 'male';
+          case 'women':
+            return player.gender === 'female';
           default:
             return true;
         }
@@ -398,11 +412,16 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
         <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-2xl font-bold">Spieler-Datenbank</h2>
-            {event?.sport && (
+            {(event?.sport || event?.genderMode) && (
               <p className="text-sm text-gray-600 mt-1">
                 Zeige nur {event.sport === 'padel' ? 'Padel' : 
                          event.sport === 'pickleball' ? 'Pickleball' : 
                          'SpinXball'}-Spieler
+                {event?.genderMode && event.genderMode !== 'open' && (
+                  <span>
+                    {' '}({event.genderMode === 'men' ? 'Männer' : 'Frauen'})
+                  </span>
+                )}
               </p>
             )}
           </div>
@@ -428,7 +447,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
               setEditingPlayer(null)
               setFormData({
                 name: '',
-                gender: 'male',
+                gender: event?.genderMode === 'women' ? 'female' : 'male',
                 sports: {
                   padel: false,
                   pickleball: false,
@@ -680,9 +699,23 @@ WICHTIGE HINWEISE:
                   onChange={(e) => setFormData({...formData, gender: e.target.value})}
                   className="w-full px-3 py-2 border rounded"
                 >
-                  <option value="male">Männlich</option>
-                  <option value="female">Weiblich</option>
+                  {(event?.genderMode === 'open' || event?.genderMode === 'men' || !event?.genderMode) && (
+                    <option value="male">Männlich</option>
+                  )}
+                  {(event?.genderMode === 'open' || event?.genderMode === 'women' || !event?.genderMode) && (
+                    <option value="female">Weiblich</option>
+                  )}
                 </select>
+                {event?.genderMode === 'men' && formData.gender === 'female' && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    Hinweis: Dies ist ein Männer-Event
+                  </p>
+                )}
+                {event?.genderMode === 'women' && formData.gender === 'male' && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    Hinweis: Dies ist ein Frauen-Event
+                  </p>
+                )}
               </div>
               
               {/* Sportarten Auswahl */}
@@ -940,10 +973,9 @@ WICHTIGE HINWEISE:
           ) : filteredPlayers.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               {searchTerm ? 'Keine Spieler gefunden' : 
-               event?.sport ? `Keine ${event.sport === 'padel' ? 'Padel' : 
-                             event.sport === 'pickleball' ? 'Pickleball' : 
-                             'SpinXball'}-Spieler in der Datenbank` :
-               'Noch keine Spieler in der Datenbank'}
+               event?.sport || event?.genderMode ? 
+                 `Keine passenden Spieler in der Datenbank` :
+                 'Noch keine Spieler in der Datenbank'}
             </div>
           ) : (
             <div>

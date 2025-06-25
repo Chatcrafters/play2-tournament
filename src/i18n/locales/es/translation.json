@@ -1,0 +1,179 @@
+// src/i18n/locales/es/translation.json
+{
+  "app": {
+    "title": "Play2 Tournament",
+    "loading": "Cargando eventos...",
+    "noEventsSelected": "Selecciona un evento o crea uno nuevo."
+  },
+  
+  "navigation": {
+    "back": "Atrás",
+    "backToOverview": "Volver al resumen",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar"
+  },
+  
+  "auth": {
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "register": "Registrarse",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "loginError": "Error al iniciar sesión",
+    "registerError": "Error al registrarse",
+    "welcome": "Bienvenido a Play2 Tournament"
+  },
+  
+  "event": {
+    "new": "Nuevo Evento",
+    "create": "Crear Evento",
+    "edit": "Editar Evento",
+    "myEvents": "Mis Eventos",
+    "title": "Nombre del Evento",
+    "description": "Descripción",
+    "sport": "Deporte",
+    "type": "Tipo de Evento",
+    "date": "Fecha",
+    "time": "Hora",
+    "startTime": "Hora de inicio",
+    "endTime": "Hora de fin",
+    "location": "Ubicación",
+    "courts": "Número de pistas",
+    "maxPlayers": "Máx. jugadores",
+    "status": {
+      "upcoming": "Próximo",
+      "running": "En curso",
+      "completed": "Completado",
+      "today": "Hoy",
+      "past": "Pasado"
+    },
+    "share": "Compartir Evento",
+    "startTournament": "Iniciar Torneo"
+  },
+  
+  "sports": {
+    "padel": "Pádel",
+    "pickleball": "Pickleball",
+    "spinxball": "SpinXball"
+  },
+  
+  "eventTypes": {
+    "americano": "Americano",
+    "roundRobin": "Round Robin",
+    "tournament": "Torneo",
+    "liga": "Liga"
+  },
+  
+  "player": {
+    "players": "Jugadores",
+    "addPlayer": "Añadir Jugador",
+    "fromDatabase": "Desde Base de Datos",
+    "name": "Nombre",
+    "gender": "Género",
+    "male": "Masculino",
+    "female": "Femenino",
+    "skillLevel": "Nivel",
+    "email": "Correo electrónico",
+    "phone": "Teléfono",
+    "noPlayers": "Aún no se han añadido jugadores",
+    "playerCount": "{{count}} de {{max}} jugadores inscritos",
+    "database": "Base de Datos de Jugadores",
+    "import": "Importar",
+    "export": "Exportar"
+  },
+  
+  "schedule": {
+    "schedule": "Horario",
+    "generateSchedule": "Generar Horario",
+    "regenerate": "Regenerar",
+    "round": "Ronda",
+    "court": "Pista",
+    "waiting": "En espera",
+    "minGamesGuaranteed": "Mín. {{count}} partidos garantizados",
+    "minTimeGuaranteed": "Mín. {{minutes}} minutos garantizados",
+    "roundDuration": "Duración de ronda (minutos)",
+    "totalTime": "Tiempo total",
+    "netPlayTime": "Tiempo neto de juego",
+    "possibleRounds": "Rondas posibles",
+    "breaks": "Descansos"
+  },
+  
+  "timer": {
+    "start": "Iniciar",
+    "pause": "Pausar",
+    "resume": "Reanudar",
+    "stop": "Detener",
+    "reset": "Reiniciar",
+    "timeRemaining": "Tiempo restante",
+    "roundTime": "Tiempo de ronda"
+  },
+  
+  "results": {
+    "results": "Resultados",
+    "enterResult": "Introducir Resultado",
+    "score": "Puntuación",
+    "points": "Puntos",
+    "games": "Partidos",
+    "gamesWon": "Partidos ganados",
+    "standings": "Clasificación",
+    "rank": "Posición",
+    "wins": "Victorias",
+    "losses": "Derrotas",
+    "noResults": "Aún no hay resultados"
+  },
+  
+  "fairness": {
+    "fairnessScore": "Puntuación de equidad",
+    "avgFairness": "Equidad promedio",
+    "uniquePartners": "Compañeros únicos",
+    "uniqueOpponents": "Oponentes únicos",
+    "maxPartnerRepeats": "Máx. repeticiones de compañero"
+  },
+  
+  "validation": {
+    "required": "Campo obligatorio",
+    "minPlayers": "Se requieren al menos {{count}} jugadores",
+    "invalidEmail": "Dirección de correo inválida",
+    "passwordMismatch": "Las contraseñas no coinciden",
+    "eventNameRequired": "El nombre del evento es obligatorio",
+    "timeRequired": "La hora es obligatoria",
+    "dateInPast": "La fecha está en el pasado"
+  },
+  
+  "messages": {
+    "eventCreated": "Evento creado con éxito",
+    "eventUpdated": "Evento actualizado con éxito",
+    "eventDeleted": "Evento eliminado con éxito",
+    "scheduleGenerated": "Horario generado con éxito",
+    "resultSaved": "Resultado guardado",
+    "playerAdded": "Jugador añadido",
+    "playerRemoved": "Jugador eliminado",
+    "confirmDelete": "¿Estás seguro de que quieres eliminar este evento?",
+    "tournamentComplete": "¡Torneo completado!"
+  },
+  
+  "qrCode": {
+    "title": "Escanear código QR",
+    "description": "Escanea el código QR para acceder directamente al registro",
+    "shareLink": "Compartir enlace",
+    "copyLink": "Copiar enlace",
+    "linkCopied": "¡Enlace copiado!",
+    "openInBrowser": "Abrir en navegador",
+    "shareViaSystem": "Compartir vía sistema",
+    "shareViaWhatsApp": "Compartir por WhatsApp"
+  },
+  
+  "settings": {
+    "language": "Idioma",
+    "darkMode": "Modo oscuro",
+    "notifications": "Notificaciones",
+    "profile": "Perfil"
+  }
+}
