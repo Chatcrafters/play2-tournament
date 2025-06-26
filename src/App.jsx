@@ -10,6 +10,7 @@ import { EventRegistration } from './components/EventRegistration'
 import { AmericanoTournament } from './components/AmericanoTournament'
 import { supabase } from './lib/supabase'
 import { LanguageProvider, LanguageSelector, useTranslation } from './components/LanguageSelector'
+import { transformToDB, transformFromDB, cleanEventData } from './utils/dbHelpers'
 import './App.css'
 
 // Hauptinhalt der App als separate Komponente für useTranslation Hook
@@ -45,11 +46,13 @@ function AppContent() {
           // Fallback zu localStorage
           loadFromLocalStorage()
         } else if (data) {
-          console.log('Events aus Supabase geladen:', data)
-          setEvents(data || [])
+          // Transformiere Events von snake_case zu camelCase
+          const transformedEvents = data.map(event => transformFromDB(event))
+          console.log('Events aus Supabase geladen:', transformedEvents)
+          setEvents(transformedEvents || [])
           
           // Speichere auch in localStorage als Backup
-          localStorage.setItem('events', JSON.stringify(data || []))
+          localStorage.setItem('events', JSON.stringify(transformedEvents || []))
         }
       } catch (supabaseError) {
         console.error('Supabase Verbindungsfehler:', supabaseError)
@@ -72,20 +75,6 @@ function AppContent() {
     }
   }
 
-  // Hilfsfunktion zum Konvertieren von camelCase zu snake_case
-  const toSnakeCase = (obj) => {
-    const snakeCase = (str) => str.replace(/([A-Z])/g, '_$1').toLowerCase()
-    
-    const converted = {}
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        const snakeKey = snakeCase(key)
-        converted[snakeKey] = obj[key]
-      }
-    }
-    return converted
-  }
-
   // Save events to both Supabase and localStorage
   const saveEvents = async (updatedEvents) => {
     // Speichere sofort in localStorage
@@ -97,26 +86,13 @@ function AppContent() {
       for (const event of updatedEvents) {
         console.log('Original Event:', event)
         
-        // Konvertiere zu snake_case für die Datenbank
-        const dbEvent = toSnakeCase(event)
-        console.log('Konvertiertes Event für DB:', dbEvent)
+        // Bereinige und transformiere Event für die Datenbank
+        const cleanedEvent = cleanEventData(event)
+        const dbEvent = transformToDB(cleanedEvent)
+        console.log('Transformiertes Event für DB:', dbEvent)
         
         if (event.id.startsWith('temp_')) {
           // Neues Event - INSERT
-          // Entferne Felder die nicht in der DB existieren
-          const fieldsToRemove = [
-            'entry_fee',
-            'spielmodus',
-            'garantie_spiele',
-            'mindest_spiele',
-            'garantie_minuten',
-            'mindest_minuten',
-            'show_real_time_table',
-            'regenerate_count'
-          ]
-          
-          fieldsToRemove.forEach(field => delete dbEvent[field])
-          
           const { data, error } = await supabase
             .from('events')
             .insert([{
@@ -145,23 +121,10 @@ function AppContent() {
           }
         } else {
           // Bestehendes Event - UPDATE
-          const updateData = { ...dbEvent }
-          
-          // Entferne Felder die nicht in der DB existieren
-          const fieldsToRemove = [
-            'entry_fee',
-            'spielmodus',
-            'garantie_spiele',
-            'mindest_spiele',
-            'garantie_minuten',
-            'mindest_minuten',
-            'show_real_time_table',
-            'regenerate_count'
-          ]
-          
-          fieldsToRemove.forEach(field => delete updateData[field])
-          
-          updateData.updated_at = new Date().toISOString()
+          const updateData = {
+            ...dbEvent,
+            updated_at: new Date().toISOString()
+          }
           
           const { error } = await supabase
             .from('events')
@@ -256,7 +219,7 @@ function AppContent() {
   const handleSelectPlayersFromDatabase = (selectedPlayers) => {
     if (selectedEvent) {
       const updatedPlayers = [...(selectedEvent.players || [])]
-      const maxPlayers = selectedEvent.max_players || 16
+      const maxPlayers = selectedEvent.maxPlayers || 16
       const remainingSlots = maxPlayers - updatedPlayers.length
       
       // Nur so viele Spieler hinzufügen, wie noch Plätze frei sind
