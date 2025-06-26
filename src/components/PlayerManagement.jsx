@@ -129,11 +129,16 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
             + Hinzufügen
           </button>
           <button
-            onClick={onOpenPlayerDatabase}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            📚 Aus Datenbank
-          </button>
+  onClick={onOpenPlayerDatabase}
+  disabled={players.length >= maxPlayers}
+  className={`px-4 py-2 rounded-lg ${
+    players.length >= maxPlayers
+      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+      : 'bg-green-600 text-white hover:bg-green-700'
+  }`}
+>
+  📚 Aus Datenbank
+</button>
         </div>
       </div>
 

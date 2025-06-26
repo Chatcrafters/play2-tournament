@@ -51,6 +51,10 @@ const calculateAge = (birthday) => {
 }
 
 const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = [], event }) => {
+  // NEUE ZEILEN für Spielerlimit-Prüfung
+  const remainingSlots = event?.maxPlayers - existingPlayers.length || 0;
+  const canAddMore = remainingSlots > 0;
+  
   const [players, setPlayers] = useState([])
   const [selectedPlayers, setSelectedPlayers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -77,14 +81,14 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
     club: '',
     duprId: ''
   })
-
+  
   // Load players from database
   useEffect(() => {
     if (isOpen) {
       loadPlayers()
     }
   }, [isOpen])
-
+  
   const loadPlayers = async () => {
     try {
       setIsLoading(true)
@@ -97,7 +101,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
       setIsLoading(false)
     }
   }
-
+  
   const handleExcelImport = async (event) => {
     const file = event.target.files[0]
     if (!file) return

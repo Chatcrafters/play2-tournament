@@ -236,21 +236,14 @@ function AppContent() {
       alert(`Es konnten nur ${remainingSlots} von ${selectedPlayers.length} Spielern hinzugefügt werden. Das Event ist auf ${maxPlayers} Spieler begrenzt.`)
     }
     
-    const updatedEvent = {
-      ...selectedEvent,
-      players: updatedPlayers
-    }
-    handleUpdateEvent(updatedEvent)
-  }
-}
-      
+         
       const updatedEvent = {
         ...selectedEvent,
         players: updatedPlayers
       }
-      handleUpdateEvent(updatedEvent)
-    }
+    handleUpdateEvent(updatedEvent)
   }
+}
 
   const handleStartTournament = (event) => {
     setRunningTournament(event)
