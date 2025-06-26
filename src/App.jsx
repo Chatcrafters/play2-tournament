@@ -247,24 +247,28 @@ function AppContent() {
     }
   }
 
-  const calculateTotalMinutes = (start, end, breaks = []) => {
-    const [startHour, startMin] = start.split(':').map(Number)
-    const [endHour, endMin] = end.split(':').map(Number)
-    
-    let totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin)
-    
-    // Wenn Endzeit vor Startzeit liegt, nehmen wir an, es geht über Mitternacht
-    if (totalMinutes < 0) {
-      totalMinutes += 24 * 60
-    }
-    
-    // Ziehe Pausenzeiten ab
-    const breakMinutes = breaks.reduce((sum, breakItem) => sum + breakItem.duration, 0)
-    
-    return totalMinutes - breakMinutes
+const calculateTotalMinutes = (start, end, breaks = []) => {
+  // Sicherstellen, dass start und end Strings sind
+  const startStr = String(start || '00:00')
+  const endStr = String(end || '00:00')
+  
+  const [startHour, startMin] = startStr.split(':').map(Number)
+  const [endHour, endMin] = endStr.split(':').map(Number)
+  
+  let totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin)
+  
+  // Wenn Endzeit vor Startzeit liegt, nehmen wir an, es geht über Mitternacht
+  if (totalMinutes < 0) {
+    totalMinutes += 24 * 60
   }
-
-  const calculateMaxPlayers = ({
+  
+  // Ziehe Pausenzeiten ab
+  const breakMinutes = breaks.reduce((sum, breakItem) => sum + (breakItem.duration || 0), 0)
+  
+  return totalMinutes - breakMinutes
+}
+    
+   const calculateMaxPlayers = ({
     totalMinutes,
     courts,
     averageGameTime,

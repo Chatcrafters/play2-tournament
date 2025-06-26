@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Calendar, Clock, Users, Settings, Info, Check, AlertCircle, ChevronRight, ChevronLeft, Coffee, Plus, X, Trophy, Zap, Heart } from 'lucide-react'
+import { useTranslation } from './LanguageSelector'
 
 export const EventForm = ({ 
   editingEvent, 
@@ -9,70 +10,66 @@ export const EventForm = ({
   calculateTotalMinutes,
   calculateMaxPlayers
 }) => {
+  const { t } = useTranslation()
+  
   // Wizard Steps
   const steps = [
-    { id: 1, name: 'Grundlagen', icon: Info, color: 'blue' },
-    { id: 2, name: 'Zeit & Ort', icon: Calendar, color: 'green' },
-    { id: 3, name: 'Spielmodus', icon: Settings, color: 'purple' },
-    { id: 4, name: 'Teilnehmer', icon: Users, color: 'orange' },
-    { id: 5, name: 'Details', icon: Check, color: 'gray' }
+    { id: 1, name: t('form.steps.basics'), icon: Info, color: 'blue' },
+    { id: 2, name: t('form.steps.timeLocation'), icon: Calendar, color: 'green' },
+    { id: 3, name: t('form.steps.playMode'), icon: Settings, color: 'purple' },
+    { id: 4, name: t('form.steps.players'), icon: Users, color: 'orange' },
+    { id: 5, name: t('form.steps.details'), icon: Check, color: 'gray' }
   ]
 
   const [currentStep, setCurrentStep] = useState(1)
   const [showValidationErrors, setShowValidationErrors] = useState(false)
   
   // Quick Templates
-  const templates = {
-    training: {
-      name: 'Training Session',
-      startTime: '18:00',
-      endTime: '20:00',
-      courts: 2,
-      maxPlayers: 12,
-      roundDuration: 15,
-      spielmodus: 'durchgehend',
-      eventInfo: 'Wöchentliches Training mit wechselnden Partnern'
-    },
-    turnier: {
-      name: 'Americano Turnier',
-      startTime: '09:00',
-      endTime: '13:00',
-      courts: 4,
-      maxPlayers: 24,
-      roundDuration: 12,
-      spielmodus: 'garantie',
-      garantieSpiele: true,
-      mindestSpiele: 4,
-      eventInfo: 'Turnier mit garantierten Spielen für alle Teilnehmer'
-    },
-    social: {
-      name: 'Social Padel',
-      startTime: '14:00',
-      endTime: '17:00',
-      courts: 3,
-      maxPlayers: 16,
-      roundDuration: 20,
-      spielmodus: 'durchgehend',
-      breaks: [{ startTime: '15:30', duration: 30, name: 'Kaffee & Kuchen' }],
-      eventInfo: 'Entspanntes Spielen mit Pause für Snacks und Getränke'
-    },
-    liga: {
-      name: 'Liga-Spieltag',
-      startTime: '09:00',
-      endTime: '18:00',
-      courts: 4,
-      maxPlayers: 32,
-      roundDuration: 15,
-      spielmodus: 'garantie',
-      garantieMinuten: true,
-      mindestMinuten: 90,
-      breaks: [
-        { startTime: '12:00', duration: 60, name: 'Mittagspause' },
-        { startTime: '15:00', duration: 15, name: 'Kaffeepause' }
-      ],
-      eventInfo: 'Offizieller Liga-Spieltag mit Mittagspause'
-    }
+  // In EventForm.jsx, ersetzen Sie die templates Definition:
+
+const templates = {
+  americano: {
+    name: 'Americano',
+    startTime: '09:00',
+    endTime: '13:00',
+    courts: 4,
+    maxPlayers: 24,
+    roundDuration: 12,
+    spielmodus: 'garantie',
+    garantieSpiele: true,
+    mindestSpiele: 4,
+    eventInfo: ''
+  },
+  tournament: {
+    name: t('form.tournament'),
+    startTime: '09:00',
+    endTime: '18:00',
+    courts: 4,
+    maxPlayers: 32,
+    roundDuration: 15,
+    spielmodus: 'garantie',
+    garantieSpiele: true,
+    mindestSpiele: 5,
+    eventInfo: ''
+  },
+  league: {
+    name: t('form.league'),
+    startTime: '09:00',
+    endTime: '18:00',
+    courts: 4,
+    maxPlayers: 32,
+    roundDuration: 15,
+    spielmodus: 'garantie',
+    garantieMinuten: true,
+    mindestMinuten: 90,
+    breaks: [
+      { startTime: '12:00', duration: 60, name: t('form.lunchBreak') },
+      { startTime: '15:00', duration: 15, name: t('form.coffeBreak') }
+    ],
+    eventInfo: ''
   }
+  // social template entfernen
+}
 
   // Sichere Standardwerte für alle Felder
   const getDefaultFormData = () => ({
@@ -148,11 +145,43 @@ export const EventForm = ({
     }))
   }
 
-  // Apply template
+    // Apply template
   const applyTemplate = (templateKey) => {
     const template = templates[templateKey]
     updateFormData(template)
     setSelectedTemplate(templateKey)
+  }
+
+  // Neue Funktion zum Generieren der Event-Info
+  const generateEventInfo = () => {
+    const infos = []
+    
+    // Teilnahmegebühr
+    if (formData.entryFee && formData.entryFee > 0) {
+      infos.push(`${t('form.entryFee')}: ${formData.entryFee}€`)
+    }
+    
+    // Anmeldeschluss
+    if (formData.registrationDeadline) {
+      const deadline = new Date(formData.registrationDeadline)
+      infos.push(`${t('form.registrationDeadline')}: ${deadline.toLocaleString()}`)
+    }
+    
+    // Spielgarantien
+    if (formData.garantieSpiele && formData.mindestSpiele) {
+      infos.push(`${t('form.minGamesPerPlayer')}: ${formData.mindestSpiele}`)
+    } else if (formData.garantieMinuten && formData.mindestMinuten) {
+      infos.push(`${t('form.minPlayTime')}: ${formData.mindestMinuten} ${t('form.min')}`)
+    }
+    
+    // Pausen
+    if (formData.breaks && formData.breaks.length > 0) {
+      formData.breaks.forEach(breakItem => {
+        infos.push(`${breakItem.name}: ${breakItem.startTime} (${breakItem.duration} ${t('form.min')})`)
+      })
+    }
+    
+    return infos.join('\n')
   }
 
   // Garantie Mode Helper
@@ -187,7 +216,7 @@ export const EventForm = ({
   // Live-Berechnungen bei jeder relevanten Änderung
   useEffect(() => {
     if (formData.startTime && formData.endTime && formData.courts && formData.roundDuration) {
-      const totalMinutes = calculateTotalMinutes(formData)
+      const totalMinutes = calculateTotalMinutes(formData.startTime, formData.endTime, formData.breaks)
       const breakMinutes = formData.breaks.reduce((sum, b) => sum + (b.duration || 0), 0)
       const nettoMinutes = totalMinutes - breakMinutes
       const possibleRounds = Math.floor(nettoMinutes / formData.roundDuration)
@@ -253,6 +282,14 @@ export const EventForm = ({
     }
   }, [liveCalculations.recommendedPlayers])
 
+  // Update formData.eventInfo wenn sich relevante Felder ändern
+  useEffect(() => {
+    const newEventInfo = generateEventInfo()
+    if (newEventInfo !== formData.eventInfo) {
+      updateFormData({ eventInfo: newEventInfo })
+    }
+  }, [formData.entryFee, formData.registrationDeadline, formData.garantieSpiele, formData.mindestSpiele, formData.garantieMinuten, formData.mindestMinuten, formData.breaks])
+
   // Automatisch Format auf Doppel setzen bei Americano
   useEffect(() => {
     if (formData.eventType === 'americano') {
@@ -314,9 +351,9 @@ export const EventForm = ({
     
     if (formData.maxPlayers > liveCalculations.maxPossiblePlayers) {
       const proceed = window.confirm(
-        `Achtung: Mit ${formData.maxPlayers} Spielern können die gewählten Garantien nicht eingehalten werden.\n` +
-        `Empfohlene maximale Spieleranzahl: ${liveCalculations.maxPossiblePlayers}\n\n` +
-        `Trotzdem fortfahren?`
+        t('form.guaranteeWarning').replace('{players}', formData.maxPlayers) + '\n' +
+        t('form.recommendedMax') + ': ' + liveCalculations.maxPossiblePlayers + '\n\n' +
+        t('form.proceedAnyway')
       )
       if (!proceed) return
     }
@@ -331,8 +368,11 @@ export const EventForm = ({
       courts: parseInt(formData.courts) || 2,
       maxPlayers: parseInt(formData.maxPlayers) || 16,
       roundDuration: parseInt(formData.roundDuration) || 15,
-      entryFee: parseFloat(formData.entryFee) || 0
+      // entryFee: parseFloat(formData.entryFee) || 0  // Removed - not in DB
     }
+    
+    // Remove entryFee from submitData if it exists
+    delete submitData.entryFee
     
     onSubmit(submitData)
   }
@@ -340,7 +380,7 @@ export const EventForm = ({
   // Pausen-Management
   const addBreak = () => {
     updateFormData({
-      breaks: [...formData.breaks, { startTime: '', duration: 30, name: 'Pause' }]
+      breaks: [...formData.breaks, { startTime: '', duration: 30, name: t('form.pauseName') }]
     })
   }
 
@@ -372,7 +412,7 @@ export const EventForm = ({
         {/* Header mit Steps */}
         <div className="border-b px-6 py-4">
           <h2 className="text-2xl font-bold mb-4">
-            {editingEvent ? 'Event bearbeiten' : 'Neues Event erstellen'}
+            {editingEvent ? t('form.editEvent') : t('form.createEvent')}
           </h2>
           
           {/* Step Indicator */}
@@ -422,25 +462,23 @@ export const EventForm = ({
                 <div className="bg-gray-50 p-6 rounded-lg">
                   <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <Zap className="w-5 h-5 text-yellow-500" />
-                    Schnellstart-Vorlagen
+                    {t('form.quickTemplates')}
                   </h4>
                   <p className="text-sm text-gray-600 mb-4">
-                    Wählen Sie eine Vorlage für einen schnellen Start:
+                    {t('form.selectTemplate')}
                   </p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {Object.entries(templates).map(([key, template]) => {
                       const icons = {
-                        training: '🏃',
-                        turnier: '🏆',
-                        social: '🎉',
-                        liga: '📊'
-                      }
-                      const descriptions = {
-                        training: '2h, 8-12 Spieler',
-                        turnier: '4h, 16-24 Spieler',
-                        social: '3h, flexibel',
-                        liga: 'Ganztags-Event'
-                      }
+  americano: '🏆',
+  tournament: '🎯',
+  league: '📊'
+}
+const descriptions = {
+  americano: t('form.americanoDesc'),
+  tournament: t('form.tournamentDesc'),
+  league: t('form.leagueDesc')
+}
                       
                       return (
                         <button
@@ -456,7 +494,7 @@ export const EventForm = ({
                           `}
                         >
                           <div className="text-2xl mb-1">{icons[key]}</div>
-                          <div className="font-medium text-sm">{key.charAt(0).toUpperCase() + key.slice(1)}</div>
+                          <div className="font-medium text-sm">{t(`form.${key}`)}</div>
                           <div className="text-xs text-gray-500">{descriptions[key]}</div>
                         </button>
                       )
@@ -468,14 +506,14 @@ export const EventForm = ({
                 <div className="bg-blue-50 p-6 rounded-lg">
                   <h3 className="text-lg font-semibold mb-4 text-blue-900 flex items-center gap-2">
                     <Info className="w-5 h-5" />
-                    Event-Grundlagen
+                    {t('form.eventBasics')}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block mb-1 font-medium">
-                        Event Name *
+                        {t('form.eventName')} *
                         {showValidationErrors && !formData.name.trim() && (
-                          <span className="text-red-500 text-sm ml-2">Pflichtfeld</span>
+                          <span className="text-red-500 text-sm ml-2">{t('form.required')}</span>
                         )}
                       </label>
                       <input
@@ -492,8 +530,8 @@ export const EventForm = ({
                     
                     <div>
                       <label className="block mb-1 font-medium flex items-center gap-2">
-                        Sportart
-                        <Tooltip text="Wählen Sie die Sportart für Ihr Event">
+                        {t('form.sport')}
+                        <Tooltip text={t('form.selectSportTooltip')}>
                           <Info className="w-4 h-4 text-gray-400" />
                         </Tooltip>
                       </label>
@@ -502,16 +540,16 @@ export const EventForm = ({
                         onChange={(e) => updateFormData({ sport: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="padel">Padel</option>
-                        <option value="pickleball">Pickleball</option>
-                        <option value="spinxball">SpinXball</option>
+                        <option value="padel">{t('sports.padel')}</option>
+                        <option value="pickleball">{t('sports.pickleball')}</option>
+                        <option value="spinxball">{t('sports.spinxball')}</option>
                       </select>
                     </div>
                     
                     <div>
                       <label className="block mb-1 font-medium flex items-center gap-2">
-                        Event-Typ
-                        <Tooltip text="Americano: Jeder spielt mit wechselnden Partnern gegen wechselnde Gegner">
+                        {t('form.eventType')}
+                        <Tooltip text={t('form.americanoTooltip')}>
                           <Info className="w-4 h-4 text-gray-400" />
                         </Tooltip>
                       </label>
@@ -520,20 +558,20 @@ export const EventForm = ({
                         onChange={(e) => updateFormData({ eventType: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="americano">Americano</option>
+                        <option value="americano">{t('eventTypes.americano')}</option>
                       </select>
                     </div>
                     
                     <div>
-                      <label className="block mb-1 font-medium">Geschlechtsmodus</label>
+                      <label className="block mb-1 font-medium">{t('form.genderMode')}</label>
                       <select
                         value={formData.genderMode || 'open'}
                         onChange={(e) => updateFormData({ genderMode: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="open">Mixed / Open</option>
-                        <option value="men">Nur Herren</option>
-                        <option value="women">Nur Damen</option>
+                        <option value="open">{t('form.mixed')}</option>
+                        <option value="men">{t('form.menOnly')}</option>
+                        <option value="women">{t('form.womenOnly')}</option>
                       </select>
                     </div>
                   </div>
@@ -547,15 +585,15 @@ export const EventForm = ({
                 <div className="bg-green-50 p-6 rounded-lg">
                   <h3 className="text-lg font-semibold mb-4 text-green-900 flex items-center gap-2">
                     <Calendar className="w-5 h-5" />
-                    Wann findet das Event statt?
+                    {t('form.when')}
                   </h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                       <label className="block mb-1 font-medium">
-                        Datum *
+                        {t('form.date')} *
                         {showValidationErrors && !formData.date && (
-                          <span className="text-red-500 text-sm ml-2">Pflichtfeld</span>
+                          <span className="text-red-500 text-sm ml-2">{t('form.required')}</span>
                         )}
                       </label>
                       <input
@@ -572,9 +610,9 @@ export const EventForm = ({
                     
                     <div>
                       <label className="block mb-1 font-medium">
-                        Startzeit *
+                        {t('form.startTime')} *
                         {showValidationErrors && !formData.startTime && (
-                          <span className="text-red-500 text-sm ml-2">Pflichtfeld</span>
+                          <span className="text-red-500 text-sm ml-2">{t('form.required')}</span>
                         )}
                       </label>
                       <input
@@ -590,9 +628,9 @@ export const EventForm = ({
                     
                     <div>
                       <label className="block mb-1 font-medium">
-                        Endzeit *
+                        {t('form.endTime')} *
                         {showValidationErrors && !formData.endTime && (
-                          <span className="text-red-500 text-sm ml-2">Pflichtfeld</span>
+                          <span className="text-red-500 text-sm ml-2">{t('form.required')}</span>
                         )}
                       </label>
                       <input
@@ -608,8 +646,8 @@ export const EventForm = ({
                     
                     <div>
                       <label className="block mb-1 font-medium flex items-center gap-2">
-                        Anzahl Plätze *
-                        <Tooltip text="Wie viele Plätze stehen gleichzeitig zur Verfügung?">
+                        {t('form.numberOfCourts')} *
+                        <Tooltip text={t('form.courtsTooltip')}>
                           <Info className="w-4 h-4 text-gray-400" />
                         </Tooltip>
                       </label>
@@ -626,26 +664,26 @@ export const EventForm = ({
                   
                   {/* Live-Berechnung */}
                   <div className="mt-6 p-4 bg-white rounded-lg border border-green-200">
-                    <h4 className="font-medium mb-3 text-green-900">Zeit-Übersicht:</h4>
+                    <h4 className="font-medium mb-3 text-green-900">{t('form.timeOverview')}</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div className="text-center">
                         <Clock className="w-8 h-8 mx-auto mb-1 text-green-600" />
-                        <span className="text-gray-600 block">Gesamtzeit</span>
-                        <p className="font-bold text-lg">{liveCalculations.totalMinutes} Min</p>
+                        <span className="text-gray-600 block">{t('form.totalTime')}</span>
+                        <p className="font-bold text-lg">{liveCalculations.totalMinutes} {t('form.min')}</p>
                       </div>
                       <div className="text-center">
                         <Coffee className="w-8 h-8 mx-auto mb-1 text-orange-600" />
-                        <span className="text-gray-600 block">Pausen</span>
-                        <p className="font-bold text-lg">{formData.breaks.reduce((sum, b) => sum + b.duration, 0)} Min</p>
+                        <span className="text-gray-600 block">{t('form.breaks')}</span>
+                        <p className="font-bold text-lg">{formData.breaks.reduce((sum, b) => sum + b.duration, 0)} {t('form.min')}</p>
                       </div>
                       <div className="text-center">
                         <Zap className="w-8 h-8 mx-auto mb-1 text-blue-600" />
-                        <span className="text-gray-600 block">Netto-Spielzeit</span>
-                        <p className="font-bold text-lg">{liveCalculations.nettoMinutes} Min</p>
+                        <span className="text-gray-600 block">{t('form.netPlayTime')}</span>
+                        <p className="font-bold text-lg">{liveCalculations.nettoMinutes} {t('form.min')}</p>
                       </div>
                       <div className="text-center">
                         <Trophy className="w-8 h-8 mx-auto mb-1 text-purple-600" />
-                        <span className="text-gray-600 block">Mögliche Runden</span>
+                        <span className="text-gray-600 block">{t('form.possibleRounds')}</span>
                         <p className="font-bold text-lg">{liveCalculations.possibleRounds}</p>
                       </div>
                     </div>
@@ -654,7 +692,7 @@ export const EventForm = ({
                   {/* Location */}
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block mb-1 font-medium">Ort</label>
+                      <label className="block mb-1 font-medium">{t('form.location')}</label>
                       <input
                         type="text"
                         value={formData.location || ''}
@@ -665,7 +703,7 @@ export const EventForm = ({
                     </div>
                     
                     <div>
-                      <label className="block mb-1 font-medium">Kontakt-Telefon</label>
+                      <label className="block mb-1 font-medium">{t('form.contactPhone')}</label>
                       <input
                         type="tel"
                         value={formData.phone || ''}
@@ -685,14 +723,14 @@ export const EventForm = ({
                 <div className="bg-purple-50 p-6 rounded-lg">
                   <h3 className="text-lg font-semibold mb-4 text-purple-900 flex items-center gap-2">
                     <Settings className="w-5 h-5" />
-                    Wie soll gespielt werden?
+                    {t('form.howToPlay')}
                   </h3>
                   
                   {/* Rundenzeit */}
                   <div className="mb-6">
                     <label className="block mb-1 font-medium flex items-center gap-2">
-                      Rundenzeit (Minuten) *
-                      <Tooltip text="Wie lange dauert eine Spielrunde? Üblich sind 10-20 Minuten">
+                      {t('form.roundDuration')} *
+                      <Tooltip text={t('form.roundDurationTooltip')}>
                         <Info className="w-4 h-4 text-gray-400" />
                       </Tooltip>
                     </label>
@@ -714,13 +752,13 @@ export const EventForm = ({
                         min="5"
                         max="60"
                       />
-                      <span>Min</span>
+                      <span>{t('form.min')}</span>
                     </div>
                   </div>
                   
                   {/* Spielmodus Presets */}
                   <div className="mb-6">
-                    <label className="block mb-3 font-medium">Spielmodus auswählen:</label>
+                    <label className="block mb-3 font-medium">{t('form.playMode')}</label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <label className={`
                         relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all
@@ -738,9 +776,9 @@ export const EventForm = ({
                           className="sr-only"
                         />
                         <Heart className="w-8 h-8 mb-2 text-purple-600" />
-                        <strong className="text-lg">Entspannt</strong>
+                        <strong className="text-lg">{t('form.relaxed')}</strong>
                         <p className="text-sm text-gray-600 mt-1">
-                          Viel Pause zwischen den Spielen, ideal für Social Events
+                          {t('form.relaxedDesc')}
                         </p>
                       </label>
                       
@@ -760,9 +798,9 @@ export const EventForm = ({
                           className="sr-only"
                         />
                         <Zap className="w-8 h-8 mb-2 text-purple-600" />
-                        <strong className="text-lg">Ausgewogen</strong>
+                        <strong className="text-lg">{t('form.balanced')}</strong>
                         <p className="text-sm text-gray-600 mt-1">
-                          Mind. 3 Spiele garantiert, gute Balance
+                          {t('form.balancedDesc')}
                         </p>
                       </label>
                       
@@ -782,9 +820,9 @@ export const EventForm = ({
                           className="sr-only"
                         />
                         <Trophy className="w-8 h-8 mb-2 text-purple-600" />
-                        <strong className="text-lg">Intensiv</strong>
+                        <strong className="text-lg">{t('form.intensive')}</strong>
                         <p className="text-sm text-gray-600 mt-1">
-                          Maximale Spielzeit für alle Teilnehmer
+                          {t('form.intensiveDesc')}
                         </p>
                       </label>
                     </div>
@@ -793,7 +831,7 @@ export const EventForm = ({
                   {/* Details für gewählten Modus */}
                   <details className="mt-4">
                     <summary className="cursor-pointer text-sm text-purple-700 hover:text-purple-900 font-medium">
-                      ⚙️ Erweiterte Einstellungen anzeigen
+                      ⚙️ {t('form.advancedSettings')}
                     </summary>
                     <div className="mt-4 p-4 bg-white rounded-lg border border-purple-200 space-y-3">
                       <div>
@@ -807,12 +845,12 @@ export const EventForm = ({
                             })}
                             className="mr-2"
                           />
-                          <span>Mindestanzahl Spiele garantieren</span>
+                          <span>{t('form.guaranteeGames')}</span>
                         </label>
                         
                         {formData.garantieSpiele && (
                           <div className="ml-6 mt-2">
-                            <label className="block text-sm">Mindestspiele pro Spieler:</label>
+                            <label className="block text-sm">{t('form.minGamesPerPlayer')}</label>
                             <input
                               type="number"
                               value={formData.mindestSpiele || 3}
@@ -836,12 +874,12 @@ export const EventForm = ({
                             })}
                             className="mr-2"
                           />
-                          <span>Mindestspielzeit garantieren</span>
+                          <span>{t('form.guaranteeTime')}</span>
                         </label>
                         
                         {formData.garantieMinuten && (
                           <div className="ml-6 mt-2">
-                            <label className="block text-sm">Mindestspielzeit (Minuten):</label>
+                            <label className="block text-sm">{t('form.minPlayTime')}</label>
                             <input
                               type="number"
                               value={formData.mindestMinuten || 45}
@@ -861,7 +899,7 @@ export const EventForm = ({
                   <div className="mt-6">
                     <h4 className="font-medium mb-3 flex items-center gap-2">
                       <Coffee className="w-5 h-5 text-orange-600" />
-                      Pausen planen
+                      {t('form.breaks')}
                     </h4>
                     
                     {/* Simple Break List */}
@@ -871,10 +909,10 @@ export const EventForm = ({
                           <Coffee className="w-4 h-4 text-orange-600" />
                           <input
                             type="text"
-                            value={breakItem.name || 'Pause'}
+                            value={breakItem.name || t('form.pauseName')}
                             onChange={(e) => updateBreak(index, 'name', e.target.value)}
                             className="flex-1 px-2 py-1 border rounded text-sm"
-                            placeholder="Pausenname"
+                            placeholder={t('form.pauseName')}
                           />
                           <input
                             type="time"
@@ -887,10 +925,10 @@ export const EventForm = ({
                             onChange={(e) => updateBreak(index, 'duration', parseInt(e.target.value))}
                             className="px-2 py-1 border rounded text-sm"
                           >
-                            <option value="15">15 Min</option>
-                            <option value="30">30 Min</option>
-                            <option value="45">45 Min</option>
-                            <option value="60">60 Min</option>
+                            <option value="15">15 {t('form.min')}</option>
+                            <option value="30">30 {t('form.min')}</option>
+                            <option value="45">45 {t('form.min')}</option>
+                            <option value="60">60 {t('form.min')}</option>
                           </select>
                           <button
                             type="button"
@@ -907,7 +945,7 @@ export const EventForm = ({
                         className="w-full px-3 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 flex items-center justify-center gap-2"
                       >
                         <Plus className="w-4 h-4" />
-                        Pause hinzufügen
+                        {t('form.addBreak')}
                       </button>
                     </div>
                   </div>
@@ -921,14 +959,14 @@ export const EventForm = ({
                 <div className="bg-orange-50 p-6 rounded-lg">
                   <h3 className="text-lg font-semibold mb-4 text-orange-900 flex items-center gap-2">
                     <Users className="w-5 h-5" />
-                    Maximale Spieleranzahl festlegen
+                    {t('form.maxPlayers')}
                   </h3>
                   
                   {/* Smart Recommendations */}
                   <div className="p-4 bg-white rounded-lg border border-orange-200 mb-6">
                     <h4 className="font-medium mb-3 flex items-center gap-2">
                       <Info className="w-4 h-4 text-orange-600" />
-                      Intelligente Empfehlungen für Ihr Event:
+                      {t('form.recommendations')}
                     </h4>
                     
                     <div className="space-y-3">
@@ -939,8 +977,8 @@ export const EventForm = ({
                             {liveCalculations.recommendedPlayers}
                           </div>
                           <div>
-                            <strong className="text-green-700">Optimal</strong>
-                            <p className="text-sm text-gray-600">Alle spielen regelmäßig ohne lange Pausen</p>
+                            <strong className="text-green-700">{t('form.optimal')}</strong>
+                            <p className="text-sm text-gray-600">{t('form.optimalDesc')}</p>
                           </div>
                         </div>
                         <button
@@ -948,7 +986,7 @@ export const EventForm = ({
                           onClick={() => updateFormData({ maxPlayers: liveCalculations.recommendedPlayers })}
                           className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                         >
-                          Übernehmen
+                          {t('form.adopt')}
                         </button>
                       </div>
                       
@@ -960,9 +998,9 @@ export const EventForm = ({
                               {liveCalculations.maxPossiblePlayers}
                             </div>
                             <div>
-                              <strong className="text-orange-700">Maximum</strong>
+                              <strong className="text-orange-700">{t('form.maximum')}</strong>
                               <p className="text-sm text-gray-600">
-                                Bei gewählten Garantien ({formData.garantieSpiele ? `${formData.mindestSpiele} Spiele` : `${formData.mindestMinuten} Min`})
+                                {t('form.withGuarantees')} ({formData.garantieSpiele ? `${formData.mindestSpiele} ${t('tournament.games')}` : `${formData.mindestMinuten} ${t('form.min')}`})
                               </p>
                             </div>
                           </div>
@@ -971,7 +1009,7 @@ export const EventForm = ({
                             onClick={() => updateFormData({ maxPlayers: liveCalculations.maxPossiblePlayers })}
                             className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
                           >
-                            Übernehmen
+                            {t('form.adopt')}
                           </button>
                         </div>
                       )}
@@ -981,9 +1019,9 @@ export const EventForm = ({
                   {/* Manual Input */}
                   <div>
                     <label className="block mb-2 font-medium">
-                      Maximale Spieleranzahl *
+                      {t('form.maxPlayers')} *
                       {showValidationErrors && formData.maxPlayers < 4 && (
-                        <span className="text-red-500 text-sm ml-2">Mindestens 4 Spieler erforderlich</span>
+                        <span className="text-red-500 text-sm ml-2">{t('form.atLeast4Players')}</span>
                       )}
                     </label>
                     <div className="flex items-center gap-4">
@@ -1008,7 +1046,7 @@ export const EventForm = ({
                         max="100"
                         step="2"
                       />
-                      <span>Spieler</span>
+                      <span>{t('player.players')}</span>
                     </div>
                     
                     {/* Warning */}
@@ -1016,8 +1054,8 @@ export const EventForm = ({
                       <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                         <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                         <div className="text-sm text-red-700">
-                          <strong>Achtung:</strong> Mit {formData.maxPlayers} Spielern können die gewählten Garantien nicht eingehalten werden!
-                          Empfohlene maximale Spieleranzahl: {liveCalculations.maxPossiblePlayers}
+                          <strong>{t('form.warning')}:</strong> {t('form.guaranteeWarning').replace('{players}', formData.maxPlayers)}
+                          {t('form.recommendedMax')}: {liveCalculations.maxPossiblePlayers}
                         </div>
                       </div>
                     )}
@@ -1025,24 +1063,24 @@ export const EventForm = ({
                   
                   {/* Preview Stats */}
                   <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <h4 className="font-medium mb-2">Vorschau mit {formData.maxPlayers} Spielern:</h4>
+                    <h4 className="font-medium mb-2">{t('form.preview')} {formData.maxPlayers} {t('player.players')}:</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                       <div>
-                        <span className="text-gray-600">Spiele pro Person:</span>
+                        <span className="text-gray-600">{t('form.gamesPerPerson')}:</span>
                         <p className="font-bold text-lg">{liveCalculations.minGamesPerPlayer}</p>
                       </div>
                       <div>
-                        <span className="text-gray-600">Spielzeit pro Person:</span>
-                        <p className="font-bold text-lg">{liveCalculations.minMinutesPerPlayer} Min</p>
+                        <span className="text-gray-600">{t('form.playTimePerPerson')}:</span>
+                        <p className="font-bold text-lg">{liveCalculations.minMinutesPerPlayer} {t('form.min')}</p>
                       </div>
                       <div>
-                        <span className="text-gray-600">Pausenzeit:</span>
+                        <span className="text-gray-600">{t('form.breakTime')}:</span>
                         <p className="font-bold text-lg">
-                          {Math.max(0, liveCalculations.nettoMinutes - liveCalculations.minMinutesPerPlayer)} Min
+                          {Math.max(0, liveCalculations.nettoMinutes - liveCalculations.minMinutesPerPlayer)} {t('form.min')}
                         </p>
                       </div>
                       <div>
-                        <span className="text-gray-600">Auslastung:</span>
+                        <span className="text-gray-600">{t('form.utilization')}:</span>
                         <p className="font-bold text-lg">
                           {Math.round((liveCalculations.minMinutesPerPlayer / liveCalculations.nettoMinutes) * 100)}%
                         </p>
@@ -1059,24 +1097,24 @@ export const EventForm = ({
                 <div className="bg-gray-50 p-6 rounded-lg">
                   <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center gap-2">
                     <Check className="w-5 h-5" />
-                    Weitere Informationen (optional)
+                    {t('form.additionalInfo')}
                   </h3>
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block mb-1 font-medium">Event-Beschreibung</label>
+                      <label className="block mb-1 font-medium">{t('form.eventDescription')}</label>
                       <textarea
                         value={formData.eventInfo || ''}
                         onChange={(e) => updateFormData({ eventInfo: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500"
                         rows="4"
-                        placeholder="Zusätzliche Informationen für die Teilnehmer..."
+                        placeholder={t('form.eventDescriptionPlaceholder')}
                       />
                     </div>
                     
                     {/* Öffentlichkeit & Anmeldung */}
                     <div className="p-4 bg-white rounded-lg border">
-                      <h4 className="font-medium mb-3">Sichtbarkeit & Anmeldung</h4>
+                      <h4 className="font-medium mb-3">{t('form.visibility')}</h4>
                       
                       <div className="space-y-3">
                         <label className="flex items-center">
@@ -1090,8 +1128,8 @@ export const EventForm = ({
                             className="mr-3 w-4 h-4"
                           />
                           <div>
-                            <span className="font-medium">Event öffentlich sichtbar machen</span>
-                            <p className="text-sm text-gray-600">Andere Nutzer können das Event finden und ansehen</p>
+                            <span className="font-medium">{t('form.makePublic')}</span>
+                            <p className="text-sm text-gray-600">{t('form.publicDesc')}</p>
                           </div>
                         </label>
                         
@@ -1105,15 +1143,15 @@ export const EventForm = ({
                                 className="mr-3 w-4 h-4"
                               />
                               <div>
-                                <span className="font-medium">Online-Anmeldung aktivieren</span>
-                                <p className="text-sm text-gray-600">Spieler können sich selbst anmelden</p>
+                                <span className="font-medium">{t('form.enableRegistration')}</span>
+                                <p className="text-sm text-gray-600">{t('form.registrationDesc')}</p>
                               </div>
                             </label>
                             
                             {formData.registrationOpen && (
                               <div className="ml-7 grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-gray-50 rounded">
                                 <div>
-                                  <label className="block text-sm font-medium mb-1">Anmeldeschluss</label>
+                                  <label className="block text-sm font-medium mb-1">{t('form.registrationDeadline')}</label>
                                   <input
                                     type="datetime-local"
                                     value={formData.registrationDeadline || ''}
@@ -1122,7 +1160,7 @@ export const EventForm = ({
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-sm font-medium mb-1">Startgebühr (€)</label>
+                                  <label className="block text-sm font-medium mb-1">{t('form.entryFee')}</label>
                                   <input
                                     type="number"
                                     value={formData.entryFee || 0}
@@ -1145,55 +1183,55 @@ export const EventForm = ({
                 <div className="bg-blue-100 p-6 rounded-lg">
                   <h3 className="text-lg font-semibold mb-4 text-blue-900 flex items-center gap-2">
                     <Trophy className="w-5 h-5" />
-                    Event-Zusammenfassung
+                    {t('form.summary')}
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div className="bg-white p-3 rounded">
-                      <span className="text-sm text-gray-600">Event</span>
-                      <p className="font-semibold">{formData.name || 'Kein Name'}</p>
+                      <span className="text-sm text-gray-600">{t('event.title')}</span>
+                      <p className="font-semibold">{formData.name || t('form.noName')}</p>
                     </div>
                     <div className="bg-white p-3 rounded">
-                      <span className="text-sm text-gray-600">Datum & Zeit</span>
+                      <span className="text-sm text-gray-600">{t('form.date')} & {t('form.time')}</span>
                       <p className="font-semibold">
-                        {formData.date ? new Date(formData.date).toLocaleDateString('de-DE') : 'Kein Datum'}
+                        {formData.date ? new Date(formData.date).toLocaleDateString('de-DE') : t('form.noDate')}
                         <br />
                         {formData.startTime} - {formData.endTime}
                       </p>
                     </div>
                     <div className="bg-white p-3 rounded">
-                      <span className="text-sm text-gray-600">Ort</span>
-                      <p className="font-semibold">{formData.location || 'Nicht angegeben'}</p>
+                      <span className="text-sm text-gray-600">{t('form.location')}</span>
+                      <p className="font-semibold">{formData.location || t('form.notSpecified')}</p>
                     </div>
                     <div className="bg-white p-3 rounded">
-                      <span className="text-sm text-gray-600">Plätze</span>
+                      <span className="text-sm text-gray-600">{t('form.numberOfCourts')}</span>
                       <p className="font-semibold">{formData.courts}</p>
                     </div>
                     <div className="bg-white p-3 rounded">
-                      <span className="text-sm text-gray-600">Max. Spieler</span>
+                      <span className="text-sm text-gray-600">{t('event.maxPlayers')}</span>
                       <p className="font-semibold">{formData.maxPlayers}</p>
                     </div>
                     <div className="bg-white p-3 rounded">
-                      <span className="text-sm text-gray-600">Spielmodus</span>
+                      <span className="text-sm text-gray-600">{t('form.playMode')}</span>
                       <p className="font-semibold">
                         {formData.spielmodus === 'garantie' ? 
-                          (formData.garantieSpiele ? `Mind. ${formData.mindestSpiele} Spiele` : `Mind. ${formData.mindestMinuten} Min.`) : 
-                          'Durchgehend'
+                          (formData.garantieSpiele ? `${t('form.min')}. ${formData.mindestSpiele} ${t('tournament.games')}` : `${t('form.min')}. ${formData.mindestMinuten} ${t('form.min')}.`) : 
+                          t('form.relaxed')
                         }
                       </p>
                     </div>
                     <div className="bg-white p-3 rounded">
-                      <span className="text-sm text-gray-600">Rundenzeit</span>
-                      <p className="font-semibold">{formData.roundDuration} Minuten</p>
+                      <span className="text-sm text-gray-600">{t('form.roundDuration')}</span>
+                      <p className="font-semibold">{formData.roundDuration} {t('form.min')}</p>
                     </div>
                     <div className="bg-white p-3 rounded">
-                      <span className="text-sm text-gray-600">Spielzeit/Person</span>
-                      <p className="font-semibold">~{liveCalculations.minMinutesPerPlayer} Minuten</p>
+                      <span className="text-sm text-gray-600">{t('form.playTimePerPerson')}</span>
+                      <p className="font-semibold">~{liveCalculations.minMinutesPerPlayer} {t('form.min')}</p>
                     </div>
                     <div className="bg-white p-3 rounded">
                       <span className="text-sm text-gray-600">Status</span>
                       <p className="font-semibold">
-                        {formData.isPublic ? 'Öffentlich' : 'Privat'}
-                        {formData.registrationOpen && ' • Anmeldung offen'}
+                        {formData.isPublic ? t('form.public') : t('form.private')}
+                        {formData.registrationOpen && ` • ${t('form.registrationOpen')}`}
                       </p>
                     </div>
                   </div>
@@ -1210,7 +1248,7 @@ export const EventForm = ({
             onClick={onCancel}
             className="px-4 py-2 text-gray-600 hover:text-gray-800"
           >
-            Abbrechen
+            {t('navigation.cancel')}
           </button>
           
           <div className="flex gap-3">
@@ -1221,7 +1259,7 @@ export const EventForm = ({
                 className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 flex items-center gap-2"
               >
                 <ChevronLeft className="w-4 h-4" />
-                Zurück
+                {t('navigation.back')}
               </button>
             )}
             
@@ -1238,7 +1276,7 @@ export const EventForm = ({
                 `}
                 disabled={!canProceed}
               >
-                Weiter
+                {t('navigation.next')}
                 <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
@@ -1248,7 +1286,7 @@ export const EventForm = ({
                 className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
               >
                 <Check className="w-4 h-4" />
-                {editingEvent ? 'Änderungen speichern' : 'Event erstellen'}
+                {editingEvent ? t('form.saveChanges') : t('event.create')}
               </button>
             )}
           </div>
