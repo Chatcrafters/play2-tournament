@@ -12,151 +12,6 @@ import { supabase } from './lib/supabase'
 import { LanguageProvider, LanguageSelector, useTranslation } from './components/LanguageSelector'
 import './App.css'
 
-// Transform snake_case aus DB zu camelCase für Frontend
-const transformFromSnakeCase = (obj) => {
-  if (!obj) return obj;
-  
-  const transformed = {};
-  
-  Object.keys(obj).forEach(key => {
-    // Spezielle Mappings für alle Felder
-    const fieldMappings = {
-      // Zeit-bezogene Felder
-      start_time: 'startTime',
-      end_time: 'endTime',
-      end_date: 'endDate',
-      registration_deadline: 'registrationDeadline',
-      created_at: 'createdAt',
-      updated_at: 'updatedAt',
-      completed_at: 'completedAt',
-      
-      // Event-Einstellungen
-      max_players: 'maxPlayers',
-      event_type: 'eventType',
-      event_info: 'eventInfo',
-      round_duration: 'roundDuration',
-      is_public: 'isPublic',
-      registration_open: 'registrationOpen',
-      entry_fee: 'entryFee',
-      
-      // Spielmodus-Felder
-      mindest_spiele: 'mindestSpiele',
-      garantie_spiele: 'garantieSpiele',
-      mindest_minuten: 'mindestMinuten',
-      garantie_minuten: 'garantieMinuten',
-      team_format: 'teamFormat',
-      average_game_time: 'averageGameTime',
-      play_mode: 'playMode',
-      draw_method: 'drawMethod',
-      
-      // Andere Felder bleiben wie sie sind
-      id: 'id',
-      name: 'name',
-      date: 'date',
-      location: 'location',
-      sport: 'sport',
-      courts: 'courts',
-      phone: 'phone',
-      spielmodus: 'spielmodus',
-      players: 'players',
-      results: 'results',
-      schedule: 'schedule',
-      breaks: 'breaks',
-      status: 'status'
-    };
-    
-    const frontendKey = fieldMappings[key] || key;
-    transformed[frontendKey] = obj[key];
-  });
-  
-  return transformed;
-};
-
-// Transform camelCase vom Frontend zu snake_case für DB
-const transformToSnakeCase = (obj) => {
-  if (!obj) return obj;
-  
-  const transformed = {};
-  
-  Object.keys(obj).forEach(key => {
-    // Spezielle Mappings für alle Felder
-    const fieldMappings = {
-      // Zeit-bezogene Felder
-      startTime: 'start_time',
-      endTime: 'end_time',
-      endDate: 'end_date',
-      registrationDeadline: 'registration_deadline',
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-      completedAt: 'completed_at',
-      
-      // Event-Einstellungen
-      maxPlayers: 'max_players',
-      eventType: 'event_type',
-      eventInfo: 'event_info',
-      roundDuration: 'round_duration',
-      isPublic: 'is_public',
-      registrationOpen: 'registration_open',
-      entryFee: 'entry_fee',
-      
-      // Spielmodus-Felder
-      mindestSpiele: 'mindest_spiele',
-      garantieSpiele: 'garantie_spiele',
-      mindestMinuten: 'mindest_minuten',
-      garantieMinuten: 'garantie_minuten',
-      teamFormat: 'team_format',
-      averageGameTime: 'average_game_time',
-      playMode: 'play_mode',
-      drawMethod: 'draw_method',
-      
-      // Andere Felder bleiben wie sie sind
-      id: 'id',
-      name: 'name',
-      date: 'date',
-      location: 'location',
-      sport: 'sport',
-      courts: 'courts',
-      phone: 'phone',
-      spielmodus: 'spielmodus',
-      players: 'players',
-      results: 'results',
-      schedule: 'schedule',
-      breaks: 'breaks',
-      status: 'status'
-    };
-    
-    const dbKey = fieldMappings[key] || key;
-    
-    // Skip undefined values
-    if (obj[key] !== undefined) {
-      transformed[dbKey] = obj[key];
-    }
-  });
-  
-  return transformed;
-};
-
-// Hilfsfunktion zur Daten-Migration
-const migrateEventData = (event) => {
-  return {
-    ...event,
-    // Stelle sicher, dass schedule immer ein Array ist
-    schedule: Array.isArray(event.schedule) ? event.schedule : [],
-    // Stelle sicher, dass players immer ein Array ist
-    players: Array.isArray(event.players) ? event.players : [],
-    // Stelle sicher, dass results ein Objekt ist
-    results: event.results || {},
-    // Stelle sicher, dass breaks ein Array ist
-    breaks: Array.isArray(event.breaks) ? event.breaks : [],
-    // Standard-Werte für fehlende Felder
-    status: event.status || 'upcoming',
-    courts: event.courts || 2,
-    roundDuration: event.roundDuration || 15,
-    isPublic: event.isPublic !== undefined ? event.isPublic : false,
-    registrationOpen: event.registrationOpen !== undefined ? event.registrationOpen : false
-  }
-}
-
 // Hauptinhalt der App als separate Komponente für useTranslation Hook
 function AppContent() {
   const { t } = useTranslation()
@@ -191,18 +46,10 @@ function AppContent() {
           loadFromLocalStorage()
         } else if (data) {
           console.log('Events aus Supabase geladen:', data)
-          // Transformiere alle Events von snake_case zu camelCase
-          const transformedEvents = data.map(event => {
-            const transformed = transformFromSnakeCase(event)
-            console.log('Transformiert:', event, '->', transformed)
-            return transformed
-          })
-          // Migriere alle Events beim Laden
-          const migratedEvents = transformedEvents.map(migrateEventData)
-          setEvents(migratedEvents)
+          setEvents(data || [])
           
           // Speichere auch in localStorage als Backup
-          localStorage.setItem('events', JSON.stringify(migratedEvents))
+          localStorage.setItem('events', JSON.stringify(data || []))
         }
       } catch (supabaseError) {
         console.error('Supabase Verbindungsfehler:', supabaseError)
@@ -221,41 +68,27 @@ function AppContent() {
     const savedEvents = localStorage.getItem('events')
     if (savedEvents) {
       console.log('Events aus localStorage geladen')
-      const parsedEvents = JSON.parse(savedEvents)
-      // Migriere auch localStorage Daten
-      const migratedEvents = parsedEvents.map(migrateEventData)
-      setEvents(migratedEvents)
-      // Speichere migrierte Daten zurück
-      localStorage.setItem('events', JSON.stringify(migratedEvents))
+      setEvents(JSON.parse(savedEvents))
     }
   }
 
   // Save events to both Supabase and localStorage
   const saveEvents = async (updatedEvents) => {
-    // Migriere alle Events vor dem Speichern
-    const migratedEvents = updatedEvents.map(migrateEventData)
-    
     // Speichere sofort in localStorage
-    localStorage.setItem('events', JSON.stringify(migratedEvents))
-    setEvents(migratedEvents)
+    localStorage.setItem('events', JSON.stringify(updatedEvents))
+    setEvents(updatedEvents)
     
     // Versuche in Supabase zu speichern
     try {
-      for (const event of migratedEvents) {
-        // Entferne Felder, die nicht in der Datenbank existieren sollten
-        const { genderMode, ...eventData } = event;
-        
-        // Transformiere zu snake_case
-        const dbEvent = transformToSnakeCase(eventData);
-        
-        console.log('Speichere Event in DB:', dbEvent)
+      for (const event of updatedEvents) {
+        console.log('Speichere Event in DB:', event)
         
         if (event.id.startsWith('temp_')) {
           // Neues Event - INSERT
           const { data, error } = await supabase
             .from('events')
             .insert([{
-              ...dbEvent,
+              ...event,
               id: undefined, // Lasse Supabase eine ID generieren
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
@@ -265,32 +98,34 @@ function AppContent() {
           
           if (error) {
             console.error('Fehler beim Erstellen des Events:', error)
-            console.error('Gesendete Daten:', dbEvent)
+            console.error('Gesendete Daten:', event)
             // Zeige Benutzer-Fehlermeldung
             alert(`Fehler beim Speichern: ${error.message}`)
           } else if (data) {
             console.log('Event erfolgreich erstellt:', data)
             // Aktualisiere die temporäre ID mit der echten Supabase ID
-            const index = migratedEvents.findIndex(e => e.id === event.id)
+            const index = updatedEvents.findIndex(e => e.id === event.id)
             if (index !== -1) {
-              migratedEvents[index] = { ...migratedEvents[index], id: data.id }
-              localStorage.setItem('events', JSON.stringify(migratedEvents))
-              setEvents([...migratedEvents])
+              updatedEvents[index] = { ...updatedEvents[index], id: data.id }
+              localStorage.setItem('events', JSON.stringify(updatedEvents))
+              setEvents([...updatedEvents])
             }
           }
         } else {
           // Bestehendes Event - UPDATE
+          const updateData = {
+            ...event,
+            updated_at: new Date().toISOString()
+          }
+          
           const { error } = await supabase
             .from('events')
-            .update({
-              ...dbEvent,
-              updated_at: new Date().toISOString()
-            })
+            .update(updateData)
             .eq('id', event.id)
           
           if (error) {
             console.error('Fehler beim Aktualisieren des Events:', error)
-            console.error('Gesendete Daten:', dbEvent)
+            console.error('Gesendete Daten:', updateData)
             alert(`Fehler beim Aktualisieren: ${error.message}`)
           } else {
             console.log('Event erfolgreich aktualisiert')
@@ -311,12 +146,7 @@ function AppContent() {
       results: {},
       status: 'upcoming',
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      // Erstelle schedule Array aus startTime und endTime falls nicht vorhanden
-      schedule: eventData.schedule || (eventData.startTime && eventData.endTime ? [{
-        start_time: eventData.startTime,
-        end_time: eventData.endTime
-      }] : [])
+      updated_at: new Date().toISOString()
     }
     
     const updatedEvents = [...events, newEvent]
@@ -326,14 +156,11 @@ function AppContent() {
   }
 
   const handleUpdateEvent = async (updatedEvent) => {
-    // Migriere das Event vor dem Update
-    const migratedEvent = migrateEventData(updatedEvent)
-    
     const updatedEvents = events.map(event => 
-      event.id === migratedEvent.id ? migratedEvent : event
+      event.id === updatedEvent.id ? updatedEvent : event
     )
     await saveEvents(updatedEvents)
-    setSelectedEvent(migratedEvent)
+    setSelectedEvent(updatedEvent)
     
     if (editingEvent) {
       setEditingEvent(null)
@@ -377,16 +204,14 @@ function AppContent() {
   }
 
   const handleEditEvent = (event) => {
-    // Migriere Event vor dem Editieren
-    const migratedEvent = migrateEventData(event)
-    setEditingEvent(migratedEvent)
+    setEditingEvent(event)
     setShowEventForm(true)
   }
 
   const handleSelectPlayersFromDatabase = (selectedPlayers) => {
     if (selectedEvent) {
       const updatedPlayers = [...(selectedEvent.players || [])]
-      const maxPlayers = selectedEvent.maxPlayers || 16
+      const maxPlayers = selectedEvent.max_players || 16
       const remainingSlots = maxPlayers - updatedPlayers.length
       
       // Nur so viele Spieler hinzufügen, wie noch Plätze frei sind
@@ -443,9 +268,7 @@ function AppContent() {
   }
 
   const handleStartTournament = (event) => {
-    // Migriere Event vor dem Turnier-Start
-    const migratedEvent = migrateEventData(event)
-    setRunningTournament(migratedEvent)
+    setRunningTournament(event)
   }
 
   const handleTournamentComplete = (results) => {
