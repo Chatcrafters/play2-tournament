@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
-import { transformFromDB, transformToDB, cleanEventData, sanitizeEventData } from '../utils/dbHelpers'
+
 
 // Diese Werte kommen aus der .env.local Datei
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = 'https://ycwavingkihnepinrxlx.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inljd2F2aW5na2lobmVwaW5yeGx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0MTMwOTUsImV4cCI6MjA2Mzk4OTA5NX0.FkUmAxmCOz9-jw_6VZkmmHmmMQTxjN2Gha3xxFjz120'
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Supabase URL und Anon Key müssen in .env definiert sein')
@@ -11,32 +11,26 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Database operations helper
+// Database operations helper - OHNE Transformationen
 export const dbOperations = {
   // Events
   async createEvent(eventData) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Nicht angemeldet')
     
-    // Bereinige die Daten vor der Transformation
-    const cleanedData = cleanEventData({
+    // Direkt verwenden, keine Transformation
+    const dbData = {
       ...eventData,
-      userId: user.id,
-      createdAt: new Date().toISOString(),
+      user_id: user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       // Stelle sicher, dass Arrays existieren
       players: eventData.players || [],
       schedule: eventData.schedule || [],
       breaks: eventData.breaks || [],
-      dailySchedule: eventData.dailySchedule || [],
-      results: eventData.results || {},
-      // Konvertiere leere Datums-Strings zu null
-      date: eventData.date || null,
-      endDate: eventData.endDate || null,
-      registrationDeadline: eventData.registrationDeadline || null
-    })
-    
-    // WICHTIG: transformToDB verwenden!
-    const dbData = transformToDB(cleanedData)
+      daily_schedule: eventData.daily_schedule || [],
+      results: eventData.results || {}
+    }
     
     // Entferne undefined Werte
     Object.keys(dbData).forEach(key => {
@@ -58,18 +52,18 @@ export const dbOperations = {
       throw error
     }
     
-    return transformFromDB(data)
+    return data
   },
 
   async updateEvent(id, updates) {
     try {
       console.log('Updating event:', id, updates)
       
-      // Bereinige Updates
-      const cleanedUpdates = cleanEventData(updates)
-      
-      // Bereite Updates für DB vor
-      const dbUpdates = transformToDB(cleanedUpdates)
+      // Direkt verwenden, keine Transformation
+      const dbUpdates = {
+        ...updates,
+        updated_at: new Date().toISOString()
+      }
       
       // Stelle sicher, dass Arrays als Arrays gespeichert werden
       if ('schedule' in dbUpdates && dbUpdates.schedule === null) {
@@ -97,7 +91,7 @@ export const dbOperations = {
       }
       
       console.log('Update successful:', data)
-      return transformFromDB(data)
+      return data
     } catch (error) {
       console.error('Update event error:', error)
       throw error
@@ -125,11 +119,15 @@ export const dbOperations = {
     
     if (error) throw error
     
-    return (data || []).map(event => {
-      const transformed = transformFromDB(event)
-      // Zusätzliche Sicherheit
-      return sanitizeEventData(transformed)
-    })
+    // Stelle sicher, dass Arrays korrekt sind
+    return (data || []).map(event => ({
+      ...event,
+      schedule: Array.isArray(event.schedule) ? event.schedule : [],
+      players: Array.isArray(event.players) ? event.players : [],
+      breaks: Array.isArray(event.breaks) ? event.breaks : [],
+      daily_schedule: Array.isArray(event.daily_schedule) ? event.daily_schedule : [],
+      results: event.results || {}
+    }))
   },
 
   async getEvent(eventId) {
@@ -142,19 +140,16 @@ export const dbOperations = {
       
       if (error) throw error
       
-      // Transformiere und sanitize
-      const transformed = transformFromDB(data)
-      
-      // Zusätzliche Sicherheit für Arrays
-      if (transformed) {
-        transformed.schedule = Array.isArray(transformed.schedule) ? transformed.schedule : []
-        transformed.players = Array.isArray(transformed.players) ? transformed.players : []
-        transformed.breaks = Array.isArray(transformed.breaks) ? transformed.breaks : []
-        transformed.dailySchedule = Array.isArray(transformed.dailySchedule) ? transformed.dailySchedule : []
-        transformed.results = transformed.results || {}
+      // Stelle sicher, dass Arrays korrekt sind
+      if (data) {
+        data.schedule = Array.isArray(data.schedule) ? data.schedule : []
+        data.players = Array.isArray(data.players) ? data.players : []
+        data.breaks = Array.isArray(data.breaks) ? data.breaks : []
+        data.daily_schedule = Array.isArray(data.daily_schedule) ? data.daily_schedule : []
+        data.results = data.results || {}
       }
       
-      return transformed
+      return data
     } catch (error) {
       console.error('Get event error:', error)
       throw error
@@ -166,21 +161,19 @@ export const dbOperations = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Nicht angemeldet')
     
-    const cleanedPlayer = {
+    const dbData = {
       ...player,
-      userId: user.id,
-      createdAt: new Date().toISOString(),
+      user_id: user.id,
+      created_at: new Date().toISOString(),
       sports: player.sports || {
         padel: false,
         pickleball: false,
         spinxball: false
       },
-      padelSkill: player.padelSkill || 'B',
-      pickleballSkill: player.pickleballSkill || 3.0,
-      spinxballSkill: player.spinxballSkill || 3.0
+      padel_skill: player.padel_skill || player.padelSkill || 'B',
+      pickleball_skill: player.pickleball_skill || player.pickleballSkill || 3.0,
+      spinxball_skill: player.spinxball_skill || player.spinxballSkill || 3.0
     }
-    
-    const dbData = transformToDB(cleanedPlayer)
     
     const { data, error } = await supabase
       .from('players')
@@ -189,24 +182,17 @@ export const dbOperations = {
       .single()
     
     if (error) throw error
-    return transformFromDB(data)
+    return data
   },
 
   async updatePlayer(id, updates) {
-    // Bereinige Update-Daten
-    const cleanedUpdates = {
+    const dbUpdates = {
       ...updates,
-      // Stelle sicher, dass skills die richtigen Datentypen haben
-      padelSkill: updates.padelSkill || 'B',
-      pickleballSkill: typeof updates.pickleballSkill === 'number' 
-        ? updates.pickleballSkill 
-        : parseFloat(updates.pickleballSkill) || 3.0,
-      spinxballSkill: typeof updates.spinxballSkill === 'number' 
-        ? updates.spinxballSkill 
-        : parseFloat(updates.spinxballSkill) || 3.0
+      // Akzeptiere beide Schreibweisen
+      padel_skill: updates.padel_skill || updates.padelSkill || 'B',
+      pickleball_skill: updates.pickleball_skill || updates.pickleballSkill || 3.0,
+      spinxball_skill: updates.spinxball_skill || updates.spinxballSkill || 3.0
     }
-    
-    const dbUpdates = transformToDB(cleanedUpdates)
     
     const { data, error } = await supabase
       .from('players')
@@ -216,7 +202,7 @@ export const dbOperations = {
       .single()
     
     if (error) throw error
-    return transformFromDB(data)
+    return data
   },
 
   async deletePlayer(id) {
@@ -241,21 +227,15 @@ export const dbOperations = {
     if (error) throw error
     
     return (data || []).map(player => {
-      const transformed = transformFromDB(player)
       // Stelle sicher, dass alte Spieler ohne sports-Feld kompatibel sind
-      if (!transformed.sports) {
-        transformed.sports = {
+      if (!player.sports) {
+        player.sports = {
           padel: true, // Default: Padel ist aktiviert
           pickleball: false,
           spinxball: false
         }
       }
-      // Stelle sicher, dass Skills den richtigen Typ haben
-      if (transformed.padelSkill && typeof transformed.padelSkill === 'number') {
-        // Konvertiere alte numerische Padel-Skills zu Buchstaben
-        transformed.padelSkill = convertNumericPadelSkill(transformed.padelSkill)
-      }
-      return transformed
+      return player
     })
   },
 
@@ -264,12 +244,12 @@ export const dbOperations = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Nicht angemeldet')
     
-    const dbData = transformToDB({
-      eventId,
-      results,
-      userId: user.id,
-      createdAt: new Date().toISOString()
-    })
+    const dbData = {
+      event_id: eventId,
+      results: results,
+      user_id: user.id,
+      created_at: new Date().toISOString()
+    }
     
     const { data, error } = await supabase
       .from('tournament_results')
@@ -278,7 +258,7 @@ export const dbOperations = {
       .single()
     
     if (error) throw error
-    return transformFromDB(data)
+    return data
   },
 
   async getTournamentResults(eventId) {
@@ -289,7 +269,7 @@ export const dbOperations = {
       .order('created_at', { ascending: false })
     
     if (error) throw error
-    return (data || []).map(result => transformFromDB(result))
+    return data || []
   },
 
   // Batch operations
@@ -327,29 +307,14 @@ export const dbOperations = {
       console.log('Schedule value:', rawData.schedule)
       console.log('Schedule is null?', rawData.schedule === null)
       console.log('Schedule is array?', Array.isArray(rawData.schedule))
-      
-      const transformed = transformFromDB(rawData)
-      console.log('Transformed data:', transformed)
-      console.log('Transformed schedule:', transformed.schedule)
-      console.log('Transformed schedule is array?', Array.isArray(transformed.schedule))
       console.groupEnd()
       
-      return { raw: rawData, transformed }
+      return rawData
     } catch (error) {
       console.error('Debug error:', error)
       throw error
     }
   }
-}
-
-// Helper-Funktion für die Konvertierung alter numerischer Padel-Skills
-function convertNumericPadelSkill(numericSkill) {
-  if (numericSkill <= 2.0) return 'C'
-  if (numericSkill <= 3.25) return 'B-'
-  if (numericSkill <= 3.75) return 'B'
-  if (numericSkill <= 4.25) return 'B+'
-  if (numericSkill <= 4.75) return 'A-'
-  return 'A'
 }
 
 // Auth helpers
@@ -457,7 +422,7 @@ export const realtimeHelpers = {
         },
         (payload) => {
           console.log('Realtime update:', payload)
-          callback(transformFromDB(payload.new))
+          callback(payload.new)
         }
       )
       .subscribe()
