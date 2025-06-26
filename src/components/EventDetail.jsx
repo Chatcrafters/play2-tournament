@@ -14,24 +14,24 @@ export const EventDetail = ({ event, onEdit, onStartTournament }) => {
 
   // Sicherer Zugriff auf Schedule-Daten
   const getTimeInfo = () => {
-  // Sicherer Zugriff auf schedule
-  const schedule = event.schedule || [];
-  
-  // Prüfe verschiedene mögliche Quellen für Zeitinformationen
-  if (Array.isArray(schedule) && schedule.length > 0 && schedule[0]) {
-    const firstSchedule = schedule[0];
+    // Sicherer Zugriff auf schedule - stelle sicher dass es ein Array ist
+    const schedule = Array.isArray(event.schedule) ? event.schedule : []
+    
+    // Prüfe verschiedene mögliche Quellen für Zeitinformationen
+    if (schedule.length > 0 && schedule[0]) {
+      const firstSchedule = schedule[0];
+      return {
+        startTime: firstSchedule.start_time || firstSchedule.startTime || '',
+        endTime: firstSchedule.end_time || firstSchedule.endTime || ''
+      };
+    }
+    
+    // Fallback auf direkte Event-Eigenschaften
     return {
-      startTime: firstSchedule.start_time || firstSchedule.startTime || '',
-      endTime: firstSchedule.end_time || firstSchedule.endTime || ''
+      startTime: event.startTime || event.start_time || '',
+      endTime: event.endTime || event.end_time || ''
     };
-  }
-  
-  // Fallback auf direkte Event-Eigenschaften
-  return {
-    startTime: event.startTime || event.start_time || '',
-    endTime: event.endTime || event.end_time || ''
   };
-};
 
   const { startTime, endTime } = getTimeInfo();
 
