@@ -72,6 +72,20 @@ function AppContent() {
     }
   }
 
+  // Hilfsfunktion zum Konvertieren von camelCase zu snake_case
+  const toSnakeCase = (obj) => {
+    const snakeCase = (str) => str.replace(/([A-Z])/g, '_$1').toLowerCase()
+    
+    const converted = {}
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        const snakeKey = snakeCase(key)
+        converted[snakeKey] = obj[key]
+      }
+    }
+    return converted
+  }
+
   // Save events to both Supabase and localStorage
   const saveEvents = async (updatedEvents) => {
     // Speichere sofort in localStorage
@@ -81,14 +95,32 @@ function AppContent() {
     // Versuche in Supabase zu speichern
     try {
       for (const event of updatedEvents) {
-        console.log('Speichere Event in DB:', event)
+        console.log('Original Event:', event)
+        
+        // Konvertiere zu snake_case für die Datenbank
+        const dbEvent = toSnakeCase(event)
+        console.log('Konvertiertes Event für DB:', dbEvent)
         
         if (event.id.startsWith('temp_')) {
           // Neues Event - INSERT
+          // Entferne Felder die nicht in der DB existieren
+          const fieldsToRemove = [
+            'entry_fee',
+            'spielmodus',
+            'garantie_spiele',
+            'mindest_spiele',
+            'garantie_minuten',
+            'mindest_minuten',
+            'show_real_time_table',
+            'regenerate_count'
+          ]
+          
+          fieldsToRemove.forEach(field => delete dbEvent[field])
+          
           const { data, error } = await supabase
             .from('events')
             .insert([{
-              ...event,
+              ...dbEvent,
               id: undefined, // Lasse Supabase eine ID generieren
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
@@ -98,7 +130,7 @@ function AppContent() {
           
           if (error) {
             console.error('Fehler beim Erstellen des Events:', error)
-            console.error('Gesendete Daten:', event)
+            console.error('Gesendete Daten:', dbEvent)
             // Zeige Benutzer-Fehlermeldung
             alert(`Fehler beim Speichern: ${error.message}`)
           } else if (data) {
@@ -113,10 +145,23 @@ function AppContent() {
           }
         } else {
           // Bestehendes Event - UPDATE
-          const updateData = {
-            ...event,
-            updated_at: new Date().toISOString()
-          }
+          const updateData = { ...dbEvent }
+          
+          // Entferne Felder die nicht in der DB existieren
+          const fieldsToRemove = [
+            'entry_fee',
+            'spielmodus',
+            'garantie_spiele',
+            'mindest_spiele',
+            'garantie_minuten',
+            'mindest_minuten',
+            'show_real_time_table',
+            'regenerate_count'
+          ]
+          
+          fieldsToRemove.forEach(field => delete updateData[field])
+          
+          updateData.updated_at = new Date().toISOString()
           
           const { error } = await supabase
             .from('events')
