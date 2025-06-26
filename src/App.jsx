@@ -93,20 +93,25 @@ function AppContent() {
         
         if (event.id.startsWith('temp_')) {
           // Neues Event - INSERT
+          // Bereite das Event für die DB vor (ohne id!)
+          const insertData = {
+            ...dbEvent,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+          
+          // WICHTIG: Entferne die id komplett
+          delete insertData.id
+          
           const { data, error } = await supabase
             .from('events')
-            .insert([{
-              ...dbEvent,
-              id: undefined, // Lasse Supabase eine ID generieren
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }])
+            .insert([insertData])
             .select()
             .single()
           
           if (error) {
             console.error('Fehler beim Erstellen des Events:', error)
-            console.error('Gesendete Daten:', dbEvent)
+            console.error('Gesendete Daten:', insertData)
             // Zeige Benutzer-Fehlermeldung
             alert(`Fehler beim Speichern: ${error.message}`)
           } else if (data) {
