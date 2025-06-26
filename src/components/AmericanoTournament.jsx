@@ -107,41 +107,47 @@ export const AmericanoTournament = ({
   }
   
   // Calculate standings
-  const calculateStandings = () => {
-    const playerStats = {}
-    
-    // Initialize
-    event.players.forEach(player => {
+const calculateStandings = () => {
+  const playerStats = {}
+  
+  // Initialize
+  event.players.forEach(player => {
+    if (player && player.id) {  // Sicherheitscheck
       playerStats[player.id] = {
         ...player,
         points: 0,
         gamesWon: 0,
         gamesPlayed: 0
       }
-    })
+    }
+  })
+  
+  // Process results
+  Object.values(matchResults).forEach(match => {
+    if (!match.result) return
     
-    // Process results
-    Object.values(matchResults).forEach(match => {
-      if (!match.result) return
-      
-      match.team1?.forEach(player => {
+    match.team1?.forEach(player => {
+      if (player && player.id && playerStats[player.id]) {  // Sicherheitscheck
         playerStats[player.id].gamesPlayed++
         playerStats[player.id].gamesWon += match.result.team1Score
         playerStats[player.id].points += match.result.team1Points
-      })
-      
-      match.team2?.forEach(player => {
+      }
+    })
+    
+    match.team2?.forEach(player => {
+      if (player && player.id && playerStats[player.id]) {  // Sicherheitscheck
         playerStats[player.id].gamesPlayed++
         playerStats[player.id].gamesWon += match.result.team2Score
         playerStats[player.id].points += match.result.team2Points
-      })
+      }
     })
-    
-    return Object.values(playerStats).sort((a, b) => {
-      if (b.points !== a.points) return b.points - a.points
-      return b.gamesWon - a.gamesWon
-    })
-  }
+  })
+  
+  return Object.values(playerStats).sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points
+    return b.gamesWon - a.gamesWon
+  })
+}
   
   const currentRoundData = event.schedule[currentRound]
   const standings = calculateStandings()

@@ -186,41 +186,63 @@ function AppContent() {
   }
 
   const handleSelectPlayersFromDatabase = (selectedPlayers) => {
-    if (selectedEvent) {
-      const updatedPlayers = [...selectedEvent.players]
+  if (selectedEvent) {
+    const updatedPlayers = [...selectedEvent.players]
+    const maxPlayers = selectedEvent.maxPlayers || 16
+    const remainingSlots = maxPlayers - updatedPlayers.length
+    
+    // Nur so viele Spieler hinzufügen, wie noch Plätze frei sind
+    let addedCount = 0
+    
+    selectedPlayers.forEach(dbPlayer => {
+      // Stoppe, wenn max erreicht
+      if (addedCount >= remainingSlots) return
       
-      selectedPlayers.forEach(dbPlayer => {
-        // Prüfe ob Spieler bereits existiert (nach Name, Email oder Telefon)
-        const alreadyExists = updatedPlayers.some(p => 
-          p.name === dbPlayer.name || 
-          (p.email && p.email === dbPlayer.email) ||
-          (p.phone && p.phone === dbPlayer.phone)
-        )
-        
-        if (!alreadyExists) {
-          const newPlayer = {
-            id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${updatedPlayers.length}`,
-            name: dbPlayer.name,
-            gender: dbPlayer.gender || 'male',
-            skillLevel: dbPlayer.skillLevel || (selectedEvent.sport === 'padel' ? 'B' : 3),
-            skillLevels: dbPlayer.skillLevels || {
-              padel: dbPlayer.padelSkill || 'B',
-              pickleball: dbPlayer.pickleballSkill || 3,
-              spinxball: dbPlayer.spinxballSkill || 3
-            }
+      // Prüfe ob Spieler bereits existiert (nach Name, Email oder Telefon)
+      const alreadyExists = updatedPlayers.some(p => 
+        p.name === dbPlayer.name || 
+        (p.email && p.email === dbPlayer.email) ||
+        (p.phone && p.phone === dbPlayer.phone)
+      )
+      
+      if (!alreadyExists) {
+        const newPlayer = {
+          id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${updatedPlayers.length}`,
+          name: dbPlayer.name,
+          gender: dbPlayer.gender || 'male',
+          skillLevel: dbPlayer.skillLevel || (selectedEvent.sport === 'padel' ? 'B' : 3),
+          skillLevels: dbPlayer.skillLevels || {
+            padel: dbPlayer.padelSkill || 'B',
+            pickleball: dbPlayer.pickleballSkill || 3,
+            spinxball: dbPlayer.spinxballSkill || 3
           }
-          
-          // Füge alle verfügbaren Kontaktdaten hinzu
-          if (dbPlayer.email) newPlayer.email = dbPlayer.email
-          if (dbPlayer.phone) newPlayer.phone = dbPlayer.phone
-          if (dbPlayer.birthday) newPlayer.birthday = dbPlayer.birthday
-          if (dbPlayer.city) newPlayer.city = dbPlayer.city
-          if (dbPlayer.club) newPlayer.club = dbPlayer.club
-          if (dbPlayer.nationality) newPlayer.nationality = dbPlayer.nationality
-          
-          updatedPlayers.push(newPlayer)
         }
-      })
+        
+        // Füge alle verfügbaren Kontaktdaten hinzu
+        if (dbPlayer.email) newPlayer.email = dbPlayer.email
+        if (dbPlayer.phone) newPlayer.phone = dbPlayer.phone
+        if (dbPlayer.birthday) newPlayer.birthday = dbPlayer.birthday
+        if (dbPlayer.city) newPlayer.city = dbPlayer.city
+        if (dbPlayer.club) newPlayer.club = dbPlayer.club
+        if (dbPlayer.nationality) newPlayer.nationality = dbPlayer.nationality
+        
+        updatedPlayers.push(newPlayer)
+        addedCount++
+      }
+    })
+    
+    // Warnung anzeigen, wenn nicht alle hinzugefügt werden konnten
+    if (selectedPlayers.length > remainingSlots) {
+      alert(`Es konnten nur ${remainingSlots} von ${selectedPlayers.length} Spielern hinzugefügt werden. Das Event ist auf ${maxPlayers} Spieler begrenzt.`)
+    }
+    
+    const updatedEvent = {
+      ...selectedEvent,
+      players: updatedPlayers
+    }
+    handleUpdateEvent(updatedEvent)
+  }
+}
       
       const updatedEvent = {
         ...selectedEvent,
