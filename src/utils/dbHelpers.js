@@ -132,6 +132,11 @@ export const transformToDB = (obj) => {
   
   for (const key in obj) {
     if (obj.hasOwnProperty(key)) {
+      // NEU: Filtere temporäre IDs heraus
+      if (key === 'id' && obj[key] && typeof obj[key] === 'string' && obj[key].startsWith('temp_')) {
+        continue; // Skip temporary IDs completely
+      }
+      
       const snakeKey = camelToSnake(key);
       
       // SPEZIALBEHANDLUNG für leere Datums-Strings
