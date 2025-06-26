@@ -7,13 +7,53 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent 
   const getEventStatus = (event) => {
     if (event.status === 'completed') return t('event.status.completed')
     if (event.status === 'running') return t('event.status.running')
-    const eventDate = new Date(event.date)
+    
+    const now = new Date()
+    
+    // Parse das Datum korrekt - als lokale Zeit
+    let eventDate
+    if (event.date && event.date.includes('T')) {
+      // Bereits im ISO Format
+      eventDate = new Date(event.date)
+    } else if (event.date) {
+      // Nur Datum ohne Zeit - füge lokale Mitternacht hinzu
+      const [year, month, day] = event.date.split('-')
+      eventDate = new Date(year, month - 1, day) // month - 1 weil JS Monate 0-basiert sind
+    } else {
+      eventDate = new Date()
+    }
+    
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    eventDate.setHours(0, 0, 0, 0)
     
-    if (eventDate < today) return t('event.status.past')
-    if (eventDate.getTime() === today.getTime()) return t('event.status.today')
+    const eventDateMidnight = new Date(eventDate)
+    eventDateMidnight.setHours(0, 0, 0, 0)
+    
+    // Event ist in der Vergangenheit (anderer Tag)
+    if (eventDateMidnight < today) {
+      return t('event.status.past')
+    }
+    
+    // Event ist heute
+    if (eventDateMidnight.getTime() === today.getTime()) {
+      // Prüfe ob das Event schon vorbei ist basierend auf der Endzeit
+      if (event.endTime || event.end_time) {
+        const endTime = event.endTime || event.end_time
+        const [endHour, endMinute] = endTime.split(':').map(Number)
+        
+        // Erstelle End-DateTime basierend auf dem geparsten eventDate
+        const eventEndDateTime = new Date(eventDate)
+        eventEndDateTime.setHours(endHour, endMinute, 0, 0)
+        
+        // Nur als "past" markieren wenn die Endzeit vorbei ist
+        if (now > eventEndDateTime) {
+          return t('event.status.past')
+        }
+      }
+      return t('event.status.today')
+    }
+    
+    // Event ist in der Zukunft
     return t('event.status.upcoming')
   }
 
@@ -42,7 +82,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent 
       
       {sortedEvents.length === 0 ? (
         <p className="text-gray-500 text-center py-8">
-          {t('player.noPlayers')}
+          {t('event.noEvents') || 'Keine Events vorhanden'}
         </p>
       ) : (
         <div className="space-y-3">
@@ -100,14 +140,14 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent 
                        event.sport === 'pickleball' ? t('sports.pickleball') : 
                        t('sports.spinxball')}
                     </span>
-                    {(event.isAmericano || event.event_type === 'americano') && (
+                    {(event.isAmericano || event.event_type === 'americano' || event.eventType === 'americano') && (
                       <span className="text-xs bg-purple-200 px-2 py-1 rounded">
                         {t('eventTypes.americano')}
                       </span>
                     )}
-                    {event.genderMode && event.genderMode !== 'open' && (
+                    {event.genderMode && event.genderMode !== 'open' && event.genderMode !== 'mixed' && (
                       <span className="text-xs bg-pink-200 px-2 py-1 rounded">
-                        {event.genderMode === 'men' ? t('player.male') : t('player.female')}
+                        {event.genderMode === 'men' || event.genderMode === 'menOnly' ? t('player.male') : t('player.female')}
                       </span>
                     )}
                   </div>

@@ -3,8 +3,65 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import Play2 Design System */
-@import './play2-styles.css';
+/* Play2 Design System Variables */
+:root {
+  /* Play2 Colors */
+  --play2-primary: #3b82f6;
+  --play2-primary-light: #60a5fa;
+  --play2-primary-dark: #2563eb;
+  --play2-secondary: #10b981;
+  --play2-secondary-light: #34d399;
+  --play2-secondary-dark: #059669;
+  --play2-success: #10b981;
+  --play2-danger: #ef4444;
+  --play2-warning: #f59e0b;
+  --play2-info: #3b82f6;
+  
+  /* Play2 Grays */
+  --play2-gray-50: #f9fafb;
+  --play2-gray-100: #f3f4f6;
+  --play2-gray-200: #e5e7eb;
+  --play2-gray-300: #d1d5db;
+  --play2-gray-400: #9ca3af;
+  --play2-gray-500: #6b7280;
+  --play2-gray-600: #4b5563;
+  --play2-gray-700: #374151;
+  --play2-gray-800: #1f2937;
+  --play2-gray-900: #111827;
+  
+  /* Play2 Spacing */
+  --play2-spacing-xs: 0.25rem;
+  --play2-spacing-sm: 0.5rem;
+  --play2-spacing-md: 1rem;
+  --play2-spacing-lg: 1.5rem;
+  --play2-spacing-xl: 2rem;
+  --play2-spacing-2xl: 3rem;
+  
+  /* Play2 Shadows */
+  --play2-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --play2-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --play2-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --play2-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --play2-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  /* Play2 Border Radius */
+  --play2-radius-sm: 0.125rem;
+  --play2-radius: 0.25rem;
+  --play2-radius-md: 0.375rem;
+  --play2-radius-lg: 0.5rem;
+  --play2-radius-xl: 0.75rem;
+  --play2-radius-2xl: 1rem;
+  --play2-radius-full: 9999px;
+  
+  /* Play2 Typography */
+  --play2-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --play2-font-mono: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  
+  /* Play2 Transitions */
+  --play2-transition-fast: 150ms ease-in-out;
+  --play2-transition: 200ms ease-in-out;
+  --play2-transition-slow: 300ms ease-in-out;
+}
 
 /* Additional Global Styles */
 html {

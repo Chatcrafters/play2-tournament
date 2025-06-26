@@ -12,6 +12,26 @@ export const EventDetail = ({ event, onEdit, onStartTournament }) => {
   const eventDate = new Date(event.date)
   const isEventPast = eventDate < new Date() && event.status !== 'completed'
 
+  // Sicherer Zugriff auf Schedule-Daten
+  const getTimeInfo = () => {
+    // Prüfe verschiedene mögliche Quellen für Zeitinformationen
+    if (event.schedule && Array.isArray(event.schedule) && event.schedule.length > 0) {
+      const firstSchedule = event.schedule[0];
+      return {
+        startTime: firstSchedule.start_time || firstSchedule.startTime || '',
+        endTime: firstSchedule.end_time || firstSchedule.endTime || ''
+      };
+    }
+    
+    // Fallback auf direkte Event-Eigenschaften
+    return {
+      startTime: event.startTime || event.start_time || '',
+      endTime: event.endTime || event.end_time || ''
+    };
+  };
+
+  const { startTime, endTime } = getTimeInfo();
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <div className="flex justify-between items-start mb-4">
@@ -50,8 +70,14 @@ export const EventDetail = ({ event, onEdit, onStartTournament }) => {
           <div className="flex items-center gap-3">
             <Clock className="w-5 h-5 text-gray-500" />
             <div>
-              <p className="text-sm text-gray-500">{t('event.time')}</p>
-              <p className="font-medium">{event.startTime || event.start_time} - {event.endTime || event.end_time} Uhr</p>
+              <p className="text-sm text-gray-500">{t('event.time') || 'Zeit'}</p>
+              <p className="font-medium">
+                {startTime && endTime ? (
+                  `${startTime} - ${endTime} Uhr`
+                ) : (
+                  'Zeit nicht festgelegt'
+                )}
+              </p>
             </div>
           </div>
 
@@ -111,7 +137,7 @@ export const EventDetail = ({ event, onEdit, onStartTournament }) => {
             </span>
           </div>
           
-          {(event.isAmericano || event.event_type === 'americano') && (
+          {(event.isAmericano || event.event_type === 'americano' || event.eventType === 'americano') && (
             <div>
               <span className="text-gray-500">Spielmodus:</span>
               <span className="ml-2 font-medium">{t('eventTypes.americano')}</span>

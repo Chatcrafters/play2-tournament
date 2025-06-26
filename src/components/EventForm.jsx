@@ -78,7 +78,7 @@ const templates = {
     eventType: 'americano',
     genderMode: 'open',
     format: 'doubles',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA'), // Format: YYYY-MM-DD
     endDate: '',
     startTime: '09:00',
     endTime: '13:00',
