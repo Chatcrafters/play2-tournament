@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { dbOperations } from '../lib/supabase'
 import { transformFromDB, transformToDB } from '../utils/dbHelpers'
 import { useTranslation } from '../components/LanguageSelector'
+import { interpolate } from '../utils/translations'
 
 // Helper-Funktionen für Level-Konvertierung
 const getPadelNumericValue = (level) => {
@@ -52,7 +53,7 @@ const calculateAge = (birthday) => {
 }
 
 const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = [], event }) => {
-  const { t, interpolate } = useTranslation()
+  const { t } = useTranslation()  // <-- NUR t hier
   
   // NEUE ZEILEN für Spielerlimit-Prüfung
   const remainingSlots = event?.maxPlayers - existingPlayers.length || 0;
