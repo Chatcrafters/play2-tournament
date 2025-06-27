@@ -2,7 +2,7 @@ import { EventShare } from './EventShare'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { generateAmericanoSchedule } from '../utils/americanoAlgorithm'
 
-console.log('EventDetailView loaded - Version 1.0');
+console.log('EventDetailView loaded - Version 2.0');
 
 // Komplette EventDetailView mit Fairness-Anzeige, Inline-Ergebniseingabe und Tabellen-Optionen
 export function EventDetailView({ 
@@ -31,12 +31,13 @@ export function EventDetailView({
       startTime: selectedEvent.startTime || '09:00',
       endTime: selectedEvent.endTime || '13:00',
       regenerateCount: selectedEvent.regenerateCount || 0,
-      showRealTimeTable: selectedEvent.showRealTimeTable !== false // Default: true
+      showRealTimeTable: selectedEvent.showRealTimeTable !== false, // Default: true
+      fairnessScore: selectedEvent.fairnessScore || 0
     }
   })
   
   const [schedule, setSchedule] = useState([])
-  const [scheduleStats, setScheduleStats] = useState(null) // NEU: Fairness-Statistiken
+  const [scheduleStats, setScheduleStats] = useState(null)
   const [currentRound, setCurrentRound] = useState(0)
   const [matchResults, setMatchResults] = useState({})
   const [showAddPlayer, setShowAddPlayer] = useState(false)
@@ -44,7 +45,9 @@ export function EventDetailView({
   const [scores, setScores] = useState({})
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
   const [showPlayerDatabase, setShowPlayerDatabase] = useState(false)
-  const [showTableSettings, setShowTableSettings] = useState(false) // NEU: Tabellen-Einstellungen
+  const [showTableSettings, setShowTableSettings] = useState(false)
+  const [showScheduleOptions, setShowScheduleOptions] = useState(false)
+  const [scheduleOptions, setScheduleOptions] = useState([])
 
   // Initialize from selectedEvent
   useEffect(() => {
@@ -56,7 +59,8 @@ export function EventDetailView({
         results: selectedEvent.results || {},
         currentRound: selectedEvent.currentRound || 0,
         timerState: selectedEvent.timerState || 'stopped',
-        showRealTimeTable: selectedEvent.showRealTimeTable !== false
+        showRealTimeTable: selectedEvent.showRealTimeTable !== false,
+        fairnessScore: selectedEvent.fairnessScore || 0
       }
       
       setLocalEvent(safeEvent)
@@ -110,7 +114,7 @@ export function EventDetailView({
     handleUpdateEvent({ players: updatedPlayers })
   }
 
-  // Erweiterte Spielplan-Generierung mit Fairness-Statistiken
+  // Erweiterte Spielplan-Generierung mit 3 Varianten
   const generateSchedule = () => {
     const playerCount = localEvent.players?.length || 0
     
@@ -125,60 +129,136 @@ export function EventDetailView({
     const totalMinutes = (endHours * 60 + endMins) - (startHours * 60 + startMins)
     const totalRounds = Math.floor(totalMinutes / localEvent.roundDuration)
     
-    // Generiere Spielplan mit dem neuen Algorithmus
-    const result = generateAmericanoSchedule(
-      localEvent.players,
-      localEvent.courts,
-      totalRounds,
-      {
-        regenerateCount: localEvent.regenerateCount || 0,
-        eventId: localEvent.id
-      }
-    )
-    
-    // Konvertiere zum erwarteten Format für EventDetailView
-    const newSchedule = result.schedule.map((round, index) => {
-      // Finde alle Spieler für diese Runde
-      const playingPlayerIds = new Set()
-      const matches = []
+    // Generiere 3 verschiedene Spielplan-Varianten
+    const options = []
+    for (let i = 0; i < 3; i++) {
+      const result = generateAmericanoSchedule(
+        localEvent.players,
+        localEvent.courts,
+        totalRounds,
+        {
+          regenerateCount: i,
+          eventId: localEvent.id
+        }
+      )
       
-      round.matches.forEach(match => {
-        match.players.forEach(playerId => playingPlayerIds.add(playerId))
+      // Berechne Fairness-Metriken
+      const fairnessMetrics = calculateFairnessMetrics(result, localEvent.players)
+      
+      // Konvertiere zum erwarteten Format für EventDetailView
+      const newSchedule = result.schedule.map((round, index) => {
+        const playingPlayerIds = new Set()
+        const matches = []
         
-        // Konvertiere zum erwarteten Format mit team1 und team2
-        const playerObjects = match.players.map(id => 
-          localEvent.players.find(p => p.id === id)
-        ).filter(p => p) // Filter out undefined
+        round.matches.forEach(match => {
+          match.players.forEach(playerId => playingPlayerIds.add(playerId))
+          
+          const playerObjects = match.players.map(id => 
+            localEvent.players.find(p => p.id === id)
+          ).filter(p => p)
+          
+          if (playerObjects.length === 4) {
+            matches.push({
+              court: match.court,
+              team1: [playerObjects[0], playerObjects[1]],
+              team2: [playerObjects[2], playerObjects[3]]
+            })
+          }
+        })
         
-        if (playerObjects.length === 4) {
-          matches.push({
-            court: match.court,
-            team1: [playerObjects[0], playerObjects[1]],
-            team2: [playerObjects[2], playerObjects[3]]
-          })
+        const waitingPlayers = localEvent.players.filter(p => 
+          !playingPlayerIds.has(p.id)
+        )
+        
+        const startMinutes = index * localEvent.roundDuration
+        
+        return {
+          round: round.round,
+          startTime: startMinutes,
+          matches,
+          waitingPlayers
         }
       })
       
-      const waitingPlayers = localEvent.players.filter(p => 
-        !playingPlayerIds.has(p.id)
-      )
-      
-      const startMinutes = index * localEvent.roundDuration
-      
-      return {
-        round: round.round,
-        startTime: startMinutes,
-        matches,
-        waitingPlayers
-      }
-    })
+      options.push({
+        schedule: newSchedule,
+        fairness: fairnessMetrics,
+        regenerateCount: i,
+        statistics: result.statistics
+      })
+    }
     
-    // Berechne Fairness-Statistiken basierend auf dem Ergebnis
-    const stats = {
+    setScheduleOptions(options)
+    setShowScheduleOptions(true)
+  }
+
+  // Fairness-Metriken berechnen
+  const calculateFairnessMetrics = (result, players) => {
+    const playerCount = players.length
+    
+    // Durchschnittliche verschiedene Partner pro Spieler
+    const avgUniquePartners = players.reduce((sum, player, idx) => {
+      const partners = Object.values(result.statistics.partnerMatrix[idx] || {})
+        .filter(count => count > 0).length
+      return sum + partners
+    }, 0) / playerCount
+    
+    // Durchschnittliche verschiedene Gegner pro Spieler
+    const avgUniqueOpponents = players.reduce((sum, player, idx) => {
+      const opponents = Object.values(result.statistics.opponentMatrix[idx] || {})
+        .filter(count => count > 0).length
+      return sum + opponents
+    }, 0) / playerCount
+    
+    // Maximale Partner-Wiederholungen
+    const maxPartnerRepeats = Math.max(...Object.values(result.statistics.partnerMatrix)
+      .map(row => Math.max(...Object.values(row))))
+    
+    // Maximale Gegner-Wiederholungen
+    const maxOpponentRepeats = Math.max(...Object.values(result.statistics.opponentMatrix)
+      .map(row => Math.max(...Object.values(row))))
+    
+    // Gleichmäßigkeit der Spiele (Standardabweichung)
+    const avgGames = result.statistics.gamesPlayed.reduce((a, b) => a + b, 0) / playerCount
+    const gameDeviation = Math.sqrt(
+      result.statistics.gamesPlayed.reduce((sum, games) => 
+        sum + Math.pow(games - avgGames, 2), 0) / playerCount
+    )
+    
+    // Gesamt-Fairness-Score (0-100)
+    const partnerScore = Math.min(100, (avgUniquePartners / (playerCount - 1)) * 100)
+    const opponentScore = Math.min(100, (avgUniqueOpponents / (playerCount - 1)) * 100)
+    const repeatScore = Math.max(0, 100 - (maxPartnerRepeats - 1) * 20)
+    const balanceScore = Math.max(0, 100 - gameDeviation * 10)
+    
+    const overallScore = Math.round(
+      (partnerScore * 0.3 + opponentScore * 0.3 + repeatScore * 0.25 + balanceScore * 0.15)
+    )
+    
+    return {
+      overallScore,
+      avgUniquePartners: avgUniquePartners.toFixed(1),
+      avgUniqueOpponents: avgUniqueOpponents.toFixed(1),
+      maxPartnerRepeats,
+      maxOpponentRepeats,
+      gameBalance: gameDeviation.toFixed(2),
+      partnerScore: Math.round(partnerScore),
+      opponentScore: Math.round(opponentScore),
+      repeatScore: Math.round(repeatScore),
+      balanceScore: Math.round(balanceScore)
+    }
+  }
+
+  // Spielplan-Option auswählen
+  const handleSelectSchedule = (index) => {
+    const selectedOption = scheduleOptions[index]
+    
+    setSchedule(selectedOption.schedule)
+    setScheduleStats({
       playerStats: localEvent.players.map((player, idx) => {
-        const games = result.statistics.gamesPlayed[idx] || 0
-        const partnerCount = Object.values(result.statistics.partnerMatrix[idx] || {}).filter(v => v > 0).length
-        const opponentCount = Object.values(result.statistics.opponentMatrix[idx] || {}).filter(v => v > 0).length
+        const games = selectedOption.statistics.gamesPlayed[idx] || 0
+        const partnerCount = Object.values(selectedOption.statistics.partnerMatrix[idx] || {}).filter(v => v > 0).length
+        const opponentCount = Object.values(selectedOption.statistics.opponentMatrix[idx] || {}).filter(v => v > 0).length
         const maxPartners = localEvent.players.length - 1
         const fairness = maxPartners > 0 ? Math.round((partnerCount / maxPartners) * 100) : 100
         
@@ -190,39 +270,17 @@ export function EventDetailView({
           fairness
         }
       }),
-      summary: {
-        avgFairness: 0,
-        avgUniquePartners: 0,
-        avgUniqueOpponents: 0,
-        maxPartnerRepeats: 0
-      }
-    }
-    
-    // Berechne Zusammenfassung
-    if (stats.playerStats.length > 0) {
-      stats.summary.avgFairness = Math.round(
-        stats.playerStats.reduce((sum, p) => sum + p.fairness, 0) / stats.playerStats.length
-      )
-      stats.summary.avgUniquePartners = Math.round(
-        stats.playerStats.reduce((sum, p) => sum + p.uniquePartners, 0) / stats.playerStats.length
-      )
-      stats.summary.avgUniqueOpponents = Math.round(
-        stats.playerStats.reduce((sum, p) => sum + p.uniqueOpponents, 0) / stats.playerStats.length
-      )
-      
-      // Max Partner-Wiederholungen
-      const maxRepeats = Math.max(...Object.values(result.statistics.partnerMatrix).map(row => 
-        Math.max(...Object.values(row))
-      ))
-      stats.summary.maxPartnerRepeats = maxRepeats
-    }
-    
-    setScheduleStats(stats)
-    setSchedule(newSchedule)
-    handleUpdateEvent({ 
-      schedule: newSchedule,
-      regenerateCount: (localEvent.regenerateCount || 0) + 1
+      summary: selectedOption.fairness
     })
+    
+    handleUpdateEvent({ 
+      schedule: selectedOption.schedule,
+      regenerateCount: selectedOption.regenerateCount,
+      fairnessScore: selectedOption.fairness.overallScore
+    })
+    
+    setShowScheduleOptions(false)
+    setScheduleOptions([])
   }
 
   // Score handling mit inline Eingabe
@@ -238,162 +296,156 @@ export function EventDetailView({
   }
 
   const handleInlineScoreSubmit = (roundIdx, matchIdx) => {
-  const matchKey = `${roundIdx}-${matchIdx}`
-  const score = scores[matchKey]
-  const match = schedule[roundIdx].matches[matchIdx]
-  
-  if (!score || score.team1Score === undefined || score.team2Score === undefined) {
-    alert('Bitte beide Ergebnisse eingeben')
-    return
-  }
-  
-  const team1Points = score.team1Score > score.team2Score ? 2 : score.team1Score < score.team2Score ? 0 : 1
-  const team2Points = score.team1Score < score.team2Score ? 2 : score.team1Score > score.team2Score ? 0 : 1
-  
-  const result = {
-    ...match,
-    result: {
-      team1Score: score.team1Score,
-      team2Score: score.team2Score,
-      team1Points,
-      team2Points
+    const matchKey = `${roundIdx}-${matchIdx}`
+    const score = scores[matchKey]
+    const match = schedule[roundIdx].matches[matchIdx]
+    
+    if (!score || score.team1Score === undefined || score.team2Score === undefined) {
+      alert('Bitte beide Ergebnisse eingeben')
+      return
+    }
+    
+    const team1Points = score.team1Score > score.team2Score ? 2 : score.team1Score < score.team2Score ? 0 : 1
+    const team2Points = score.team1Score < score.team2Score ? 2 : score.team1Score > score.team2Score ? 0 : 1
+    
+    const result = {
+      ...match,
+      result: {
+        team1Score: score.team1Score,
+        team2Score: score.team2Score,
+        team1Points,
+        team2Points
+      }
+    }
+    
+    const updatedResults = { ...matchResults, [matchKey]: result }
+    setMatchResults(updatedResults)
+    
+    const updatedEvent = {
+      ...localEvent,
+      results: updatedResults
+    }
+    
+    setLocalEvent(updatedEvent)
+    onUpdateEvent(updatedEvent)
+    
+    setScores(prev => {
+      const newScores = { ...prev }
+      delete newScores[matchKey]
+      return newScores
+    })
+    
+    const element = document.getElementById(`match-${matchKey}`)
+    if (element) {
+      element.classList.add('bg-green-50')
+      setTimeout(() => element.classList.remove('bg-green-50'), 1000)
     }
   }
-  
-  const updatedResults = { ...matchResults, [matchKey]: result }
-  setMatchResults(updatedResults)
-  
-  // WICHTIG: Hier müssen wir das komplette Event updaten, nicht nur results
-  const updatedEvent = {
-    ...localEvent,
-    results: updatedResults
-  }
-  
-  // Update both local state and database
-  console.log('Saving results to DB:', updatedResults);
-  console.log('Updated event:', updatedEvent);
-  setLocalEvent(updatedEvent)
-  onUpdateEvent(updatedEvent)
-  
-  // Clear the score input
-  setScores(prev => {
-    const newScores = { ...prev }
-    delete newScores[matchKey]
-    return newScores
-  })
-  
-  // Kurzes visuelles Feedback
-  const element = document.getElementById(`match-${matchKey}`)
-  if (element) {
-    element.classList.add('bg-green-50')
-    setTimeout(() => element.classList.remove('bg-green-50'), 1000)
-  }
-}
 
- // Calculate standings with fairness from schedule generation
-const calculateStandings = () => {
-  const playerStats = {}
-  
-  // Initialize
-  localEvent.players.forEach(player => {
-    playerStats[player.id] = {
-      ...player,
-      points: 0,
-      gamesWon: 0,
-      gamesPlayed: 0,
-      partners: new Set(),
-      opponents: new Set()
-    }
-  })
-  
-  // Process schedule first to get partner/opponent data
-  schedule.forEach(round => {
-    round.matches?.forEach(match => {
-      if (match.team1 && match.team2) {
-        // Track partners
-        if (match.team1[0] && match.team1[1]) {
-          playerStats[match.team1[0].id]?.partners.add(match.team1[1].id)
-          playerStats[match.team1[1].id]?.partners.add(match.team1[0].id)
+  // Calculate standings with fairness from schedule generation
+  const calculateStandings = () => {
+    const playerStats = {}
+    
+    // Initialize
+    localEvent.players.forEach(player => {
+      playerStats[player.id] = {
+        ...player,
+        points: 0,
+        gamesWon: 0,
+        gamesPlayed: 0,
+        partners: new Set(),
+        opponents: new Set()
+      }
+    })
+    
+    // Process schedule first to get partner/opponent data
+    schedule.forEach(round => {
+      round.matches?.forEach(match => {
+        if (match.team1 && match.team2) {
+          // Track partners
+          if (match.team1[0] && match.team1[1]) {
+            playerStats[match.team1[0].id]?.partners.add(match.team1[1].id)
+            playerStats[match.team1[1].id]?.partners.add(match.team1[0].id)
+          }
+          if (match.team2[0] && match.team2[1]) {
+            playerStats[match.team2[0].id]?.partners.add(match.team2[1].id)
+            playerStats[match.team2[1].id]?.partners.add(match.team2[0].id)
+          }
+          
+          // Track opponents
+          match.team1?.forEach(p1 => {
+            match.team2?.forEach(p2 => {
+              if (playerStats[p1.id] && playerStats[p2.id]) {
+                playerStats[p1.id].opponents.add(p2.id)
+                playerStats[p2.id].opponents.add(p1.id)
+              }
+            })
+          })
         }
-        if (match.team2[0] && match.team2[1]) {
-          playerStats[match.team2[0].id]?.partners.add(match.team2[1].id)
-          playerStats[match.team2[1].id]?.partners.add(match.team2[0].id)
+      })
+    })
+    
+    // Process all results
+    Object.entries(matchResults).forEach(([matchKey, matchData]) => {
+      if (!matchData.result) return
+      
+      const { team1, team2, result } = matchData
+      
+      // Update team 1
+      team1?.forEach(player => {
+        if (!player?.id || !playerStats[player.id]) {
+          console.warn('Missing player in team1:', player)
+          return
         }
         
-        // Track opponents
-        match.team1?.forEach(p1 => {
-          match.team2?.forEach(p2 => {
-            if (playerStats[p1.id] && playerStats[p2.id]) {
-              playerStats[p1.id].opponents.add(p2.id)
-              playerStats[p2.id].opponents.add(p1.id)
-            }
-          })
-        })
-      }
+        playerStats[player.id].gamesPlayed++
+        playerStats[player.id].gamesWon += result.team1Score || 0
+        playerStats[player.id].points += result.team1Points || 0
+      })
+      
+      // Update team 2
+      team2?.forEach(player => {
+        if (!player?.id || !playerStats[player.id]) {
+          console.warn('Missing player in team2:', player)
+          return
+        }
+        
+        playerStats[player.id].gamesPlayed++
+        playerStats[player.id].gamesWon += result.team2Score || 0
+        playerStats[player.id].points += result.team2Points || 0
+      })
     })
-  })
-  
-  // Process all results
-  Object.entries(matchResults).forEach(([matchKey, matchData]) => {
-    if (!matchData.result) return
     
-    const { team1, team2, result } = matchData
-    
-    // Update team 1
-    team1?.forEach(player => {
-      if (!player?.id || !playerStats[player.id]) {
-        console.warn('Missing player in team1:', player)
-        return
+    // Verwende Fairness-Score aus der Spielplan-Generierung wenn verfügbar
+    const standings = Object.values(playerStats).map(player => {
+      const scheduleFairness = scheduleStats?.playerStats?.find(p => p.name === player.name)?.fairness
+      
+      // Berechne Fairness basierend auf verschiedenen Partnern/Gegnern
+      const maxPossiblePartners = Math.max(1, localEvent.players.length - 1)
+      const actualPartners = player.partners.size
+      const actualOpponents = player.opponents.size
+      
+      let fairnessScore = 0
+      if (maxPossiblePartners > 0) {
+        const partnerRatio = actualPartners / maxPossiblePartners
+        const opponentRatio = actualOpponents / maxPossiblePartners
+        fairnessScore = Math.round(((partnerRatio + opponentRatio) / 2) * 100)
       }
       
-      playerStats[player.id].gamesPlayed++
-      playerStats[player.id].gamesWon += result.team1Score || 0
-      playerStats[player.id].points += result.team1Points || 0
-    })
-    
-    // Update team 2
-    team2?.forEach(player => {
-      if (!player?.id || !playerStats[player.id]) {
-        console.warn('Missing player in team2:', player)
-        return
+      return {
+        ...player,
+        uniquePartners: actualPartners,
+        uniqueOpponents: actualOpponents,
+        fairnessScore: scheduleFairness || fairnessScore
       }
-      
-      playerStats[player.id].gamesPlayed++
-      playerStats[player.id].gamesWon += result.team2Score || 0
-      playerStats[player.id].points += result.team2Points || 0
     })
-  })
-  
-  // Verwende Fairness-Score aus der Spielplan-Generierung wenn verfügbar
-  const standings = Object.values(playerStats).map(player => {
-    const scheduleFairness = scheduleStats?.playerStats?.find(p => p.name === player.name)?.fairness
     
-    // Berechne Fairness basierend auf verschiedenen Partnern/Gegnern
-    const maxPossiblePartners = Math.max(1, localEvent.players.length - 1)
-    const actualPartners = player.partners.size
-    const actualOpponents = player.opponents.size
-    
-    let fairnessScore = 0
-    if (maxPossiblePartners > 0) {
-      const partnerRatio = actualPartners / maxPossiblePartners
-      const opponentRatio = actualOpponents / maxPossiblePartners
-      fairnessScore = Math.round(((partnerRatio + opponentRatio) / 2) * 100)
-    }
-    
-    return {
-      ...player,
-      uniquePartners: actualPartners,
-      uniqueOpponents: actualOpponents,
-      fairnessScore: scheduleFairness || fairnessScore
-    }
-  })
-  
-  // Sort by points, then games won
-  return standings.sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points
-    return b.gamesWon - a.gamesWon
-  })
-}
+    // Sort by points, then games won
+    return standings.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points
+      return b.gamesWon - a.gamesWon
+    })
+  }
 
   const formatTime = (minutes) => {
     const [startHours, startMins] = localEvent.startTime.split(':').map(Number)
@@ -408,36 +460,43 @@ const calculateStandings = () => {
     return (localEvent.regenerateCount || 0) < 3 // Initial + 2 weitere = max 3
   }
 
+  // Fairness-Score Farbe
+  const getFairnessColor = (score) => {
+    if (score >= 80) return 'text-green-600 bg-green-50'
+    if (score >= 60) return 'text-yellow-600 bg-yellow-50'
+    if (score >= 40) return 'text-orange-600 bg-orange-50'
+    return 'text-red-600 bg-red-50'
+  }
+
   // Main Render
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Header */}
-<div className="mb-6">
-  <button
-    onClick={onBack}
-    className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-2"
-  >
-    ← Zurück zur Übersicht
-  </button>
-  
-  <div className="flex justify-between items-start">
-    <div>
-      <h2 className="text-3xl font-bold mb-2">{localEvent.name}</h2>
-      <p className="text-gray-600">
-        {localEvent.sport} • {localEvent.eventType} • {localEvent.format}
-      </p>
-      <p className="text-sm text-gray-500 mt-1">
-        {localEvent.date ? new Date(localEvent.date).toLocaleDateString('de-DE') : 'Kein Datum'} • 
-        {localEvent.location || 'Kein Ort angegeben'}
-      </p>
-    </div>
-    
-    {/* NEU: Event Share Button */}
-    <div>
-      <EventShare event={localEvent} />
-    </div>
-  </div>
-</div>
+      <div className="mb-6">
+        <button
+          onClick={onBack}
+          className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-2"
+        >
+          ← Zurück zur Übersicht
+        </button>
+        
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-3xl font-bold mb-2">{localEvent.name}</h2>
+            <p className="text-gray-600">
+              {localEvent.sport} • {localEvent.eventType} • {localEvent.format}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">
+              {localEvent.date ? new Date(localEvent.date).toLocaleDateString('de-DE') : 'Kein Datum'} • 
+              {localEvent.location || 'Kein Ort angegeben'}
+            </p>
+          </div>
+          
+          <div>
+            <EventShare event={localEvent} />
+          </div>
+        </div>
+      </div>
 
       {/* Player Management */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -574,6 +633,11 @@ const calculateStandings = () => {
                 <span className="font-medium">{schedule.length}</span> Runden • 
                 <span className="font-medium"> {localEvent.players?.length || 0}</span> Spieler • 
                 <span className="font-medium"> {localEvent.courts || 1}</span> Plätze
+                {localEvent.fairnessScore > 0 && (
+                  <span className={`ml-3 px-3 py-1 rounded-full text-sm font-semibold ${getFairnessColor(localEvent.fairnessScore)}`}>
+                    Fairness: {localEvent.fairnessScore}%
+                  </span>
+                )}
               </div>
               
               <div className="flex items-center gap-3">
@@ -629,29 +693,29 @@ const calculateStandings = () => {
             )}
             
             {/* Fairness-Statistiken anzeigen */}
-            {scheduleStats && (
+            {scheduleStats && scheduleStats.summary && (
               <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-3 bg-blue-50 rounded">
                   <div className="text-2xl font-bold text-blue-700">
-                    {scheduleStats.summary?.avgFairness || 0}%
+                    {scheduleStats.summary.overallScore || 0}%
                   </div>
                   <div className="text-xs text-gray-600">Durchschn. Fairness</div>
                 </div>
                 <div className="text-center p-3 bg-green-50 rounded">
                   <div className="text-2xl font-bold text-green-700">
-                    {scheduleStats.summary?.avgUniquePartners || 0}
+                    {scheduleStats.summary.avgUniquePartners || 0}
                   </div>
                   <div className="text-xs text-gray-600">Ø Verschiedene Partner</div>
                 </div>
                 <div className="text-center p-3 bg-purple-50 rounded">
                   <div className="text-2xl font-bold text-purple-700">
-                    {scheduleStats.summary?.avgUniqueOpponents || 0}
+                    {scheduleStats.summary.avgUniqueOpponents || 0}
                   </div>
                   <div className="text-xs text-gray-600">Ø Verschiedene Gegner</div>
                 </div>
                 <div className="text-center p-3 bg-orange-50 rounded">
                   <div className="text-2xl font-bold text-orange-700">
-                    {scheduleStats.summary?.maxPartnerRepeats || 0}x
+                    {scheduleStats.summary.maxPartnerRepeats || 0}x
                   </div>
                   <div className="text-xs text-gray-600">Max. Partner-Wiederholung</div>
                 </div>
@@ -850,6 +914,146 @@ const calculateStandings = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* Modal für Spielplan-Optionen */}
+      {showScheduleOptions && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Wähle einen Spielplan</h2>
+              <button
+                onClick={() => {
+                  setShowScheduleOptions(false)
+                  setScheduleOptions([])
+                }}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Es wurden 3 verschiedene Spielplan-Varianten generiert. Wähle die Option mit der besten Fairness für dein Turnier:
+            </p>
+            
+            <div className="flex-1 overflow-y-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {scheduleOptions.map((option, index) => (
+                  <div 
+                    key={index}
+                    className="border rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                    onClick={() => handleSelectSchedule(index)}
+                  >
+                    <div className="mb-4">
+                      <h3 className="text-lg font-semibold mb-2">Variante {index + 1}</h3>
+                      
+                      {/* Gesamt-Fairness */}
+                      <div className={`text-center p-4 rounded-lg mb-4 ${getFairnessColor(option.fairness.overallScore)}`}>
+                        <div className="text-3xl font-bold">
+                          {option.fairness.overallScore}%
+                        </div>
+                        <div className="text-sm font-medium">Gesamt-Fairness</div>
+                      </div>
+                      
+                      {/* Detail-Metriken */}
+                      <div className="space-y-3 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Partner-Vielfalt:</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{option.fairness.avgUniquePartners}</span>
+                            <div className={`text-xs px-2 py-1 rounded ${getFairnessColor(option.fairness.partnerScore)}`}>
+                              {option.fairness.partnerScore}%
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Gegner-Vielfalt:</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{option.fairness.avgUniqueOpponents}</span>
+                            <div className={`text-xs px-2 py-1 rounded ${getFairnessColor(option.fairness.opponentScore)}`}>
+                              {option.fairness.opponentScore}%
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Max. Partner-Wdh:</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{option.fairness.maxPartnerRepeats}x</span>
+                            <div className={`text-xs px-2 py-1 rounded ${getFairnessColor(option.fairness.repeatScore)}`}>
+                              {option.fairness.repeatScore}%
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Spiel-Balance:</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">±{option.fairness.gameBalance}</span>
+                            <div className={`text-xs px-2 py-1 rounded ${getFairnessColor(option.fairness.balanceScore)}`}>
+                              {option.fairness.balanceScore}%
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Erste Runden Preview */}
+                      <div className="mt-4 pt-4 border-t">
+                        <p className="text-xs text-gray-600 mb-2">Erste 2 Runden:</p>
+                        {option.schedule.slice(0, 2).map((round, rIdx) => (
+                          <div key={rIdx} className="mb-2">
+                            <p className="text-xs font-semibold">Runde {round.round}:</p>
+                            {round.matches.slice(0, 2).map((match, mIdx) => (
+                              <p key={mIdx} className="text-xs text-gray-600 ml-2">
+                                Platz {match.court}: {match.team1[0].name.split(' ')[0]} & {match.team1[1].name.split(' ')[0]} vs {match.team2[0].name.split(' ')[0]} & {match.team2[1].name.split(' ')[0]}
+                              </p>
+                            ))}
+                            {round.matches.length > 2 && (
+                              <p className="text-xs text-gray-400 ml-2">
+                                + {round.matches.length - 2} weitere Matches
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <button
+                      className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      Diese Variante wählen
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Erklärung */}
+            <div className="mt-6 p-4 bg-gray-50 rounded text-sm">
+              <p className="font-semibold mb-2">Fairness-Bewertung:</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">80-100%</span>
+                  <span>Exzellent</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded font-semibold">60-79%</span>
+                  <span>Gut</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-semibold">40-59%</span>
+                  <span>Akzeptabel</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-1 bg-red-100 text-red-800 rounded font-semibold">0-39%</span>
+                  <span>Verbesserungswürdig</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Player Database Modal - Nur als Fallback für Demo */}

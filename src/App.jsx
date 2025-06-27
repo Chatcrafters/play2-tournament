@@ -582,6 +582,7 @@ function AppContent() {
                             <EventDetail 
                               event={selectedEvent}
                               onEdit={handleEditEvent}
+                              onUpdateEvent={handleUpdateEvent}
                               onStartTournament={handleStartTournament}
                               canManageEvent={userProfile?.role === 'tournament_director'}
                             />
