@@ -82,6 +82,8 @@
         running: 'Läuft',
         completed: 'Abgeschlossen',
         cancelled: 'Abgesagt',
+        past: 'Vergangen',
+        today: 'Heute',
         0: 'Anstehend',
         1: 'Geplant',
         2: 'Entwurf',
@@ -99,8 +101,9 @@
       noTime: 'Keine Zeit festgelegt',
       startTournament: 'Turnier starten',
       unnamed: 'Unbenanntes Event',
-      // Añadir key faltante
-      create: 'Event erstellen'
+      create: 'Event erstellen',
+      // Neuer Key
+      myEvents: 'Meine Events'
     },
     
     // Event Form
@@ -194,7 +197,11 @@
       database: 'Spielerdatenbank',
       selectFromDatabase: 'Aus Datenbank wählen',
       enterName: 'Name eingeben',
-      search: 'Spieler suchen...'
+      search: 'Spieler suchen...',
+      // Neue Keys
+      managePlayer: 'Spieler verwalten',
+      fromDatabase: 'Aus Datenbank',
+      level: 'Level'
     },
     
     // Schedule
@@ -458,6 +465,8 @@
         running: 'Running',
         completed: 'Completed',
         cancelled: 'Cancelled',
+        past: 'Past',
+        today: 'Today',
         0: 'Upcoming',
         1: 'Scheduled',
         2: 'Draft',
@@ -475,8 +484,9 @@
       noTime: 'No time set',
       startTournament: 'Start Tournament',
       unnamed: 'Unnamed Event',
-      // Add missing key
-      create: 'Create Event'
+      create: 'Create Event',
+      // New key
+      myEvents: 'My Events'
     },
     
     // Event Form
@@ -536,7 +546,11 @@
       database: 'Player Database',
       selectFromDatabase: 'Select from Database',
       enterName: 'Enter name',
-      search: 'Search players...'
+      search: 'Search players...',
+      // New keys
+      managePlayer: 'Manage Players',
+      fromDatabase: 'From Database',
+      level: 'Level'
     },
     
     // Schedule
@@ -795,6 +809,8 @@
         running: 'En curso',
         completed: 'Completado',
         cancelled: 'Cancelado',
+        past: 'Pasado',
+        today: 'Hoy',
         0: 'Próximo',
         1: 'Programado',
         2: 'Borrador',
@@ -812,8 +828,9 @@
       noTime: 'Sin hora establecida',
       startTournament: 'Iniciar torneo',
       unnamed: 'Evento sin nombre',
-      // Añadir key faltante
-      create: 'Crear evento'
+      create: 'Crear evento',
+      // Nuevo key
+      myEvents: 'Mis eventos'
     },
     
     // Event Form
@@ -894,7 +911,11 @@
       database: 'Base de datos de jugadores',
       selectFromDatabase: 'Seleccionar de base de datos',
       enterName: 'Introducir nombre',
-      search: 'Buscar jugadores...'
+      search: 'Buscar jugadores...',
+      // Nuevos keys
+      managePlayer: 'Gestionar jugadores',
+      fromDatabase: 'Desde base de datos',
+      level: 'Nivel'
     },
     
     // Schedule
