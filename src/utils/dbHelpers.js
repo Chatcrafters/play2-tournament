@@ -48,6 +48,8 @@ export const sanitizeEventData = (event) => {
     maxPlayers: parseInt(event.maxPlayers) || 16,
     roundDuration: parseInt(event.roundDuration) || 15,
     currentRound: parseInt(event.currentRound) || 0,
+    fairnessScore: parseInt(event.fairnessScore) || 0,
+    regenerateCount: parseInt(event.regenerateCount) || 0,
     
     // Strings mit Defaults
     timerState: event.timerState || 'stopped',
@@ -250,6 +252,7 @@ export const fieldMapping = {
   registrationDeadline: 'registration_deadline',
   registrationOpen: 'registration_open',
   regenerateCount: 'regenerate_count',
+  fairnessScore: 'fairness_score',
   createdAt: 'created_at',
   updatedAt: 'updated_at',
   completedAt: 'completed_at',
@@ -361,7 +364,11 @@ export const cleanEventData = (event) => {
   }
   
   // Stelle sicher, dass Zahlen Zahlen sind
-  const numericFields = ['courts', 'maxPlayers', 'roundDuration', 'entryFee', 'mindestSpiele', 'mindestMinuten', 'currentRound'];
+  const numericFields = [
+    'courts', 'maxPlayers', 'roundDuration', 'entryFee', 
+    'mindestSpiele', 'mindestMinuten', 'currentRound',
+    'fairnessScore', 'regenerateCount' // NEU: Fairness-Felder
+  ];
   numericFields.forEach(field => {
     if (typeof cleaned[field] === 'string') {
       cleaned[field] = parseFloat(cleaned[field]) || 0;
@@ -371,6 +378,8 @@ export const cleanEventData = (event) => {
   // Setze Default-Werte für wichtige Felder
   cleaned.timerState = cleaned.timerState || 'stopped';
   cleaned.currentRound = cleaned.currentRound || 0;
+  cleaned.fairnessScore = cleaned.fairnessScore || 0; // NEU
+  cleaned.regenerateCount = cleaned.regenerateCount || 0; // NEU
   
   return cleaned;
 };
