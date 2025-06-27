@@ -1,4 +1,16 @@
-﻿// src/utils/translations.js
+# create-complete-translations.ps1
+# Erstellt eine komplette neue translations.js mit allen benötigten Keys
+
+Write-Host "=== Erstelle komplette translations.js ===" -ForegroundColor Cyan
+
+# Backup
+$timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+Copy-Item "src\utils\translations.js" "src\utils\translations.js.backup_complete_$timestamp" -Force
+Write-Host "Backup erstellt: translations.js.backup_complete_$timestamp" -ForegroundColor Green
+
+# Erstelle die komplette neue Datei
+$completeTranslations = @'
+// src/utils/translations.js
 export const translations = {
   de: {
     app: {
@@ -92,24 +104,6 @@ export const translations = {
       managePlayer: "Spieler verwalten",
       waitingPlayers: "Wartende Spieler",
       pause: "Pause"
-    },
-    
-    database: {
-      playerDatabase: "Spieler-Datenbank",
-      showOnlyFor: "Nur anzeigen für",
-      search: "Suchen",
-      newPlayer: "Neuer Spieler",
-      excellImport: "Excel importieren",
-      templateAndInstructions: "Vorlage & Anleitung",
-      allAvailable: "Alle verfügbar",
-      selectAll: "Alle auswählen",
-      playersFound: "Spieler gefunden",
-      age: "Alter",
-      edit: "Bearbeiten",
-      delete: "Löschen",
-      playersSelected: "Spieler ausgewählt",
-      cancel: "Abbrechen",
-      importPlayers: "Spieler importieren"
     },
     
     schedule: {
@@ -324,24 +318,6 @@ export const translations = {
       pause: "Break"
     },
     
-    database: {
-      playerDatabase: "Player Database",
-      showOnlyFor: "Show only for",
-      search: "Search",
-      newPlayer: "New Player",
-      excellImport: "Excel Import",
-      templateAndInstructions: "Template & Instructions",
-      allAvailable: "All available",
-      selectAll: "Select all",
-      playersFound: "players found",
-      age: "age",
-      edit: "Edit",
-      delete: "Delete",
-      playersSelected: "players selected",
-      cancel: "Cancel",
-      importPlayers: "Import Players"
-    },
-    
     schedule: {
       schedule: "Schedule",
       generateSchedule: "Generate Schedule",
@@ -554,24 +530,6 @@ export const translations = {
       pause: "Descanso"
     },
     
-    database: {
-      playerDatabase: "Base de Datos de Jugadores",
-      showOnlyFor: "Mostrar solo para",
-      search: "Buscar",
-      newPlayer: "Nuevo Jugador",
-      excellImport: "Importar Excel",
-      templateAndInstructions: "Plantilla e Instrucciones",
-      allAvailable: "Todos disponibles",
-      selectAll: "Seleccionar todos",
-      playersFound: "jugadores encontrados",
-      age: "edad",
-      edit: "Editar",
-      delete: "Eliminar",
-      playersSelected: "jugadores seleccionados",
-      cancel: "Cancelar",
-      importPlayers: "Importar Jugadores"
-    },
-    
     schedule: {
       schedule: "Horario",
       generateSchedule: "Generar Horario",
@@ -701,3 +659,50 @@ export const interpolate = (str, params) => {
   })
   return result
 }
+'@
+
+# Speichere die neue Datei
+Set-Content -Path "src\utils\translations.js" -Value $completeTranslations -Encoding UTF8 -NoNewline
+Write-Host "✓ Neue translations.js erstellt!" -ForegroundColor Green
+
+# Überprüfe die Keys nochmal
+Write-Host "`nÜberprüfe wichtige Keys..." -ForegroundColor Yellow
+$newContent = Get-Content "src\utils\translations.js" -Raw -Encoding UTF8
+
+$keysToCheck = @(
+    "timer.start",
+    "tournament.roundNavigation", 
+    "results.liveStandings",
+    "messages.tournamentManagement",
+    "app.backToEventOverview",
+    "buttons.completeTournament",
+    "schedule.court",
+    "player.waitingPlayers"
+)
+
+$foundKeys = 0
+foreach ($key in $keysToCheck) {
+    if ($newContent -match $key.Replace(".", "\.")) {
+        Write-Host "  ✓ $key gefunden" -ForegroundColor Green
+        $foundKeys++
+    } else {
+        Write-Host "  ✗ $key fehlt" -ForegroundColor Red
+    }
+}
+
+Write-Host "`n$foundKeys von $($keysToCheck.Count) Keys gefunden" -ForegroundColor Cyan
+
+# Deployment Schritte
+Write-Host "`n=== Nächste Schritte ===" -ForegroundColor Cyan
+Write-Host "1. Teste lokal:" -ForegroundColor Yellow
+Write-Host "   npm start" -ForegroundColor Gray
+Write-Host "   Browser-Cache leeren (Ctrl+Shift+R)" -ForegroundColor Gray
+
+Write-Host "`n2. Wenn alles funktioniert, deploye zu Vercel:" -ForegroundColor Yellow
+Write-Host "   git add src/utils/translations.js" -ForegroundColor Gray
+Write-Host "   git commit -m 'fix: Complete translations for tournament view'" -ForegroundColor Gray
+Write-Host "   git push" -ForegroundColor Gray
+Write-Host "   vercel --prod" -ForegroundColor Gray
+
+Write-Host "`n3. Teste auf https://play2.club" -ForegroundColor Yellow
+Write-Host "`n✓ Fertig!" -ForegroundColor Green

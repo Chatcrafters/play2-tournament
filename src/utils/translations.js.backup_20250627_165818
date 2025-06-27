@@ -5,7 +5,205 @@ export const translations = {
       title: "Play2 Tournament",
       loading: "Lade Events...",
       noEventsSelected: "Wählen Sie ein Event aus oder erstellen Sie ein neues."
+    ,    
+    // Timer & Tournament
+    timer: {
+      start: "Start",
+      pause: "Pause",
+      continue: "Weiter",
+      stop: "Stop",
+      reset: "Reset",
+      timeRemaining: "Verbleibende Zeit",
+      roundTimer: "Runden-Timer"
     },
+    
+    tournament: {
+      roundNavigation: "Runden-Navigation",
+      previous: "Vorherige",
+      previousRound: "Vorherige Runde",
+      next: "Nächste",
+      nextRound: "Nächste Runde",
+      currentGames: "Aktuelle Spiele",
+      activeRound: "Aktive Runde"
+    },
+    
+    // Results
+    results: {
+      liveStandings: "Live-Tabelle",
+      allResults: "Alle Ergebnisse",
+      rank: "Rang",
+      player: "Spieler",
+      points: "Punkte",
+      gamesWon: "Gewonnene Spiele",
+      gamesPlayed: "Gespielte Spiele",
+      partners: "Partner",
+      opponents: "Gegner",
+      matches: "Spiele",
+      enterResults: "Ergebnisse eintragen",
+      currentStandings: "Aktueller Stand",
+      resultsSaved: "Ergebnisse gespeichert!",
+      hide: "Ausblenden",
+      won: "Gewonnen",
+      played: "Gespielt",
+      games: "Spiele",
+      goals: "Tore",
+      diff: "Diff",
+      actions: "Aktionen",
+      finalStandings: "Endstand",
+      standings: "Tabelle",
+      resultEntered: "Eingetragen"
+    },
+    
+    // Messages
+    messages: {
+      tournamentManagement: "Live Turnier-Verwaltung",
+      currentGames: "Aktuelle Spiele",
+      enterBothScores: "Bitte beide Ergebnisse eingeben"
+    ,    
+    // Timer & Tournament
+    timer: {
+      start: "Iniciar",
+      pause: "Pausar",
+      continue: "Continuar",
+      stop: "Detener",
+      reset: "Reiniciar",
+      timeRemaining: "Tiempo Restante",
+      roundTimer: "Temporizador de Ronda"
+    },
+    
+    tournament: {
+      roundNavigation: "Navegación de Rondas",
+      previous: "Anterior",
+      previousRound: "Ronda Anterior",
+      next: "Siguiente",
+      nextRound: "Siguiente Ronda",
+      currentGames: "Partidos Actuales",
+      activeRound: "Ronda Activa"
+    },
+    
+    // Results
+    results: {
+      liveStandings: "Clasificación en Vivo",
+      allResults: "Todos los Resultados",
+      rank: "Posición",
+      player: "Jugador",
+      points: "Puntos",
+      gamesWon: "Partidos Ganados",
+      gamesPlayed: "Partidos Jugados",
+      partners: "Compañeros",
+      opponents: "Oponentes",
+      matches: "Partidos",
+      enterResults: "Introducir Resultados",
+      currentStandings: "Clasificación Actual",
+      resultsSaved: "¡Resultados guardados!",
+      hide: "Ocultar",
+      won: "Ganados",
+      played: "Jugados",
+      games: "Partidos",
+      goals: "Goles",
+      diff: "Dif",
+      actions: "Acciones",
+      finalStandings: "Clasificación Final",
+      standings: "Clasificación",
+      resultEntered: "Registrado"
+    },
+    
+    // Messages
+    messages: {
+      tournamentManagement: "Gestión del Torneo en Vivo",
+      currentGames: "Partidos Actuales",
+      enterBothScores: "Por favor introduce ambos resultados"
+    },
+    
+    // App
+    app: {
+      backToEventOverview: "Volver a la Vista General"
+    },
+    
+    // Schedule
+    schedule: {
+      court: "Pista",
+      round: "Ronda",
+      of: "de",
+      rounds: "rondas",
+      courts: "pistas",
+      fairness: "Equidad",
+      fairnessScoreExplanation: "Explicación del Puntaje de Equidad",
+      fairnessExcellent: "Excelente",
+      fairnessGood: "Bueno",
+      fairnessAverage: "Promedio",
+      fairnessLowVariation: "Baja Variación",
+      normalScoring: "Normal",
+      playerSchedule: "Horario del Jugador"
+    },
+    
+    // Buttons
+    buttons: {
+      saveRoundResults: "Guardar Resultados de Ronda",
+      completeTournament: "Completar Torneo",
+      export: "Exportar",
+      exportPDF: "Exportar como PDF",
+      shareResults: "Compartir Resultados"
+    },
+    
+    // Player
+    player: {
+      waitingPlayers: "Jugadores en Espera",
+      pause: "Descanso"
+    },
+    
+    // User Menu
+    userMenu: {
+      tournamentDirector: "Director de Torneo",
+      player: "Jugador",
+      logout: "Cerrar sesión"
+    }
+  },
+    
+    // App
+    app: {
+      backToEventOverview: "Zurück zur Event-Übersicht"
+    },
+    
+    // Schedule
+    schedule: {
+      court: "Platz",
+      round: "Runde",
+      of: "von",
+      rounds: "Runden",
+      courts: "Plätze",
+      fairness: "Fairness",
+      fairnessScoreExplanation: "Fairness-Score Erklärung",
+      fairnessExcellent: "Exzellent",
+      fairnessGood: "Gut",
+      fairnessAverage: "Durchschnitt",
+      fairnessLowVariation: "Geringe Variation",
+      normalScoring: "Normal",
+      playerSchedule: "Spieler-Plan"
+    },
+    
+    // Buttons
+    buttons: {
+      saveRoundResults: "Runden-Ergebnisse speichern",
+      completeTournament: "Turnier abschließen",
+      export: "Export",
+      exportPDF: "Als PDF exportieren",
+      shareResults: "Ergebnisse teilen"
+    },
+    
+    // Player
+    player: {
+      waitingPlayers: "Wartende Spieler",
+      pause: "Pause"
+    },
+    
+    // User Menu
+    userMenu: {
+      tournamentDirector: "Turnierdirektor",
+      player: "Spieler",
+      logout: "Abmelden"
+    }
+  },
     
     navigation: {
       back: "Zurück",
@@ -159,7 +357,106 @@ export const translations = {
       title: "Play2 Tournament",
       loading: "Loading events...",
       noEventsSelected: "Select an event or create a new one."
+    ,    
+    // Timer & Tournament
+    timer: {
+      start: "Start",
+      pause: "Pause",
+      continue: "Continue",
+      stop: "Stop",
+      reset: "Reset",
+      timeRemaining: "Time Remaining",
+      roundTimer: "Round Timer"
     },
+    
+    tournament: {
+      roundNavigation: "Round Navigation",
+      previous: "Previous",
+      previousRound: "Previous Round",
+      next: "Next",
+      nextRound: "Next Round",
+      currentGames: "Current Games",
+      activeRound: "Active Round"
+    },
+    
+    // Results
+    results: {
+      liveStandings: "Live Standings",
+      allResults: "All Results",
+      rank: "Rank",
+      player: "Player",
+      points: "Points",
+      gamesWon: "Games Won",
+      gamesPlayed: "Games Played",
+      partners: "Partners",
+      opponents: "Opponents",
+      matches: "Matches",
+      enterResults: "Enter Results",
+      currentStandings: "Current Standings",
+      resultsSaved: "Results saved!",
+      hide: "Hide",
+      won: "Won",
+      played: "Played",
+      games: "Games",
+      goals: "Goals",
+      diff: "Diff",
+      actions: "Actions",
+      finalStandings: "Final Standings",
+      standings: "Standings",
+      resultEntered: "Entered"
+    },
+    
+    // Messages
+    messages: {
+      tournamentManagement: "Live Tournament Management",
+      currentGames: "Current Games",
+      enterBothScores: "Please enter both scores"
+    },
+    
+    // App
+    app: {
+      backToEventOverview: "Back to Event Overview"
+    },
+    
+    // Schedule
+    schedule: {
+      court: "Court",
+      round: "Round",
+      of: "of",
+      rounds: "rounds",
+      courts: "courts",
+      fairness: "Fairness",
+      fairnessScoreExplanation: "Fairness Score Explanation",
+      fairnessExcellent: "Excellent",
+      fairnessGood: "Good",
+      fairnessAverage: "Average",
+      fairnessLowVariation: "Low Variation",
+      normalScoring: "Normal",
+      playerSchedule: "Player Schedule"
+    },
+    
+    // Buttons
+    buttons: {
+      saveRoundResults: "Save Round Results",
+      completeTournament: "Complete Tournament",
+      export: "Export",
+      exportPDF: "Export as PDF",
+      shareResults: "Share Results"
+    },
+    
+    // Player
+    player: {
+      waitingPlayers: "Waiting Players",
+      pause: "Break"
+    },
+    
+    // User Menu
+    userMenu: {
+      tournamentDirector: "Tournament Director",
+      player: "Player",
+      logout: "Logout"
+    }
+  },
     
     navigation: {
       back: "Back",
@@ -473,3 +770,4 @@ export const interpolate = (str, params) => {
   })
   return result
 }
+

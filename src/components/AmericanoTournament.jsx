@@ -176,19 +176,22 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
       const { team1, team2, result } = matchData
       
       // Update team 1
-      team1.forEach(player => {
-        playerStats[player.id].gamesPlayed++
-        playerStats[player.id].gamesWon += result.team1Score
-        playerStats[player.id].points += result.team1Points
-      })
-      
-      // Update team 2
-      team2.forEach(player => {
-        playerStats[player.id].gamesPlayed++
-        playerStats[player.id].gamesWon += result.team2Score
-        playerStats[player.id].points += result.team2Points
-      })
-    })
+team1?.forEach(player => {
+  if (player && player.id && playerStats[player.id]) {
+    playerStats[player.id].gamesPlayed++
+    playerStats[player.id].gamesWon += result.team1Score
+    playerStats[player.id].points += result.team1Points
+  }
+})
+
+// Update team 2
+team2?.forEach(player => {
+  if (player && player.id && playerStats[player.id]) {
+    playerStats[player.id].gamesPlayed++
+    playerStats[player.id].gamesWon += result.team2Score
+    playerStats[player.id].points += result.team2Points
+  }
+})
     
     // Sort by points, then games won
     return Object.values(playerStats).sort((a, b) => {
