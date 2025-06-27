@@ -232,7 +232,15 @@
       winner: 'Gewinner',
       enterResult: 'Ergebnis eintragen',
       finalStandings: 'Endstand',
-      matchResults: 'Spielergebnisse'
+      matchResults: 'Spielergebnisse',
+      // Neue fehlende Keys
+      liveStandings: 'Live-Tabelle',
+      allResults: 'Alle Ergebnisse',
+      rank: 'Rang',
+      player: 'Spieler',
+      points: 'Punkte',
+      gamesWon: 'Gewonnen',
+      gamesPlayed: 'Gespielt'
     },
     
     // Timer
@@ -243,7 +251,9 @@
       resume: 'Fortsetzen',
       stop: 'Stop',
       reset: 'Zurücksetzen',
-      roundTime: 'Rundenzeit'
+      roundTime: 'Rundenzeit',
+      // Neuer Key
+      roundTimer: 'Rundentimer'
     },
     
     // Tournament
@@ -264,7 +274,10 @@
       currentGames: 'Aktuelle Spiele',
       waitingPlayers: 'Wartende Spieler',
       roundNavigation: 'Runden-Navigation',
-      vs: 'vs'
+      vs: 'vs',
+      // Neue Keys
+      previous: 'Zurück',
+      next: 'Weiter'
     },
     
     // Messages
@@ -277,7 +290,10 @@
       waitingForSchedule: 'Warte auf Spielplan-Generierung durch Turnierdirektor',
       saveSuccess: 'Erfolgreich gespeichert',
       deleteSuccess: 'Erfolgreich gelöscht',
-      error: 'Ein Fehler ist aufgetreten'
+      error: 'Ein Fehler ist aufgetreten',
+      // Neue fehlende Keys
+      tournamentManagement: 'Turnierverwaltung',
+      currentGames: 'Aktuelle Spiele'
     },
     
     // Event Types
@@ -551,14 +567,22 @@
       fairness: 'Fairness'
     },
     
-    // Results
+    // Results  
     results: {
       results: 'Results',
       score: 'Score',
       winner: 'Winner',
       enterResult: 'Enter Result',
       finalStandings: 'Final Standings',
-      matchResults: 'Match Results'
+      matchResults: 'Match Results',
+      // New missing keys
+      liveStandings: 'Live Standings',
+      allResults: 'All Results',
+      rank: 'Rank',
+      player: 'Player',
+      points: 'Points',
+      gamesWon: 'Won',
+      gamesPlayed: 'Played'
     },
     
     // Timer
@@ -603,7 +627,10 @@
       waitingForSchedule: 'Waiting for schedule generation by tournament director',
       saveSuccess: 'Successfully saved',
       deleteSuccess: 'Successfully deleted',
-      error: 'An error occurred'
+      error: 'An error occurred',
+      // New missing keys
+      tournamentManagement: 'Tournament Management',
+      currentGames: 'Current Games'
     },
     
     // Event Types
@@ -905,7 +932,15 @@
       winner: 'Ganador',
       enterResult: 'Introducir resultado',
       finalStandings: 'Clasificación final',
-      matchResults: 'Resultados de partidos'
+      matchResults: 'Resultados de partidos',
+      // Nuevos keys faltantes
+      liveStandings: 'Clasificación en vivo',
+      allResults: 'Todos los resultados',
+      rank: 'Puesto',
+      player: 'Jugador',
+      points: 'Puntos',
+      gamesWon: 'Ganados',
+      gamesPlayed: 'Jugados'
     },
     
     // Timer
@@ -950,7 +985,10 @@
       waitingForSchedule: 'Esperando generación de calendario por el director del torneo',
       saveSuccess: 'Guardado correctamente',
       deleteSuccess: 'Eliminado correctamente',
-      error: 'Ha ocurrido un error'
+      error: 'Ha ocurrido un error',
+      // Nuevos keys faltantes
+      tournamentManagement: 'Gestión del torneo',
+      currentGames: 'Juegos actuales'
     },
     
     // Event Types
