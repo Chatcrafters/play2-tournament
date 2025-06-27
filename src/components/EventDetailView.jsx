@@ -21,8 +21,8 @@ export function EventDetailView({
     if (!selectedEvent) return null
     return {
       ...selectedEvent,
-      players: selectedEvent.players || [],
-      schedule: selectedEvent.schedule || [],
+      players: Array.isArray(selectedEvent.players) ? selectedEvent.players : [],
+      schedule: Array.isArray(selectedEvent.schedule) ? selectedEvent.schedule : [],
       results: selectedEvent.results || {},
       currentRound: selectedEvent.currentRound || 0,
       timerState: selectedEvent.timerState || 'stopped',
@@ -136,60 +136,62 @@ export function EventDetailView({
     // Generiere 3 verschiedene Spielplan-Varianten
     const options = []
     for (let i = 0; i < 3; i++) {
-      const result = generateAmericanoSchedule(
-        localEvent.players,
-        localEvent.courts,
-        totalRounds,
-        {
-          regenerateCount: i,
-          eventId: localEvent.id
-        }
-      )
-      
-      // Berechne Fairness-Metriken
-      const fairnessMetrics = calculateFairnessMetrics(result, localEvent.players)
-      
-      // Konvertiere zum erwarteten Format für EventDetailView
-      const newSchedule = result.schedule.map((round, index) => {
-        const playingPlayerIds = new Set()
-        const matches = []
+      try {
+        const result = generateAmericanoSchedule(
+          localEvent.players,
+          localEvent.courts,
+          totalRounds,
+          {
+            regenerateCount: i,
+            eventId: localEvent.id
+          }
+        )
         
-        round.matches.forEach(match => {
-          match.players.forEach(playerId => playingPlayerIds.add(playerId))
+        // Berechne Fairness-Metriken
+        const fairnessMetrics = calculateFairnessMetrics(result, localEvent.players)
+        
+        // Konvertiere zum erwarteten Format für EventDetailView
+        const newSchedule = result.schedule.map((round, index) => {
+          const playingPlayerIds = new Set()
+          const matches = []
           
-          const playerObjects = match.players.map(id => 
-            localEvent.players.find(p => p.id === id)
-          ).filter(p => p)
+          round.matches.forEach(match => {
+            // Sichere Überprüfung auf team1 und team2
+            if (match.team1 && match.team2 && match.team1.length === 2 && match.team2.length === 2) {
+              match.team1.forEach(p => p && p.id && playingPlayerIds.add(p.id))
+              match.team2.forEach(p => p && p.id && playingPlayerIds.add(p.id))
+              matches.push(match)
+            }
+          })
           
-          if (playerObjects.length === 4) {
-            matches.push({
-              court: match.court,
-              team1: [playerObjects[0], playerObjects[1]],
-              team2: [playerObjects[2], playerObjects[3]]
-            })
+          const waitingPlayers = localEvent.players.filter(p => 
+            !playingPlayerIds.has(p.id)
+          )
+          
+          const startMinutes = index * localEvent.roundDuration
+          
+          return {
+            round: round.round,
+            startTime: startMinutes,
+            matches,
+            waitingPlayers
           }
         })
         
-        const waitingPlayers = localEvent.players.filter(p => 
-          !playingPlayerIds.has(p.id)
-        )
-        
-        const startMinutes = index * localEvent.roundDuration
-        
-        return {
-          round: round.round,
-          startTime: startMinutes,
-          matches,
-          waitingPlayers
-        }
-      })
-      
-      options.push({
-        schedule: newSchedule,
-        fairness: fairnessMetrics,
-        regenerateCount: i,
-        statistics: result.statistics
-      })
+        options.push({
+          schedule: newSchedule,
+          fairness: fairnessMetrics,
+          regenerateCount: i,
+          statistics: result.statistics
+        })
+      } catch (error) {
+        console.error('Fehler beim Generieren der Spielplan-Variante:', i, error)
+      }
+    }
+    
+    if (options.length === 0) {
+      alert(t('messages.errorGeneratingSchedule') || 'Fehler beim Generieren des Spielplans')
+      return
     }
     
     setScheduleOptions(options)
@@ -263,8 +265,8 @@ export function EventDetailView({
         const games = selectedOption.statistics.gamesPlayed[idx] || 0
         const partnerCount = Object.values(selectedOption.statistics.partnerMatrix[idx] || {}).filter(v => v > 0).length
         const opponentCount = Object.values(selectedOption.statistics.opponentMatrix[idx] || {}).filter(v => v > 0).length
-        const maxPartners = localEvent.players.length - 1
-        const fairness = maxPartners > 0 ? Math.round((partnerCount / maxPartners) * 100) : 100
+        const maxPossiblePartners = Math.max(1, localEvent.players.length - 1)
+        const fairness = maxPossiblePartners > 0 ? Math.round((partnerCount / maxPossiblePartners) * 100) : 100
         
         return {
           name: player.name,
@@ -1108,7 +1110,7 @@ export function EventDetailView({
                         )
                         
                         if (exists) {
-                          alert(interpolate(t('messages.playerAlreadyRegistered'), { name: player.name }))
+                          alert(interpolate(t('player.alreadyRegistered'), { name: player.name }))
                           return
                         }
                         
@@ -1150,7 +1152,7 @@ export function EventDetailView({
                         )
                         
                         if (exists) {
-                          alert(interpolate(t('messages.playerAlreadyRegistered'), { name: player.name }))
+                          alert(interpolate(t('player.alreadyRegistered'), { name: player.name }))
                           return
                         }
                         

@@ -13,20 +13,45 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
   
   if (!event) return null
 
+  // Sichere Defaults für alle event properties
+  const safeEvent = {
+    ...event,
+    players: Array.isArray(event.players) ? event.players : [],
+    schedule: Array.isArray(event.schedule) ? event.schedule : [],
+    startTime: event.startTime || event.start_time || '09:00',
+    endTime: event.endTime || event.end_time || '13:00',
+    courts: parseInt(event.courts) || 2,
+    roundDuration: parseInt(event.roundDuration) || 15,
+    minGamesPerPlayer: parseInt(event.minGamesPerPlayer) || 3,
+    status: event.status || 'pending',
+    fairnessScore: event.fairnessScore || 0,
+    regenerateCount: event.regenerateCount || 0,
+    maxPlayers: event.maxPlayers || event.max_players || 16,
+    sport: event.sport || 'padel',
+    format: event.format || 'doubles',
+    eventType: event.eventType || event.event_type || 'americano',
+    genderMode: event.genderMode || 'open',
+    location: event.location || '',
+    price: event.price || event.entryFee || 0,
+    name: event.name || event.title || '',
+    description: event.description || event.eventInfo || '',
+    date: event.date || new Date().toISOString().split('T')[0]
+  }
+
   // Status-Prüfungen
-  const hasEnoughPlayers = event.players && event.players.length >= 4
-  const hasSchedule = event.schedule && event.schedule.length > 0
-  const canGenerateSchedule = hasEnoughPlayers && !hasSchedule && event.status !== 'completed' && canManageEvent
-  const canStartTournament = hasEnoughPlayers && hasSchedule && event.status !== 'completed' && canManageEvent
+  const hasEnoughPlayers = safeEvent.players.length >= 4
+  const hasSchedule = safeEvent.schedule.length > 0
+  const canGenerateSchedule = hasEnoughPlayers && !hasSchedule && safeEvent.status !== 'completed' && canManageEvent
+  const canStartTournament = hasEnoughPlayers && hasSchedule && safeEvent.status !== 'completed' && canManageEvent
   
-  const eventDate = new Date(event.date)
-  const isEventPast = eventDate < new Date() && event.status !== 'completed'
+  const eventDate = new Date(safeEvent.date)
+  const isEventPast = eventDate < new Date() && safeEvent.status !== 'completed'
 
   // Zeit-Informationen
   const getTimeInfo = () => {
     return {
-      startTime: event.startTime || event.start_time || '',
-      endTime: event.endTime || event.end_time || ''
+      startTime: safeEvent.startTime,
+      endTime: safeEvent.endTime
     };
   };
 
@@ -40,9 +65,9 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
     }
 
     // Berechne Anzahl der Runden basierend auf Mindestspiele
-    const playersCount = event.players.length
-    const courtsCount = event.courts || 2
-    const minGamesPerPlayer = event.minGamesPerPlayer || 3
+    const playersCount = safeEvent.players.length
+    const courtsCount = safeEvent.courts
+    const minGamesPerPlayer = safeEvent.minGamesPerPlayer
     
     // Spieler pro Runde = Courts * 4
     const playersPerRound = courtsCount * 4
@@ -57,24 +82,33 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
     // Generiere 3 verschiedene Spielplan-Varianten
     const options = []
     for (let i = 0; i < 3; i++) {
-      const result = generateAmericanoSchedule(
-        event.players,
-        courtsCount,
-        numberOfRounds,
-        {
-          regenerateCount: i,
-          eventId: event.id
-        }
-      )
-      
-      // Berechne Fairness-Metriken
-      const fairnessMetrics = calculateFairnessMetrics(result, event.players)
-      
-      options.push({
-        schedule: result.schedule,
-        fairness: fairnessMetrics,
-        regenerateCount: i
-      })
+      try {
+        const result = generateAmericanoSchedule(
+          safeEvent.players,
+          courtsCount,
+          numberOfRounds,
+          {
+            regenerateCount: i,
+            eventId: safeEvent.id
+          }
+        )
+        
+        // Berechne Fairness-Metriken
+        const fairnessMetrics = calculateFairnessMetrics(result, safeEvent.players)
+        
+        options.push({
+          schedule: result.schedule,
+          fairness: fairnessMetrics,
+          regenerateCount: i
+        })
+      } catch (error) {
+        console.error('Fehler beim Generieren der Variante', i, error)
+      }
+    }
+    
+    if (options.length === 0) {
+      alert(t('messages.errorGeneratingSchedule') || 'Fehler beim Generieren des Spielplans')
+      return
     }
     
     setScheduleOptions(options)
@@ -144,7 +178,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
     
     // Update Event mit Schedule
     const updatedEvent = {
-      ...event,
+      ...safeEvent,
       schedule: selectedOption.schedule,
       currentRound: 0,
       status: 'scheduled',
@@ -171,15 +205,15 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h2 className="text-2xl font-bold mb-2">{event.title || event.name || t('event.unnamed')}</h2>
-            <p className="text-gray-600">{event.description}</p>
+            <h2 className="text-2xl font-bold mb-2">{safeEvent.title || safeEvent.name || t('event.unnamed')}</h2>
+            <p className="text-gray-600">{safeEvent.description}</p>
           </div>
           
           <div className="flex gap-2">
-            <EventShare event={event} />
+            <EventShare event={safeEvent} />
             {canManageEvent && (
               <button
-                onClick={() => onEdit(event)}
+                onClick={() => onEdit(safeEvent)}
                 className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
               >
                 <Edit className="w-4 h-4" />
@@ -192,7 +226,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-gray-500" />
+              <Calendar className="w-4 h-4 text-gray-500" />
               <div>
                 <p className="text-sm text-gray-500">{t('event.date')}</p>
                 <p className="font-medium">{eventDate.toLocaleDateString('de-DE', { 
@@ -210,20 +244,20 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                 <p className="text-sm text-gray-500">{t('event.time')}</p>
                 <p className="font-medium">
                   {startTime && endTime ? (
-                    `${startTime} - ${endTime} ${t('event.time')}`
+                    `${startTime} - ${endTime}`
                   ) : (
-                    t('event.noTime')
+                    t('event.noTime') || 'Keine Zeit angegeben'
                   )}
                 </p>
               </div>
             </div>
 
-            {event.location && (
+            {safeEvent.location && (
               <div className="flex items-center gap-3">
                 <MapPin className="w-5 h-5 text-gray-500" />
                 <div>
                   <p className="text-sm text-gray-500">{t('event.location')}</p>
-                  <p className="font-medium">{event.location}</p>
+                  <p className="font-medium">{safeEvent.location}</p>
                 </div>
               </div>
             )}
@@ -234,7 +268,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
               <Trophy className="w-5 h-5 text-gray-500" />
               <div>
                 <p className="text-sm text-gray-500">{t('event.sport')}</p>
-                <p className="font-medium">{t(`sports.${event.sport}`)}</p>
+                <p className="font-medium">{t(`sports.${safeEvent.sport}`)}</p>
               </div>
             </div>
 
@@ -243,17 +277,17 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
               <div>
                 <p className="text-sm text-gray-500">{t('player.players')}</p>
                 <p className="font-medium">
-                  {event.players?.length || 0} / {event.maxPlayers || event.max_players || 16} {t('player.players')}
+                  {safeEvent.players.length} / {safeEvent.maxPlayers || safeEvent.max_players || 16} {t('player.players')}
                 </p>
               </div>
             </div>
 
-            {event.price && (
+            {safeEvent.price && (
               <div className="flex items-center gap-3">
                 <span className="text-xl">💰</span>
                 <div>
                   <p className="text-sm text-gray-500">{t('event.participationFee')}</p>
-                  <p className="font-medium">{event.price}€</p>
+                  <p className="font-medium">{safeEvent.price}€</p>
                 </div>
               </div>
             )}
@@ -266,11 +300,11 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
             <div>
               <span className="text-gray-500">{t('event.format.title')}:</span>
               <span className="ml-2 font-medium">
-                {event.teamFormat === 'single' || event.format === 'singles' ? t('event.format.single') : t('event.format.double')}
+                {safeEvent.teamFormat === 'single' || safeEvent.format === 'singles' ? t('event.format.single') : t('event.format.double')}
               </span>
             </div>
             
-            {(event.isAmericano || event.event_type === 'americano' || event.eventType === 'americano') && (
+            {(safeEvent.isAmericano || safeEvent.event_type === 'americano' || safeEvent.eventType === 'americano') && (
               <div>
                 <span className="text-gray-500">{t('event.playMode')}:</span>
                 <span className="ml-2 font-medium">{t('eventTypes.americano')}</span>
@@ -279,14 +313,14 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
             
             <div>
               <span className="text-gray-500">{t('event.courts')}:</span>
-              <span className="ml-2 font-medium">{event.courts || 2}</span>
+              <span className="ml-2 font-medium">{safeEvent.courts}</span>
             </div>
             
-            {event.genderMode && event.genderMode !== 'open' && (
+            {safeEvent.genderMode && safeEvent.genderMode !== 'open' && (
               <div>
                 <span className="text-gray-500">{t('player.gender')}:</span>
                 <span className="ml-2 font-medium">
-                  {event.genderMode === 'men' ? t('player.male') : t('player.female')}
+                  {safeEvent.genderMode === 'men' ? t('player.male') : t('player.female')}
                 </span>
               </div>
             )}
@@ -300,12 +334,12 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-blue-600" />
                 <p className="font-medium text-blue-800">
-                  {interpolate(t('schedule.scheduled'), { rounds: event.schedule.length })}
+                  {interpolate(t('schedule.scheduled'), { rounds: safeEvent.schedule.length })}
                 </p>
               </div>
-              {event.fairnessScore && (
-                <div className={`px-3 py-1 rounded-full text-sm font-semibold ${getFairnessColor(event.fairnessScore)}`}>
-                  {t('schedule.fairness')}: {event.fairnessScore}%
+              {safeEvent.fairnessScore && (
+                <div className={`px-3 py-1 rounded-full text-sm font-semibold ${getFairnessColor(safeEvent.fairnessScore)}`}>
+                  {t('schedule.fairness')}: {safeEvent.fairnessScore}%
                 </div>
               )}
             </div>
@@ -313,7 +347,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
         )}
 
         {/* Status and Actions */}
-        {event.status === 'completed' ? (
+        {safeEvent.status === 'completed' ? (
           <div className="bg-green-100 text-green-800 px-4 py-3 rounded-lg">
             <p className="font-semibold">✅ {t('messages.tournamentComplete')}</p>
           </div>
@@ -326,7 +360,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
             {!hasEnoughPlayers && (
               <div className="bg-gray-100 text-gray-600 px-4 py-3 rounded-lg text-center">
                 <p className="font-medium">
-                  {interpolate(t('messages.minPlayersNeeded'), { count: 4 - (event.players?.length || 0) })}
+                  {interpolate(t('messages.minPlayersNeeded'), { count: 4 - (safeEvent.players?.length || 0) })}
                 </p>
               </div>
             )}
@@ -334,7 +368,12 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
             {canGenerateSchedule && (
               <button
                 onClick={handleGenerateSchedule}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                disabled={!canGenerateSchedule}
+                className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors font-medium ${
+                  canGenerateSchedule 
+                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
               >
                 <BarChart3 className="w-5 h-5" />
                 {t('schedule.generateSchedule')}
@@ -343,7 +382,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
             
             {canStartTournament && (
               <button
-                onClick={() => onStartTournament(event)}
+                onClick={() => onStartTournament(safeEvent)}
                 className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
               >
                 <Play className="w-5 h-5" />
@@ -380,7 +419,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
             </div>
             
             <p className="text-gray-600 mb-6">
-              {t('schedule.scheduleVariants')}
+              {t('schedule.scheduleVariants') || 'Wählen Sie eine der generierten Spielplan-Varianten aus:'}
             </p>
             
             <div className="flex-1 overflow-y-auto">
@@ -453,7 +492,12 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                             <p className="text-xs font-semibold">{t('schedule.round')} {round.round}:</p>
                             {round.matches.slice(0, 2).map((match, mIdx) => (
                               <p key={mIdx} className="text-xs text-gray-600 ml-2">
-                                {t('schedule.court')} {match.court}: {match.players.length} {t('player.players')}
+                                {t('schedule.court')} {match.court}: 
+                                {match.team1 && match.team2 && match.team1[0] && match.team1[1] && match.team2[0] && match.team2[1] ? (
+                                  ` ${match.team1[0].name.split(' ')[0]} & ${match.team1[1].name.split(' ')[0]} vs ${match.team2[0].name.split(' ')[0]} & ${match.team2[1].name.split(' ')[0]}`
+                                ) : (
+                                  ' ' + t('schedule.matchError')
+                                )}
                               </p>
                             ))}
                             {round.matches.length > 2 && (

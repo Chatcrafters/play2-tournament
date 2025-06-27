@@ -1,5 +1,18 @@
 // Smart Americano Algorithm - Maximale Durchmischung mit Seed-System
 export const generateAmericanoSchedule = (players, courts, rounds, options = {}) => {
+  // Validierung
+  if (!players || players.length < 4) {
+    throw new Error('Mindestens 4 Spieler erforderlich')
+  }
+  
+  if (courts < 1) {
+    throw new Error('Mindestens 1 Platz erforderlich')
+  }
+  
+  if (rounds < 1) {
+    throw new Error('Mindestens 1 Runde erforderlich')
+  }
+  
   // Seed-System: 4 verschiedene Varianten, dann Wiederholung
   const seed = (options.regenerateCount || 0) % 4
   const randomGen = createSeededRandom(seed + (options.eventId || '').length)
@@ -214,11 +227,12 @@ export const generateAmericanoSchedule = (players, courts, rounds, options = {})
         team1: [
           players.find(p => p.id === m.players[0]),
           players.find(p => p.id === m.players[1])
-        ],
+        ].filter(p => p), // Filter out undefined
         team2: [
           players.find(p => p.id === m.players[2]),
           players.find(p => p.id === m.players[3])
-        ]
+        ].filter(p => p), // Filter out undefined
+        players: m.players // Keep the player IDs for reference
       })),
       waitingPlayers: restingPlayers  // Vollständige Spieler-Objekte
     })
