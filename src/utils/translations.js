@@ -142,12 +142,13 @@
       createEvent: 'Event erstellen',
       updateEvent: 'Event aktualisieren',
       cancel: 'Abbrechen',
-      // Neue fehlende Keys
+      // Nuevos keys que faltan
       steps: {
         basics: 'Grundinformationen',
         timeLocation: 'Zeit & Ort',
         playMode: 'Spielmodus',
-        players: 'Spieler'
+        players: 'Spieler',
+        details: 'Details'
       },
       visibility: 'Sichtbarkeit',
       makePublic: 'Öffentlich machen',
@@ -162,7 +163,19 @@
       public: 'Öffentlich',
       private: 'Privat',
       roundDuration: 'Rundendauer',
-      playTimePerPerson: 'Spielzeit pro Person'
+      playTimePerPerson: 'Spielzeit pro Person',
+      // Event templates
+      quickTemplates: 'Schnellvorlagen',
+      selectTemplate: 'Vorlage auswählen',
+      americano: 'Americano',
+      americanoDesc: 'Spieler wechseln Partner jede Runde',
+      tournament: 'Turnier',
+      tournamentDesc: 'Klassisches Turnierformat',
+      league: 'Liga',
+      leagueDesc: 'Liga-Format mit mehreren Spieltagen',
+      eventBasics: 'Event-Grundlagen',
+      eventName: 'Event-Name',
+      sport: 'Sportart'
     },
     
     // Player
@@ -326,7 +339,22 @@
         skillPadel: 'Padel',
         skillPickleball: 'Pickleball',
         skillSpinxball: 'SpinXball'
-      }
+      },
+      // Neue fehlende Keys
+      playerDatabase: 'Spielerdatenbank',
+      showOnlyFor: 'Nur anzeigen für',
+      newPlayer: 'Neuer Spieler',
+      excelImport: 'Excel importieren',
+      templateAndInstructions: 'Vorlage & Anleitung',
+      allAvailable: 'Alle verfügbar',
+      selectAll: 'Alle auswählen',
+      playersFound: 'Spieler gefunden',
+      edit: 'Bearbeiten',
+      delete: 'Löschen',
+      age: 'Alter',
+      close: 'Schließen',
+      importPlayers: 'Spieler importieren',
+      playersSelected: 'Spieler ausgewählt'
     }
   },
   
@@ -637,7 +665,22 @@
         skillPadel: 'Padel',
         skillPickleball: 'Pickleball',
         skillSpinxball: 'SpinXball'
-      }
+      },
+      // New missing keys
+      playerDatabase: 'Player Database',
+      showOnlyFor: 'Show only for',
+      newPlayer: 'New Player',
+      excelImport: 'Excel Import',
+      templateAndInstructions: 'Template & Instructions',
+      allAvailable: 'All available',
+      selectAll: 'Select all',
+      playersFound: 'players found',
+      edit: 'Edit',
+      delete: 'Delete',
+      age: 'Age',
+      close: 'Close',
+      importPlayers: 'Import Players',
+      playersSelected: 'players selected'
     }
   },
   
@@ -969,7 +1012,22 @@
         skillPadel: 'Pádel',
         skillPickleball: 'Pickleball',
         skillSpinxball: 'SpinXball'
-      }
+      },
+      // Nuevos keys faltantes
+      playerDatabase: 'Base de datos de jugadores',
+      showOnlyFor: 'Mostrar solo para',
+      newPlayer: 'Nuevo jugador',
+      excelImport: 'Importar Excel',
+      templateAndInstructions: 'Plantilla e instrucciones',
+      allAvailable: 'Todos disponibles',
+      selectAll: 'Seleccionar todos',
+      playersFound: 'jugadores encontrados',
+      edit: 'Editar',
+      delete: 'Eliminar',
+      age: 'Edad',
+      close: 'Cerrar',
+      importPlayers: 'Importar jugadores',
+      playersSelected: 'jugadores seleccionados'
     }
   }
 }
