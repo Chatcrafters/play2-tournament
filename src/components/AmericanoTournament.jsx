@@ -192,6 +192,7 @@ team2?.forEach(player => {
     playerStats[player.id].points += result.team2Points
   }
 })
+}) 
     
     // Sort by points, then games won
     return Object.values(playerStats).sort((a, b) => {
