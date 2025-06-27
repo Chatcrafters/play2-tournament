@@ -98,7 +98,9 @@
       playMode: 'Spielmodus',
       noTime: 'Keine Zeit festgelegt',
       startTournament: 'Turnier starten',
-      unnamed: 'Unbenanntes Event'
+      unnamed: 'Unbenanntes Event',
+      // Añadir key faltante
+      create: 'Event erstellen'
     },
     
     // Event Form
@@ -139,7 +141,28 @@
       womenOnly: 'Nur Frauen',
       createEvent: 'Event erstellen',
       updateEvent: 'Event aktualisieren',
-      cancel: 'Abbrechen'
+      cancel: 'Abbrechen',
+      // Neue fehlende Keys
+      steps: {
+        basics: 'Grundinformationen',
+        timeLocation: 'Zeit & Ort',
+        playMode: 'Spielmodus',
+        players: 'Spieler'
+      },
+      visibility: 'Sichtbarkeit',
+      makePublic: 'Öffentlich machen',
+      publicDesc: 'Jeder kann dieses Event sehen und sich anmelden',
+      enableRegistration: 'Anmeldung aktivieren',
+      registrationDesc: 'Spieler können sich selbst anmelden',
+      summary: 'Zusammenfassung',
+      date: 'Datum',
+      time: 'Zeit',
+      location: 'Ort',
+      min: 'Min',
+      public: 'Öffentlich',
+      private: 'Privat',
+      roundDuration: 'Rundendauer',
+      playTimePerPerson: 'Spielzeit pro Person'
     },
     
     // Player
@@ -407,7 +430,9 @@
       playMode: 'Play Mode',
       noTime: 'No time set',
       startTournament: 'Start Tournament',
-      unnamed: 'Unnamed Event'
+      unnamed: 'Unnamed Event',
+      // Add missing key
+      create: 'Create Event'
     },
     
     // Event Form
@@ -716,7 +741,9 @@
       playMode: 'Modo de juego',
       noTime: 'Sin hora establecida',
       startTournament: 'Iniciar torneo',
-      unnamed: 'Evento sin nombre'
+      unnamed: 'Evento sin nombre',
+      // Añadir key faltante
+      create: 'Crear evento'
     },
     
     // Event Form
@@ -757,7 +784,28 @@
       womenOnly: 'Solo mujeres',
       createEvent: 'Crear evento',
       updateEvent: 'Actualizar evento',
-      cancel: 'Cancelar'
+      cancel: 'Cancelar',
+      // Nuevos keys que faltan
+      steps: {
+        basics: 'Información básica',
+        timeLocation: 'Fecha y lugar',
+        playMode: 'Modo de juego',
+        players: 'Jugadores'
+      },
+      visibility: 'Visibilidad',
+      makePublic: 'Hacer público',
+      publicDesc: 'Cualquiera puede ver y registrarse en este evento',
+      enableRegistration: 'Habilitar inscripción',
+      registrationDesc: 'Permitir que los jugadores se inscriban ellos mismos',
+      summary: 'Resumen',
+      date: 'Fecha',
+      time: 'Hora',
+      location: 'Ubicación',
+      min: 'min',
+      public: 'Público',
+      private: 'Privado',
+      roundDuration: 'Duración de ronda',
+      playTimePerPerson: 'Tiempo de juego por persona'
     },
     
     // Player
