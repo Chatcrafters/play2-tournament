@@ -30,7 +30,13 @@ export const translations = {
       forgotPassword: "Passwort vergessen?",
       loginError: "Fehler bei der Anmeldung",
       registerError: "Fehler bei der Registrierung",
-      welcome: "Willkommen bei Play2 Tournament"
+      welcome: "Willkommen bei Play2 Tournament",
+      noAccount: "Noch kein Konto? Registrieren",
+      alreadyHaveAccount: "Bereits ein Konto? Anmelden",
+      createAccount: "Konto erstellen",
+      checkEmail: "Überprüfen Sie Ihre E-Mails",
+      loginSuccess: "Erfolgreich angemeldet",
+      loading: "Wird geladen..."
     },
     
     event: {
@@ -57,7 +63,8 @@ export const translations = {
         past: "Vergangen"
       },
       share: "Event teilen",
-      startTournament: "Turnier starten"
+      startTournament: "Turnier starten",
+      noEvents: "Keine Events vorhanden"
     },
     
     sports: {
@@ -91,7 +98,8 @@ export const translations = {
       export: "Exportieren",
       managePlayer: "Spieler verwalten",
       waitingPlayers: "Wartende Spieler",
-      pause: "Pause"
+      pause: "Pause",
+      level: "Level"
     },
     
     database: {
@@ -158,7 +166,19 @@ export const translations = {
       next: "Nächste",
       nextRound: "Nächste Runde",
       currentGames: "Aktuelle Spiele",
-      activeRound: "Aktive Runde"
+      activeRound: "Aktive Runde",
+      round: "Runde",
+      match: "Spiel",
+      court: "Platz",
+      points: "Punkte",
+      games: "Spiele",
+      score: "Ergebnis",
+      winner: "Gewinner",
+      standings: "Tabelle",
+      nextMatch: "Nächstes Spiel",
+      currentMatch: "Aktuelles Spiel",
+      completedMatches: "Beendete Spiele",
+      upcomingMatches: "Kommende Spiele"
     },
     
     results: {
@@ -260,7 +280,13 @@ export const translations = {
       forgotPassword: "Forgot Password?",
       loginError: "Login error",
       registerError: "Registration error",
-      welcome: "Welcome to Play2 Tournament"
+      welcome: "Welcome to Play2 Tournament",
+      noAccount: "No account yet? Register",
+      alreadyHaveAccount: "Already have an account? Login",
+      createAccount: "Create account",
+      checkEmail: "Check your email",
+      loginSuccess: "Successfully logged in",
+      loading: "Loading..."
     },
     
     event: {
@@ -287,7 +313,8 @@ export const translations = {
         past: "Past"
       },
       share: "Share Event",
-      startTournament: "Start Tournament"
+      startTournament: "Start Tournament",
+      noEvents: "No events available"
     },
     
     sports: {
@@ -321,7 +348,8 @@ export const translations = {
       export: "Export",
       managePlayer: "Manage Players",
       waitingPlayers: "Waiting Players",
-      pause: "Break"
+      pause: "Break",
+      level: "Level"
     },
     
     database: {
@@ -388,7 +416,19 @@ export const translations = {
       next: "Next",
       nextRound: "Next Round",
       currentGames: "Current Games",
-      activeRound: "Active Round"
+      activeRound: "Active Round",
+      round: "Round",
+      match: "Match",
+      court: "Court",
+      points: "Points",
+      games: "Games",
+      score: "Score",
+      winner: "Winner",
+      standings: "Standings",
+      nextMatch: "Next Match",
+      currentMatch: "Current Match",
+      completedMatches: "Completed Matches",
+      upcomingMatches: "Upcoming Matches"
     },
     
     results: {
@@ -490,7 +530,13 @@ export const translations = {
       forgotPassword: "¿Olvidaste tu contraseña?",
       loginError: "Error al iniciar sesión",
       registerError: "Error al registrarse",
-      welcome: "Bienvenido a Play2 Tournament"
+      welcome: "Bienvenido a Play2 Tournament",
+      noAccount: "¿No tienes cuenta? Regístrate",
+      alreadyHaveAccount: "¿Ya tienes cuenta? Inicia sesión",
+      createAccount: "Crear cuenta",
+      checkEmail: "Revisa tu correo electrónico",
+      loginSuccess: "Sesión iniciada correctamente",
+      loading: "Cargando..."
     },
     
     event: {
@@ -517,7 +563,8 @@ export const translations = {
         past: "Pasado"
       },
       share: "Compartir Evento",
-      startTournament: "Iniciar Torneo"
+      startTournament: "Iniciar Torneo",
+      noEvents: "No hay eventos disponibles"
     },
     
     sports: {
@@ -551,7 +598,8 @@ export const translations = {
       export: "Exportar",
       managePlayer: "Gestionar jugadores",
       waitingPlayers: "Jugadores en Espera",
-      pause: "Descanso"
+      pause: "Descanso",
+      level: "Nivel"
     },
     
     database: {
@@ -618,7 +666,19 @@ export const translations = {
       next: "Siguiente",
       nextRound: "Siguiente Ronda",
       currentGames: "Partidos Actuales",
-      activeRound: "Ronda Activa"
+      activeRound: "Ronda Activa",
+      round: "Ronda",
+      match: "Partido",
+      court: "Pista",
+      points: "Puntos",
+      games: "Juegos",
+      score: "Resultado",
+      winner: "Ganador",
+      standings: "Clasificación",
+      nextMatch: "Próximo Partido",
+      currentMatch: "Partido Actual",
+      completedMatches: "Partidos Completados",
+      upcomingMatches: "Próximos Partidos"
     },
     
     results: {
