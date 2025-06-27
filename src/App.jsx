@@ -583,7 +583,7 @@ function AppContent() {
                               event={selectedEvent}
                               onEdit={handleEditEvent}
                               onStartTournament={handleStartTournament}
-                              canManageEvent={userProfile?.role === 'tournament_director' && selectedEvent.created_by === user.id}
+                              canManageEvent={userProfile?.role === 'tournament_director'}
                             />
                             
                             {selectedEvent.status !== 'completed' && userProfile?.role === 'tournament_director' && (
