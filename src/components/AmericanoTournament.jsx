@@ -222,11 +222,12 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          <button
-            type="button"  {/* WICHTIG: type="button" hinzugefügt */}
-            onClick={handleCancelClick}
-            className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-2"
-          >
+  {/* WICHTIG: type="button" hinzugefügt um Form-Submit zu verhindern */}
+  <button
+    type="button"
+    onClick={handleCancelClick}
+    className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-2"
+  >
             ← Zurück zur Event-Übersicht
           </button>
           
