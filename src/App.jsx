@@ -8,6 +8,7 @@ import { ResultsDisplay } from './components/ResultsDisplay'
 import PlayerDatabase from './components/PlayerDatabase'
 import { EventRegistration } from './components/EventRegistration'
 import { AmericanoTournament } from './components/AmericanoTournament'
+import Auth from './components/Auth'
 import { supabase } from './lib/supabase'
 import { LanguageProvider, LanguageSelector, useTranslation } from './components/LanguageSelector'
 import { transformToDB, transformFromDB, cleanEventData } from './utils/dbHelpers'
@@ -23,41 +24,103 @@ function AppContent() {
   const [showPlayerDatabase, setShowPlayerDatabase] = useState(false)
   const [runningTournament, setRunningTournament] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Auth state
+  const [user, setUser] = useState(null)
+  const [userProfile, setUserProfile] = useState(null)
+  const [showUserMenu, setShowUserMenu] = useState(false)
 
-  // Load events from Supabase on component mount
+  // Check authentication on mount
   useEffect(() => {
-    loadEvents()
+    checkUser()
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        setUser(session.user)
+        await loadUserProfile(session.user.id)
+      } else {
+        setUser(null)
+        setUserProfile(null)
+      }
+    })
+
+    return () => {
+      authListener.subscription.unsubscribe()
+    }
   }, [])
+
+  // Load events when user is authenticated
+  useEffect(() => {
+    if (user) {
+      loadEvents()
+    }
+  }, [user])
+
+  const checkUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUser(user)
+        await loadUserProfile(user.id)
+      }
+    } catch (error) {
+      console.error('Error checking user:', error)
+    }
+  }
+
+  const loadUserProfile = async (userId) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+      
+      if (error) throw error
+      
+      setUserProfile(profile)
+    } catch (error) {
+      console.error('Error loading profile:', error)
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+      
+      setUser(null)
+      setUserProfile(null)
+      setEvents([])
+      setSelectedEvent(null)
+      setShowUserMenu(false)
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
 
   const loadEvents = async () => {
     try {
       setIsLoading(true)
       console.log('Lade Events...')
       
-      // Versuche zuerst aus Supabase zu laden
-      try {
-        const { data, error } = await supabase
-          .from('events')
-          .select('*')
-          .order('date', { ascending: true })
-        
-        if (error) {
-          console.error('Supabase error:', error)
-          // Fallback zu localStorage
-          loadFromLocalStorage()
-        } else if (data) {
-          // Transformiere Events von snake_case zu camelCase
-          const transformedEvents = data.map(event => transformFromDB(event))
-          console.log('Events aus Supabase geladen:', transformedEvents)
-          setEvents(transformedEvents || [])
-          
-          // Speichere auch in localStorage als Backup
-          localStorage.setItem('events', JSON.stringify(transformedEvents || []))
-        }
-      } catch (supabaseError) {
-        console.error('Supabase Verbindungsfehler:', supabaseError)
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('date', { ascending: true })
+      
+      if (error) {
+        console.error('Supabase error:', error)
         // Fallback zu localStorage
         loadFromLocalStorage()
+      } else if (data) {
+        // Transformiere Events von snake_case zu camelCase
+        const transformedEvents = data.map(event => transformFromDB(event))
+        console.log('Events aus Supabase geladen:', transformedEvents)
+        setEvents(transformedEvents || [])
+        
+        // Speichere auch in localStorage als Backup (aber ohne saveEvents aufzurufen!)
+        localStorage.setItem('events', JSON.stringify(transformedEvents || []))
       }
     } catch (error) {
       console.error('Fehler beim Laden der Events:', error)
@@ -76,73 +139,96 @@ function AppContent() {
   }
 
   // Save events to both Supabase and localStorage
-  const saveEvents = async (updatedEvents) => {
+  const saveEvents = async (updatedEvents, eventToSave = null) => {
     // Speichere sofort in localStorage
     localStorage.setItem('events', JSON.stringify(updatedEvents))
     setEvents(updatedEvents)
     
-    // Versuche in Supabase zu speichern
+    // Wenn kein spezifisches Event angegeben, nichts weiter tun
+    if (!eventToSave) return
+    
+    // Versuche nur das spezifische Event in Supabase zu speichern
     try {
-      for (const event of updatedEvents) {
-        console.log('Original Event:', event)
+      console.log('Speichere Event:', eventToSave)
+      
+      // Bereinige und transformiere Event für die Datenbank
+      const cleanedEvent = cleanEventData(eventToSave)
+      const dbEvent = transformToDB(cleanedEvent)
+      console.log('Transformiertes Event für DB:', dbEvent)
+      
+      if (eventToSave.id.startsWith('temp_')) {
+        // Neues Event - INSERT
+        console.log('Current user:', user) // Debug: User anzeigen
         
-        // Bereinige und transformiere Event für die Datenbank
-        const cleanedEvent = cleanEventData(event)
-        const dbEvent = transformToDB(cleanedEvent)
-        console.log('Transformiertes Event für DB:', dbEvent)
+        const insertData = {
+          ...dbEvent,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          // Stelle sicher, dass alle required fields vorhanden sind
+          format: dbEvent.format || 'doubles',
+          event_type: dbEvent.event_type || 'americano',
+          sport: dbEvent.sport || 'padel',
+          status: dbEvent.status || 'upcoming'
+        }
         
-        if (event.id.startsWith('temp_')) {
-          // Neues Event - INSERT
-          // Bereite das Event für die DB vor (ohne id!)
-          const insertData = {
-            ...dbEvent,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-          
-          // WICHTIG: Entferne die id komplett
-          delete insertData.id
-          
-          const { data, error } = await supabase
-            .from('events')
-            .insert([insertData])
-            .select()
-            .single()
-          
-          if (error) {
-            console.error('Fehler beim Erstellen des Events:', error)
-            console.error('Gesendete Daten:', insertData)
-            // Zeige Benutzer-Fehlermeldung
-            alert(`Fehler beim Speichern: ${error.message}`)
-          } else if (data) {
-            console.log('Event erfolgreich erstellt:', data)
-            // Aktualisiere die temporäre ID mit der echten Supabase ID
-            const index = updatedEvents.findIndex(e => e.id === event.id)
-            if (index !== -1) {
-              updatedEvents[index] = { ...updatedEvents[index], id: data.id }
-              localStorage.setItem('events', JSON.stringify(updatedEvents))
-              setEvents([...updatedEvents])
-            }
-          }
+        // Nur created_by hinzufügen wenn User vorhanden
+        if (user && user.id) {
+          insertData.created_by = user.id
+          console.log('Setting created_by to:', user.id)
         } else {
-          // Bestehendes Event - UPDATE
-          const updateData = {
-            ...dbEvent,
-            updated_at: new Date().toISOString()
+          console.warn('Kein User vorhanden, erstelle Event ohne created_by')
+          // Explizit auf null setzen oder weglassen
+          delete insertData.created_by
+        }
+        
+        // Entferne die temporäre ID
+        delete insertData.id
+        
+        // Entferne undefined Werte
+        Object.keys(insertData).forEach(key => {
+          if (insertData[key] === undefined) {
+            delete insertData[key]
           }
-          
-          const { error } = await supabase
-            .from('events')
-            .update(updateData)
-            .eq('id', event.id)
-          
-          if (error) {
-            console.error('Fehler beim Aktualisieren des Events:', error)
-            console.error('Gesendete Daten:', updateData)
-            alert(`Fehler beim Aktualisieren: ${error.message}`)
-          } else {
-            console.log('Event erfolgreich aktualisiert')
+        })
+        
+        console.log('Insert data:', insertData) // Debug: Finale Daten
+        
+        const { data, error } = await supabase
+          .from('events')
+          .insert([insertData])
+          .select()
+          .single()
+        
+        if (error) {
+          console.error('Fehler beim Erstellen des Events:', error)
+          alert(`Fehler beim Speichern: ${error.message}`)
+        } else if (data) {
+          console.log('Event erfolgreich erstellt:', data)
+          // Aktualisiere die temporäre ID mit der echten Supabase ID
+          const index = updatedEvents.findIndex(e => e.id === eventToSave.id)
+          if (index !== -1) {
+            updatedEvents[index] = { ...updatedEvents[index], id: data.id }
+            localStorage.setItem('events', JSON.stringify(updatedEvents))
+            setEvents([...updatedEvents])
           }
+        }
+      } else {
+        // Bestehendes Event - UPDATE
+        const updateData = {
+          ...dbEvent,
+          updated_at: new Date().toISOString()
+        }
+        
+        const { error } = await supabase
+          .from('events')
+          .update(updateData)
+          .eq('id', eventToSave.id)
+        
+        if (error) {
+          console.error('Fehler beim Aktualisieren des Events:', error)
+          alert(`Fehler beim Aktualisieren: ${error.message}`)
+        } else {
+          console.log('Event erfolgreich aktualisiert')
         }
       }
     } catch (error) {
@@ -163,7 +249,7 @@ function AppContent() {
     }
     
     const updatedEvents = [...events, newEvent]
-    saveEvents(updatedEvents)
+    saveEvents(updatedEvents, newEvent) // Übergebe das spezifische Event
     setShowEventForm(false)
     setSelectedEvent(newEvent)
   }
@@ -172,7 +258,7 @@ function AppContent() {
     const updatedEvents = events.map(event => 
       event.id === updatedEvent.id ? updatedEvent : event
     )
-    await saveEvents(updatedEvents)
+    await saveEvents(updatedEvents, updatedEvent) // Übergebe das spezifische Event
     setSelectedEvent(updatedEvent)
     
     if (editingEvent) {
@@ -351,6 +437,11 @@ function AppContent() {
     return Math.max(playersNeeded, Math.min(64, maxPlayers))
   }
 
+  // Show auth screen if not logged in
+  if (!user) {
+    return <Auth />
+  }
+
   return (
     <Router>
       <Routes>
@@ -390,15 +481,65 @@ function AppContent() {
                         {/* Sprachauswahl */}
                         <LanguageSelector />
                         
-                        <button 
-                          onClick={() => {
-                            setEditingEvent(null)
-                            setShowEventForm(true)
-                          }}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                          + {t('event.new')}
-                        </button>
+                        {/* User Menu */}
+                        <div className="relative">
+                          <button
+                            onClick={() => setShowUserMenu(!showUserMenu)}
+                            className="flex items-center gap-2 text-gray-700 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span className="text-sm font-medium">{userProfile?.name || user.email}</span>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          
+                          {/* Dropdown Menu */}
+                          {showUserMenu && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-10" 
+                                onClick={() => setShowUserMenu(false)}
+                              />
+                              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border z-20">
+                                <div className="p-3 border-b">
+                                  <p className="text-sm font-medium">{userProfile?.name || 'Usuario'}</p>
+                                  <p className="text-xs text-gray-500">{user.email}</p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {userProfile?.role === 'tournament_director' ? '🎾 Turnierdirektor' : '👤 Spieler'}
+                                  </p>
+                                </div>
+                                
+                                <div className="p-1">
+                                  <button
+                                    onClick={handleLogout}
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center gap-2 text-red-600"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                    </svg>
+                                    Logout
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        
+                        {/* Create Event Button - nur für Turnierdirektoren */}
+                        {userProfile?.role === 'tournament_director' && (
+                          <button 
+                            onClick={() => {
+                              setEditingEvent(null)
+                              setShowEventForm(true)
+                            }}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            + {t('event.new')}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -422,6 +563,7 @@ function AppContent() {
                           selectedEvent={selectedEvent}
                           onSelectEvent={setSelectedEvent}
                           onDeleteEvent={handleDeleteEvent}
+                          canManageEvents={userProfile?.role === 'tournament_director'}
                         />
                       </div>
 
@@ -445,9 +587,10 @@ function AppContent() {
                               event={selectedEvent}
                               onEdit={handleEditEvent}
                               onStartTournament={handleStartTournament}
+                              canManageEvent={userProfile?.role === 'tournament_director' && selectedEvent.created_by === user.id}
                             />
                             
-                            {selectedEvent.status !== 'completed' && (
+                            {selectedEvent.status !== 'completed' && userProfile?.role === 'tournament_director' && (
                               <PlayerManagement 
                                 event={selectedEvent}
                                 onUpdateEvent={handleUpdateEvent}

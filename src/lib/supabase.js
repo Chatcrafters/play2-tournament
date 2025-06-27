@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 
-
 // Diese Werte kommen aus der .env.local Datei
 const supabaseUrl = 'https://ycwavingkihnepinrxlx.supabase.co'
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inljd2F2aW5na2lobmVwaW5yeGx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0MTMwOTUsImV4cCI6MjA2Mzk4OTA5NX0.FkUmAxmCOz9-jw_6VZkmmHmmMQTxjN2Gha3xxFjz120'
@@ -170,9 +169,9 @@ export const dbOperations = {
         pickleball: false,
         spinxball: false
       },
-      padel_skill: player.padel_skill || player.padelSkill || 'B',
-      pickleball_skill: player.pickleball_skill || player.pickleballSkill || 3.0,
-      spinxball_skill: player.spinxball_skill || player.spinxballSkill || 3.0
+      padelSkill: player.padelSkill || player.padel_skill || 'B',
+      pickleballSkill: player.pickleballSkill || player.pickleball_skill || 3.0,
+      spinxballSkill: player.spinxballSkill || player.spinxball_skill || 3.0
     }
     
     const { data, error } = await supabase
@@ -189,9 +188,9 @@ export const dbOperations = {
     const dbUpdates = {
       ...updates,
       // Akzeptiere beide Schreibweisen
-      padel_skill: updates.padel_skill || updates.padelSkill || 'B',
-      pickleball_skill: updates.pickleball_skill || updates.pickleballSkill || 3.0,
-      spinxball_skill: updates.spinxball_skill || updates.spinxballSkill || 3.0
+      padelSkill: updates.padelSkill || updates.padel_skill || 'B',
+      pickleballSkill: updates.pickleballSkill || updates.pickleball_skill || 3.0,
+      spinxballSkill: updates.spinxballSkill || updates.spinxball_skill || 3.0
     }
     
     const { data, error } = await supabase
