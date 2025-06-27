@@ -365,7 +365,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
                           {/* Team 1 */}
                           <div className="text-center md:text-right">
                             <p className="font-medium text-lg">
-                              {match.team1?.map(p => p.name).join(' & ')}
+                              {match.team1.map(p => p.name).join(' & ')}
                             </p>
                           </div>
                           
@@ -409,7 +409,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
                           {/* Team 2 */}
                           <div className="text-center md:text-left">
                             <p className="font-medium text-lg">
-                              {match.team2?.map(p => p.name).join(' & ')}
+                              {match.team2.map(p => p.name).join(' & ')}
                             </p>
                           </div>
                         </div>
@@ -493,11 +493,11 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
                       const result = matchResults[`${roundIdx}-${matchIdx}`]
                       return (
                         <div key={matchIdx} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                          <span>{match.team1?.map(p => p.name).join(' & ')}</span>
+                          <span>{match.team1.map(p => p.name).join(' & ')}</span>
                           <span className="font-bold">
                             {result?.result ? `${result.result.team1Score} - ${result.result.team2Score}` : '-'}
                           </span>
-                          <span>{match.team2?.map(p => p.name).join(' & ')}</span>
+                          <span>{match.team2.map(p => p.name).join(' & ')}</span>
                         </div>
                       )
                     })}

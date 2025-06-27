@@ -364,7 +364,7 @@ export const ScoreEntry = ({
               <div className="grid grid-cols-3 gap-4 items-center">
                 <div className="text-right">
                   <div className="font-medium">
-                    {match.team1?.map(p => p.name).join(' & ')}
+                    {match.team1.map(p => p.name).join(' & ')}
                   </div>
                 </div>
                 
@@ -392,7 +392,7 @@ export const ScoreEntry = ({
                 
                 <div className="text-left">
                   <div className="font-medium">
-                    {match.team2?.map(p => p.name).join(' & ')}
+                    {match.team2.map(p => p.name).join(' & ')}
                   </div>
                 </div>
               </div>

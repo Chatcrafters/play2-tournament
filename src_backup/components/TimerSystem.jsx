@@ -162,11 +162,11 @@ export const TimerSystem = ({ event, schedule, onRoundChange, onTimerStateChange
             </div>
             <div className="space-y-2">
               <div className="font-medium">
-                {match.team1?.map(p => p.name).join(' & ')}
+                {match.team1.map(p => p.name).join(' & ')}
               </div>
               <div className="text-sm text-gray-500">vs</div>
               <div className="font-medium">
-                {match.team2?.map(p => p.name).join(' & ')}
+                {match.team2.map(p => p.name).join(' & ')}
               </div>
             </div>
           </div>
