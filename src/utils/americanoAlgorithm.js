@@ -174,60 +174,67 @@ export const generateAmericanoSchedule = (players, courts, rounds, options = {})
   }
   
   // Generiere Schedule
-  for (let round = 0; round < rounds; round++) {
-    const availablePlayers = [...players]
-    const { matches, restingPlayers } = findBestMatchesForRound(availablePlayers, round)
-    
-    // Update Tracking-Daten
-    matches.forEach(match => {
-      const [p1, p2, p3, p4] = match.playerIndices
-      
-      // Update Partner-Matrix
-      partnerMatrix[p1][p2]++
-      partnerMatrix[p2][p1]++
-      partnerMatrix[p3][p4]++
-      partnerMatrix[p4][p3]++
-      
-      // Update Gegner-Matrix
-      opponentMatrix[p1][p3]++
-      opponentMatrix[p1][p4]++
-      opponentMatrix[p2][p3]++
-      opponentMatrix[p2][p4]++
-      opponentMatrix[p3][p1]++
-      opponentMatrix[p4][p1]++
-      opponentMatrix[p3][p2]++
-      opponentMatrix[p4][p2]++
-      
-      // Update Spiele und letzte Runde
-      ;[p1, p2, p3, p4].forEach(idx => {
-        gamesPlayed[idx]++
-        lastPlayed[idx] = round
-        courtAssignments[idx].push(match.court)
-      })
-    })
-    
-    schedule.push({
-      round: round + 1,
-      matches: matches.map(m => ({
-        court: m.court,
-        players: m.players
-      })),
-      restingPlayerIds: restingPlayers.map(p => p.id)
-    })
-  }
+for (let round = 0; round < rounds; round++) {
+  const availablePlayers = [...players]
+  const { matches, restingPlayers } = findBestMatchesForRound(availablePlayers, round)
   
-  // Füge Statistiken hinzu
-  return {
-    schedule,
-    statistics: {
-      partnerMatrix,
-      opponentMatrix,
-      gamesPlayed,
-      maxGames: Math.max(...gamesPlayed),
-      minGames: Math.min(...gamesPlayed),
-      seed,
-      regenerateCount: options.regenerateCount || 0
-    }
+  // Update Tracking-Daten
+  matches.forEach(match => {
+    const [p1, p2, p3, p4] = match.playerIndices
+    
+    // Update Partner-Matrix
+    partnerMatrix[p1][p2]++
+    partnerMatrix[p2][p1]++
+    partnerMatrix[p3][p4]++
+    partnerMatrix[p4][p3]++
+    
+    // Update Gegner-Matrix
+    opponentMatrix[p1][p3]++
+    opponentMatrix[p1][p4]++
+    opponentMatrix[p2][p3]++
+    opponentMatrix[p2][p4]++
+    opponentMatrix[p3][p1]++
+    opponentMatrix[p4][p1]++
+    opponentMatrix[p3][p2]++
+    opponentMatrix[p4][p2]++
+    
+    // Update Spiele und letzte Runde
+    ;[p1, p2, p3, p4].forEach(idx => {
+      gamesPlayed[idx]++
+      lastPlayed[idx] = round
+      courtAssignments[idx].push(match.court)
+    })
+  })
+  
+  schedule.push({
+    round: round + 1,
+    matches: matches.map(m => ({
+      court: m.court,
+      // Team-basierte Struktur für Americano
+      team1: [
+        players.find(p => p.id === m.players[0]),
+        players.find(p => p.id === m.players[1])
+      ],
+      team2: [
+        players.find(p => p.id === m.players[2]),
+        players.find(p => p.id === m.players[3])
+      ]
+    })),
+    waitingPlayers: restingPlayers  // Vollständige Spieler-Objekte
+  })
+}  // <-- DIESE KLAMMER FEHLT BEI IHNEN!
+
+// Füge Statistiken hinzu
+return {
+  schedule,
+  statistics: {
+    partnerMatrix,
+    opponentMatrix,
+    gamesPlayed,
+    maxGames: Math.max(...gamesPlayed),
+    minGames: Math.min(...gamesPlayed),
+    seed,
+    regenerateCount: options.regenerateCount || 0
   }
 }
 
