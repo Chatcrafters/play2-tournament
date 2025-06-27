@@ -160,6 +160,7 @@ function AppContent() {
         // Neues Event - INSERT
         console.log('Current user:', user) // Debug: User anzeigen
         
+        // Neues Event - INSERT
         const insertData = {
           ...dbEvent,
           created_at: new Date().toISOString(),
@@ -171,28 +172,19 @@ function AppContent() {
           status: dbEvent.status || 'upcoming'
         }
         
-        // Nur created_by hinzufügen wenn User vorhanden
-        if (user && user.id) {
-          insertData.created_by = user.id
-          console.log('Setting created_by to:', user.id)
-        } else {
-          console.warn('Kein User vorhanden, erstelle Event ohne created_by')
-          // Explizit auf null setzen oder weglassen
-          delete insertData.created_by
-        }
-        
         // Entferne die temporäre ID
         delete insertData.id
         
-        // Entferne undefined Werte
+        // Entferne null/undefined Werte
         Object.keys(insertData).forEach(key => {
-          if (insertData[key] === undefined) {
+          if (insertData[key] === undefined || insertData[key] === null) {
             delete insertData[key]
           }
         })
         
-        console.log('Insert data:', insertData) // Debug: Finale Daten
+        console.log('Insert data (ohne created_by):', JSON.stringify(insertData, null, 2))
         
+        // Erst Event ohne created_by erstellen
         const { data, error } = await supabase
           .from('events')
           .insert([insertData])
@@ -204,10 +196,27 @@ function AppContent() {
           alert(`Fehler beim Speichern: ${error.message}`)
         } else if (data) {
           console.log('Event erfolgreich erstellt:', data)
+          
+          // Wenn User vorhanden, versuche created_by nachträglich zu setzen
+          if (user && user.id && data.id) {
+            console.log('Versuche created_by nachträglich zu setzen...')
+            const { error: updateError } = await supabase
+              .from('events')
+              .update({ created_by: user.id })
+              .eq('id', data.id)
+            
+            if (updateError) {
+              console.warn('created_by konnte nicht gesetzt werden:', updateError)
+            } else {
+              console.log('created_by erfolgreich gesetzt')
+              data.created_by = user.id
+            }
+          }
+          
           // Aktualisiere die temporäre ID mit der echten Supabase ID
           const index = updatedEvents.findIndex(e => e.id === eventToSave.id)
           if (index !== -1) {
-            updatedEvents[index] = { ...updatedEvents[index], id: data.id }
+            updatedEvents[index] = { ...updatedEvents[index], id: data.id, created_by: data.created_by }
             localStorage.setItem('events', JSON.stringify(updatedEvents))
             setEvents([...updatedEvents])
           }
