@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Calendar, Clock, MapPin, Trophy, Users, Play, Pause, RotateCcw, Check } from 'lucide-react'
 import { useTranslation } from './LanguageSelector'
+import { interpolate } from '../utils/translations'
 
 // Timer-Komponente
 const Timer = ({ isRunning, onTick, duration, currentTime }) => {
@@ -110,7 +111,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
     const match = event.schedule[currentRound].matches[matchIndex]
     
     if (!score || score.team1Score === undefined || score.team2Score === undefined) {
-      alert('Bitte beide Ergebnisse eingeben')
+      alert(t('messages.enterBothScores'))
       return
     }
     
@@ -222,17 +223,17 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-  {/* WICHTIG: type="button" hinzugefügt um Form-Submit zu verhindern */}
-  <button
-    type="button"
-    onClick={handleCancelClick}
-    className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-2"
-  >
-            ← Zurück zur Event-Übersicht
+          {/* WICHTIG: type="button" hinzugefügt um Form-Submit zu verhindern */}
+          <button
+            type="button"
+            onClick={handleCancelClick}
+            className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-2"
+          >
+            ← {t('app.backToEventOverview')}
           </button>
           
           <h1 className="text-3xl font-bold mb-2">{event.name}</h1>
-          <p className="text-gray-600">Live Turnier-Verwaltung</p>
+          <p className="text-gray-600">{t('messages.tournamentManagement')}</p>
         </div>
         
         {/* Main Grid */}
@@ -241,7 +242,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
           <div className="lg:col-span-1">
             {/* Timer Card */}
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h3 className="text-xl font-semibold mb-4">Runden-Timer</h3>
+              <h3 className="text-xl font-semibold mb-4">{t('timer.roundTimer')}</h3>
               
               <Timer
                 isRunning={timerState === 'running'}
@@ -257,7 +258,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
                     className="flex-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center justify-center gap-2"
                   >
                     <Play className="w-4 h-4" />
-                    Start
+                    {t('timer.start')}
                   </button>
                 )}
                 
@@ -267,7 +268,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
                     className="flex-1 bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 flex items-center justify-center gap-2"
                   >
                     <Pause className="w-4 h-4" />
-                    Pause
+                    {t('timer.pause')}
                   </button>
                 )}
                 
@@ -277,7 +278,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
                     className="flex-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center justify-center gap-2"
                   >
                     <Play className="w-4 h-4" />
-                    Weiter
+                    {t('timer.continue')}
                   </button>
                 )}
                 
@@ -292,11 +293,11 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
             
             {/* Round Navigation */}
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-xl font-semibold mb-4">Runden-Navigation</h3>
+              <h3 className="text-xl font-semibold mb-4">{t('tournament.roundNavigation')}</h3>
               
               <div className="text-center mb-4">
                 <p className="text-3xl font-bold">
-                  Runde {currentRound + 1} / {event.schedule.length}
+                  {t('schedule.round')} {currentRound + 1} / {event.schedule.length}
                 </p>
               </div>
               
@@ -310,7 +311,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
                 >
-                  ← Vorherige
+                  ← {t('tournament.previous')}
                 </button>
                 
                 <button
@@ -322,7 +323,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
                 >
-                  Nächste →
+                  {t('tournament.next')} →
                 </button>
               </div>
               
@@ -333,7 +334,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
                   className="w-full mt-4 bg-green-600 text-white px-4 py-3 rounded hover:bg-green-700 flex items-center justify-center gap-2 font-semibold"
                 >
                   <Check className="w-5 h-5" />
-                  Turnier abschließen
+                  {t('buttons.completeTournament')}
                 </button>
               )}
             </div>
@@ -342,7 +343,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
           {/* Middle Column - Current Matches */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-xl font-semibold mb-4">Aktuelle Spiele</h3>
+              <h3 className="text-xl font-semibold mb-4">{t('messages.currentGames')}</h3>
               
               {currentSchedule && (
                 <div className="space-y-4">
@@ -354,9 +355,9 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
                     return (
                       <div key={matchIndex} className="border rounded-lg p-4 bg-gray-50">
                         <div className="flex justify-between items-center mb-3">
-                          <span className="font-semibold">Platz {match.court}</span>
+                          <span className="font-semibold">{t('schedule.court')} {match.court}</span>
                           {result?.result && (
-                            <span className="text-green-600 font-semibold">✓ Ergebnis eingetragen</span>
+                            <span className="text-green-600 font-semibold">✓ {t('results.resultEntered')}</span>
                           )}
                         </div>
                         
@@ -419,7 +420,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
                   {/* Waiting Players */}
                   {currentSchedule.waitingPlayers?.length > 0 && (
                     <div className="mt-4 p-4 bg-yellow-50 rounded-lg">
-                      <p className="font-semibold text-yellow-800 mb-2">Pausierend:</p>
+                      <p className="font-semibold text-yellow-800 mb-2">{t('player.waitingPlayers')}:</p>
                       <p className="text-yellow-700">
                         {currentSchedule.waitingPlayers.map(p => p.name).join(', ')}
                       </p>
@@ -432,12 +433,12 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
             {/* Live Standings */}
             <div className="mt-6 bg-white rounded-lg shadow-md p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold">Live-Tabelle</h3>
+                <h3 className="text-xl font-semibold">{t('results.liveStandings')}</h3>
                 <button
                   onClick={() => setShowResults(!showResults)}
                   className="text-blue-600 hover:text-blue-800"
                 >
-                  {showResults ? 'Verbergen' : 'Alle Ergebnisse'}
+                  {showResults ? t('results.hide') : t('results.allResults')}
                 </button>
               </div>
               
@@ -445,11 +446,11 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2">Rang</th>
-                      <th className="text-left py-2">Spieler</th>
-                      <th className="text-center py-2">Punkte</th>
-                      <th className="text-center py-2">Gewonnene Spiele</th>
-                      <th className="text-center py-2">Gespielte Matches</th>
+                      <th className="text-left py-2">{t('results.rank')}</th>
+                      <th className="text-left py-2">{t('results.player')}</th>
+                      <th className="text-center py-2">{t('results.points')}</th>
+                      <th className="text-center py-2">{t('results.gamesWon')}</th>
+                      <th className="text-center py-2">{t('results.gamesPlayed')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -474,7 +475,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">Alle Ergebnisse</h2>
+                <h2 className="text-2xl font-bold">{t('results.allResults')}</h2>
                 <button
                   onClick={() => setShowResults(false)}
                   className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -486,7 +487,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
               {/* Results by round */}
               {event.schedule.map((round, roundIdx) => (
                 <div key={roundIdx} className="mb-6">
-                  <h3 className="text-lg font-semibold mb-3">Runde {roundIdx + 1}</h3>
+                  <h3 className="text-lg font-semibold mb-3">{t('schedule.round')} {roundIdx + 1}</h3>
                   <div className="space-y-2">
                     {round.matches.map((match, matchIdx) => {
                       const result = matchResults[`${roundIdx}-${matchIdx}`]

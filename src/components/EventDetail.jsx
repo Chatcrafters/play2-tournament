@@ -35,7 +35,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
   // Spielplan generieren mit 3 Varianten
   const handleGenerateSchedule = () => {
     if (!hasEnoughPlayers) {
-      alert('Mindestens 4 Spieler erforderlich für einen Spielplan!')
+      alert(t('messages.minPlayersForSchedule'))
       return
     }
 
@@ -171,7 +171,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h2 className="text-2xl font-bold mb-2">{event.title || event.name || 'Unbenanntes Event'}</h2>
+            <h2 className="text-2xl font-bold mb-2">{event.title || event.name || t('event.unnamed')}</h2>
             <p className="text-gray-600">{event.description}</p>
           </div>
           
@@ -207,12 +207,12 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
             <div className="flex items-center gap-3">
               <Clock className="w-5 h-5 text-gray-500" />
               <div>
-                <p className="text-sm text-gray-500">{t('event.time') || 'Zeit'}</p>
+                <p className="text-sm text-gray-500">{t('event.time')}</p>
                 <p className="font-medium">
                   {startTime && endTime ? (
-                    `${startTime} - ${endTime} Uhr`
+                    `${startTime} - ${endTime} ${t('event.time')}`
                   ) : (
-                    'Zeit nicht festgelegt'
+                    t('event.noTime')
                   )}
                 </p>
               </div>
@@ -234,11 +234,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
               <Trophy className="w-5 h-5 text-gray-500" />
               <div>
                 <p className="text-sm text-gray-500">{t('event.sport')}</p>
-                <p className="font-medium">
-                  {event.sport === 'padel' ? t('sports.padel') : 
-                   event.sport === 'pickleball' ? t('sports.pickleball') : 
-                   t('sports.spinxball')}
-                </p>
+                <p className="font-medium">{t(`sports.${event.sport}`)}</p>
               </div>
             </div>
 
@@ -256,7 +252,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
               <div className="flex items-center gap-3">
                 <span className="text-xl">💰</span>
                 <div>
-                  <p className="text-sm text-gray-500">Teilnahmegebühr</p>
+                  <p className="text-sm text-gray-500">{t('event.participationFee')}</p>
                   <p className="font-medium">{event.price}€</p>
                 </div>
               </div>
@@ -268,15 +264,15 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
         <div className="border-t pt-4 mb-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <span className="text-gray-500">Format:</span>
+              <span className="text-gray-500">{t('event.format.title')}:</span>
               <span className="ml-2 font-medium">
-                {event.teamFormat === 'single' || event.format === 'singles' ? 'Einzel' : 'Doppel'}
+                {event.teamFormat === 'single' || event.format === 'singles' ? t('event.format.single') : t('event.format.double')}
               </span>
             </div>
             
             {(event.isAmericano || event.event_type === 'americano' || event.eventType === 'americano') && (
               <div>
-                <span className="text-gray-500">Spielmodus:</span>
+                <span className="text-gray-500">{t('event.playMode')}:</span>
                 <span className="ml-2 font-medium">{t('eventTypes.americano')}</span>
               </div>
             )}
@@ -304,12 +300,12 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-blue-600" />
                 <p className="font-medium text-blue-800">
-                  Spielplan vorhanden: {event.schedule.length} Runden
+                  {interpolate(t('schedule.scheduled'), { rounds: event.schedule.length })}
                 </p>
               </div>
               {event.fairnessScore && (
                 <div className={`px-3 py-1 rounded-full text-sm font-semibold ${getFairnessColor(event.fairnessScore)}`}>
-                  Fairness: {event.fairnessScore}%
+                  {t('schedule.fairness')}: {event.fairnessScore}%
                 </div>
               )}
             </div>
@@ -323,14 +319,14 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
           </div>
         ) : isEventPast ? (
           <div className="bg-yellow-100 text-yellow-800 px-4 py-3 rounded-lg">
-            <p className="font-semibold">⚠️ Event-Datum ist vorbei</p>
+            <p className="font-semibold">⚠️ {t('messages.eventDatePast')}</p>
           </div>
         ) : (
           <div className="space-y-3">
             {!hasEnoughPlayers && (
               <div className="bg-gray-100 text-gray-600 px-4 py-3 rounded-lg text-center">
                 <p className="font-medium">
-                  Noch {4 - (event.players?.length || 0)} Spieler benötigt
+                  {interpolate(t('messages.minPlayersNeeded'), { count: 4 - (event.players?.length || 0) })}
                 </p>
               </div>
             )}
@@ -341,7 +337,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                 className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 <BarChart3 className="w-5 h-5" />
-                Spielplan generieren
+                {t('schedule.generateSchedule')}
               </button>
             )}
             
@@ -358,7 +354,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
             {!canManageEvent && hasEnoughPlayers && !hasSchedule && (
               <div className="bg-yellow-100 text-yellow-800 px-4 py-3 rounded-lg text-center">
                 <p className="font-medium">
-                  Warten auf Spielplan-Generierung durch Turnierleiter
+                  {t('messages.waitingForSchedule')}
                 </p>
               </div>
             )}
@@ -371,7 +367,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Wähle einen Spielplan</h2>
+              <h2 className="text-2xl font-bold">{t('schedule.chooseSchedule')}</h2>
               <button
                 onClick={() => {
                   setShowScheduleOptions(false)
@@ -384,7 +380,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
             </div>
             
             <p className="text-gray-600 mb-6">
-              Es wurden 3 verschiedene Spielplan-Varianten generiert. Wähle die Option mit der besten Fairness für dein Turnier:
+              {t('schedule.scheduleVariants')}
             </p>
             
             <div className="flex-1 overflow-y-auto">
@@ -396,20 +392,20 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                     onClick={() => handleSelectSchedule(index)}
                   >
                     <div className="mb-4">
-                      <h3 className="text-lg font-semibold mb-2">Variante {index + 1}</h3>
+                      <h3 className="text-lg font-semibold mb-2">{t('schedule.variant')} {index + 1}</h3>
                       
                       {/* Gesamt-Fairness */}
                       <div className={`text-center p-4 rounded-lg mb-4 ${getFairnessColor(option.fairness.overallScore)}`}>
                         <div className="text-3xl font-bold">
                           {option.fairness.overallScore}%
                         </div>
-                        <div className="text-sm font-medium">Gesamt-Fairness</div>
+                        <div className="text-sm font-medium">{t('schedule.overallFairness')}</div>
                       </div>
                       
                       {/* Detail-Metriken */}
                       <div className="space-y-3 text-sm">
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Partner-Vielfalt:</span>
+                          <span className="text-gray-600">{t('schedule.partnerVariety')}:</span>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{option.fairness.avgUniquePartners}</span>
                             <div className={`text-xs px-2 py-1 rounded ${getFairnessColor(option.fairness.partnerScore)}`}>
@@ -419,7 +415,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                         </div>
                         
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Gegner-Vielfalt:</span>
+                          <span className="text-gray-600">{t('schedule.opponentVariety')}:</span>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{option.fairness.avgUniqueOpponents}</span>
                             <div className={`text-xs px-2 py-1 rounded ${getFairnessColor(option.fairness.opponentScore)}`}>
@@ -429,7 +425,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                         </div>
                         
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Max. Partner-Wdh:</span>
+                          <span className="text-gray-600">{t('schedule.maxPartnerRepeat')}:</span>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{option.fairness.maxPartnerRepeats}x</span>
                             <div className={`text-xs px-2 py-1 rounded ${getFairnessColor(option.fairness.repeatScore)}`}>
@@ -439,7 +435,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                         </div>
                         
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Spiel-Balance:</span>
+                          <span className="text-gray-600">{t('schedule.gameBalance')}:</span>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">±{option.fairness.gameBalance}</span>
                             <div className={`text-xs px-2 py-1 rounded ${getFairnessColor(option.fairness.balanceScore)}`}>
@@ -451,18 +447,18 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                       
                       {/* Erste Runden Preview */}
                       <div className="mt-4 pt-4 border-t">
-                        <p className="text-xs text-gray-600 mb-2">Erste 2 Runden:</p>
+                        <p className="text-xs text-gray-600 mb-2">{t('schedule.firstRounds')}:</p>
                         {option.schedule.slice(0, 2).map((round, rIdx) => (
                           <div key={rIdx} className="mb-2">
-                            <p className="text-xs font-semibold">Runde {round.round}:</p>
+                            <p className="text-xs font-semibold">{t('schedule.round')} {round.round}:</p>
                             {round.matches.slice(0, 2).map((match, mIdx) => (
                               <p key={mIdx} className="text-xs text-gray-600 ml-2">
-                                Platz {match.court}: {match.players.length} Spieler
+                                {t('schedule.court')} {match.court}: {match.players.length} {t('player.players')}
                               </p>
                             ))}
                             {round.matches.length > 2 && (
                               <p className="text-xs text-gray-400 ml-2">
-                                + {round.matches.length - 2} weitere Matches
+                                + {round.matches.length - 2} {t('schedule.moreMatches')}
                               </p>
                             )}
                           </div>
@@ -473,7 +469,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                     <button
                       className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
                     >
-                      Diese Variante wählen
+                      {t('schedule.selectVariant')}
                     </button>
                   </div>
                 ))}
@@ -482,23 +478,23 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
             
             {/* Erklärung */}
             <div className="mt-6 p-4 bg-gray-50 rounded text-sm">
-              <p className="font-semibold mb-2">Fairness-Bewertung:</p>
+              <p className="font-semibold mb-2">{t('schedule.fairnessRating')}:</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">80-100%</span>
-                  <span>Exzellent</span>
+                  <span>{t('schedule.excellent')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded font-semibold">60-79%</span>
-                  <span>Gut</span>
+                  <span>{t('schedule.good')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-semibold">40-59%</span>
-                  <span>Akzeptabel</span>
+                  <span>{t('schedule.acceptable')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-1 bg-red-100 text-red-800 rounded font-semibold">0-39%</span>
-                  <span>Verbesserungswürdig</span>
+                  <span>{t('schedule.needsImprovement')}</span>
                 </div>
               </div>
             </div>

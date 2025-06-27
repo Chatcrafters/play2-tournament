@@ -1,6 +1,8 @@
 import { EventShare } from './EventShare'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { generateAmericanoSchedule } from '../utils/americanoAlgorithm'
+import { useTranslation } from './LanguageSelector'
+import { interpolate } from '../utils/translations'
 
 console.log('EventDetailView loaded - Version 2.0');
 
@@ -12,6 +14,8 @@ export function EventDetailView({
   savedPlayers,
   onOpenPlayerDatabase
 }) {
+  const { t } = useTranslation()
+  
   // State Management
   const [localEvent, setLocalEvent] = useState(() => {
     if (!selectedEvent) return null
@@ -22,7 +26,7 @@ export function EventDetailView({
       results: selectedEvent.results || {},
       currentRound: selectedEvent.currentRound || 0,
       timerState: selectedEvent.timerState || 'stopped',
-      name: selectedEvent.name || 'Unbenanntes Event',
+      name: selectedEvent.name || t('event.unnamed'),
       sport: selectedEvent.sport || 'padel',
       eventType: selectedEvent.eventType || 'americano',
       format: selectedEvent.format || 'doubles',
@@ -68,16 +72,16 @@ export function EventDetailView({
       setMatchResults(safeEvent.results)
       setCurrentRound(safeEvent.currentRound || 0)
     }
-  }, [selectedEvent])
+  }, [selectedEvent, t])
 
   // Safety check
   if (!localEvent) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-6">
         <button onClick={onBack} className="mb-4 text-blue-600 hover:text-blue-800">
-          ← Zurück zur Übersicht
+          ← {t('app.backToOverview')}
         </button>
-        <p>Event konnte nicht geladen werden.</p>
+        <p>{t('messages.eventNotLoaded')}</p>
       </div>
     )
   }
@@ -119,7 +123,7 @@ export function EventDetailView({
     const playerCount = localEvent.players?.length || 0
     
     if (playerCount < 4) {
-      alert('Mindestens 4 Spieler erforderlich für einen Spielplan')
+      alert(t('messages.minPlayersForSchedule'))
       return
     }
 
@@ -301,7 +305,7 @@ export function EventDetailView({
     const match = schedule[roundIdx].matches[matchIdx]
     
     if (!score || score.team1Score === undefined || score.team2Score === undefined) {
-      alert('Bitte beide Ergebnisse eingeben')
+      alert(t('messages.enterBothScores'))
       return
     }
     
@@ -477,18 +481,18 @@ export function EventDetailView({
           onClick={onBack}
           className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-2"
         >
-          ← Zurück zur Übersicht
+          ← {t('app.backToOverview')}
         </button>
         
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-3xl font-bold mb-2">{localEvent.name}</h2>
             <p className="text-gray-600">
-              {localEvent.sport} • {localEvent.eventType} • {localEvent.format}
+              {t(`sports.${localEvent.sport}`)} • {t(`event.type.${localEvent.eventType}`)} • {t(`event.format.${localEvent.format}`)}
             </p>
             <p className="text-sm text-gray-500 mt-1">
-              {localEvent.date ? new Date(localEvent.date).toLocaleDateString('de-DE') : 'Kein Datum'} • 
-              {localEvent.location || 'Kein Ort angegeben'}
+              {localEvent.date ? new Date(localEvent.date).toLocaleDateString('de-DE') : t('event.noDate')} • 
+              {localEvent.location || t('event.noLocation')}
             </p>
           </div>
           
@@ -501,13 +505,13 @@ export function EventDetailView({
       {/* Player Management */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold">Spieler ({localEvent.players?.length || 0})</h3>
+          <h3 className="text-xl font-semibold">{t('player.players')} ({localEvent.players?.length || 0})</h3>
           <div className="flex gap-2">
             <button
               onClick={() => setShowAddPlayer(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
-              + Spieler hinzufügen
+              + {t('player.addPlayer')}
             </button>
             <button
               onClick={() => {
@@ -519,7 +523,7 @@ export function EventDetailView({
               }}
               className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
             >
-              📚 Aus Datenbank
+              📚 {t('player.fromDatabase')}
             </button>
           </div>
         </div>
@@ -529,7 +533,7 @@ export function EventDetailView({
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <input
                 type="text"
-                placeholder="Name"
+                placeholder={t('player.name')}
                 value={newPlayer.name}
                 onChange={(e) => setNewPlayer({...newPlayer, name: e.target.value})}
                 className="px-3 py-2 border rounded"
@@ -539,8 +543,8 @@ export function EventDetailView({
                 onChange={(e) => setNewPlayer({...newPlayer, gender: e.target.value})}
                 className="px-3 py-2 border rounded"
               >
-                <option value="male">Männlich</option>
-                <option value="female">Weiblich</option>
+                <option value="male">{t('player.male')}</option>
+                <option value="female">{t('player.female')}</option>
               </select>
               <select
                 value={newPlayer.skillLevel}
@@ -559,13 +563,13 @@ export function EventDetailView({
                   onClick={handleAddPlayer}
                   className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                 >
-                  Hinzufügen
+                  {t('buttons.add')}
                 </button>
                 <button
                   onClick={() => setShowAddPlayer(false)}
                   className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
                 >
-                  Abbrechen
+                  {t('buttons.cancel')}
                 </button>
               </div>
             </div>
@@ -593,7 +597,7 @@ export function EventDetailView({
         
         {localEvent.players?.length === 0 && (
           <p className="text-gray-500 text-center py-4">
-            Noch keine Spieler hinzugefügt
+            {t('player.noPlayers')}
           </p>
         )}
       </div>
@@ -602,7 +606,10 @@ export function EventDetailView({
       {(!schedule || schedule.length === 0) && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-6 text-center">
           <p className="text-gray-600 mb-4">
-            {localEvent.players?.length || 0} von {localEvent.maxPlayers || 16} Spielern angemeldet
+            {interpolate(t('event.playersRegistered'), { 
+              current: localEvent.players?.length || 0, 
+              max: localEvent.maxPlayers || 16 
+            })}
           </p>
           <button
             onClick={generateSchedule}
@@ -613,11 +620,11 @@ export function EventDetailView({
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
-            Spielplan generieren
+            {t('schedule.generateSchedule')}
           </button>
           {(localEvent.players?.length || 0) < 4 && (
             <p className="text-sm text-gray-500 mt-2">
-              Mindestens 4 Spieler erforderlich
+              {t('messages.minPlayersRequired')}
             </p>
           )}
         </div>
@@ -630,12 +637,12 @@ export function EventDetailView({
           <div className="mb-4 bg-white rounded-lg shadow-md p-4">
             <div className="flex justify-between items-center mb-2">
               <div className="text-sm text-gray-600">
-                <span className="font-medium">{schedule.length}</span> Runden • 
-                <span className="font-medium"> {localEvent.players?.length || 0}</span> Spieler • 
-                <span className="font-medium"> {localEvent.courts || 1}</span> Plätze
+                <span className="font-medium">{schedule.length}</span> {t('schedule.rounds')} • 
+                <span className="font-medium"> {localEvent.players?.length || 0}</span> {t('player.players')} • 
+                <span className="font-medium"> {localEvent.courts || 1}</span> {t('schedule.courts')}
                 {localEvent.fairnessScore > 0 && (
                   <span className={`ml-3 px-3 py-1 rounded-full text-sm font-semibold ${getFairnessColor(localEvent.fairnessScore)}`}>
-                    Fairness: {localEvent.fairnessScore}%
+                    {t('schedule.fairness')}: {localEvent.fairnessScore}%
                   </span>
                 )}
               </div>
@@ -646,7 +653,7 @@ export function EventDetailView({
                   onClick={() => setShowTableSettings(!showTableSettings)}
                   className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
                 >
-                  ⚙️ Tabellen-Einstellungen
+                  ⚙️ {t('messages.tableSettings')}
                 </button>
                 
                 {/* Regenerate Button mit Counter */}
@@ -666,7 +673,7 @@ export function EventDetailView({
                     }}
                     className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
                   >
-                    🔄 Neu generieren ({localEvent.regenerateCount || 0}/2)
+                    🔄 {t('schedule.regenerate')} ({localEvent.regenerateCount || 0}/2)
                   </button>
                 )}
               </div>
@@ -682,11 +689,11 @@ export function EventDetailView({
                     onChange={(e) => handleUpdateEvent({ showRealTimeTable: e.target.checked })}
                     className="w-4 h-4"
                   />
-                  <span className="text-sm">Real-Time Tabelle anzeigen (Tabelle wird nach jeder Ergebniseingabe aktualisiert)</span>
+                  <span className="text-sm">{t('schedule.showRealTimeTable')}</span>
                 </label>
                 {!localEvent.showRealTimeTable && (
                   <p className="text-xs text-gray-600 mt-1 ml-6">
-                    Die Tabelle wird erst angezeigt, wenn alle Ergebnisse eingegeben wurden.
+                    {t('schedule.tableOnlyWhenComplete')}
                   </p>
                 )}
               </div>
@@ -699,25 +706,25 @@ export function EventDetailView({
                   <div className="text-2xl font-bold text-blue-700">
                     {scheduleStats.summary.overallScore || 0}%
                   </div>
-                  <div className="text-xs text-gray-600">Durchschn. Fairness</div>
+                  <div className="text-xs text-gray-600">{t('schedule.avgFairness')}</div>
                 </div>
                 <div className="text-center p-3 bg-green-50 rounded">
                   <div className="text-2xl font-bold text-green-700">
                     {scheduleStats.summary.avgUniquePartners || 0}
                   </div>
-                  <div className="text-xs text-gray-600">Ø Verschiedene Partner</div>
+                  <div className="text-xs text-gray-600">{t('schedule.avgUniquePartners')}</div>
                 </div>
                 <div className="text-center p-3 bg-purple-50 rounded">
                   <div className="text-2xl font-bold text-purple-700">
                     {scheduleStats.summary.avgUniqueOpponents || 0}
                   </div>
-                  <div className="text-xs text-gray-600">Ø Verschiedene Gegner</div>
+                  <div className="text-xs text-gray-600">{t('schedule.avgUniqueOpponents')}</div>
                 </div>
                 <div className="text-center p-3 bg-orange-50 rounded">
                   <div className="text-2xl font-bold text-orange-700">
                     {scheduleStats.summary.maxPartnerRepeats || 0}x
                   </div>
-                  <div className="text-xs text-gray-600">Max. Partner-Wiederholung</div>
+                  <div className="text-xs text-gray-600">{t('schedule.maxPartnerRepeats')}</div>
                 </div>
               </div>
             )}
@@ -725,12 +732,12 @@ export function EventDetailView({
           
           {/* Spielplan mit inline Ergebniseingabe */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-xl font-semibold mb-4">Spielplan & Ergebnisse</h3>
+            <h3 className="text-xl font-semibold mb-4">{t('schedule.scheduleAndResults')}</h3>
             <div className="space-y-6">
               {schedule.map((round, roundIndex) => (
                 <div key={roundIndex} className="border rounded-lg p-4">
                   <div className="flex justify-between items-center mb-3">
-                    <h4 className="font-semibold text-lg">Runde {round.round}</h4>
+                    <h4 className="font-semibold text-lg">{t('schedule.round')} {round.round}</h4>
                     <span className="text-sm font-medium text-gray-600">
                       {formatTime(round.startTime)}
                     </span>
@@ -748,7 +755,7 @@ export function EventDetailView({
                           className="flex items-center justify-between p-3 bg-gray-50 rounded transition-colors"
                         >
                           <span className="text-sm font-medium text-gray-600 w-16">
-                            Platz {match.court}
+                            {t('schedule.court')} {match.court}
                           </span>
                           
                           <div className="flex-1 flex items-center justify-center gap-4">
@@ -823,7 +830,7 @@ export function EventDetailView({
                     })}
                     {round.waitingPlayers?.length > 0 && (
                       <div className="p-3 bg-yellow-50 rounded">
-                        <span className="font-medium text-sm">Pausiert: </span>
+                        <span className="font-medium text-sm">{t('player.waitingPlayers')}: </span>
                         <span className="text-sm">
                           {round.waitingPlayers.map(p => p.name).join(', ')}
                         </span>
@@ -839,20 +846,20 @@ export function EventDetailView({
           {(localEvent.showRealTimeTable || Object.keys(matchResults).length === schedule.reduce((sum, round) => sum + round.matches.length, 0)) && (
             <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
               <h3 className="text-xl font-bold mb-4">
-                {localEvent.showRealTimeTable ? 'Live-Turnierstand' : 'Endstand'}
+                {localEvent.showRealTimeTable ? t('results.liveStandings') : t('results.finalStandings')}
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b bg-gray-50">
-                      <th className="text-left py-3 px-2">Rang</th>
-                      <th className="text-left py-3 px-2">Spieler</th>
-                      <th className="text-center py-3 px-2">Punkte</th>
-                      <th className="text-center py-3 px-2">Gewonnene Spiele</th>
-                      <th className="text-center py-3 px-2">Matches</th>
-                      <th className="text-center py-3 px-2">Partner</th>
-                      <th className="text-center py-3 px-2">Gegner</th>
-                      <th className="text-center py-3 px-2">Fairness</th>
+                      <th className="text-left py-3 px-2">{t('results.rank')}</th>
+                      <th className="text-left py-3 px-2">{t('results.player')}</th>
+                      <th className="text-center py-3 px-2">{t('results.points')}</th>
+                      <th className="text-center py-3 px-2">{t('results.gamesWon')}</th>
+                      <th className="text-center py-3 px-2">{t('results.matches')}</th>
+                      <th className="text-center py-3 px-2">{t('results.partners')}</th>
+                      <th className="text-center py-3 px-2">{t('results.opponents')}</th>
+                      <th className="text-center py-3 px-2">{t('schedule.fairness')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -890,23 +897,23 @@ export function EventDetailView({
               {/* Nur bei Endstand: Fairness-Legende */}
               {!localEvent.showRealTimeTable && (
                 <div className="mt-4 p-4 bg-gray-50 rounded text-sm">
-                  <p className="font-semibold mb-2">Fairness-Score Erklärung:</p>
+                  <p className="font-semibold mb-2">{t('schedule.fairnessScoreExplanation')}:</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">80-100%</span>
-                      <span className="text-xs">Sehr gut durchmischt</span>
+                      <span className="text-xs">{t('schedule.fairnessExcellent')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold">60-79%</span>
-                      <span className="text-xs">Gut durchmischt</span>
+                      <span className="text-xs">{t('schedule.fairnessGood')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-semibold">40-59%</span>
-                      <span className="text-xs">Mittelmäßig</span>
+                      <span className="text-xs">{t('schedule.fairnessAverage')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-semibold">0-39%</span>
-                      <span className="text-xs">Wenig Variation</span>
+                      <span className="text-xs">{t('schedule.fairnessLowVariation')}</span>
                     </div>
                   </div>
                 </div>
@@ -921,7 +928,7 @@ export function EventDetailView({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Wähle einen Spielplan</h2>
+              <h2 className="text-2xl font-bold">{t('schedule.chooseSchedule')}</h2>
               <button
                 onClick={() => {
                   setShowScheduleOptions(false)
@@ -934,7 +941,7 @@ export function EventDetailView({
             </div>
             
             <p className="text-gray-600 mb-6">
-              Es wurden 3 verschiedene Spielplan-Varianten generiert. Wähle die Option mit der besten Fairness für dein Turnier:
+              {t('schedule.chooseScheduleDescription')}
             </p>
             
             <div className="flex-1 overflow-y-auto">
@@ -946,20 +953,20 @@ export function EventDetailView({
                     onClick={() => handleSelectSchedule(index)}
                   >
                     <div className="mb-4">
-                      <h3 className="text-lg font-semibold mb-2">Variante {index + 1}</h3>
+                      <h3 className="text-lg font-semibold mb-2">{t('schedule.variant')} {index + 1}</h3>
                       
                       {/* Gesamt-Fairness */}
                       <div className={`text-center p-4 rounded-lg mb-4 ${getFairnessColor(option.fairness.overallScore)}`}>
                         <div className="text-3xl font-bold">
                           {option.fairness.overallScore}%
                         </div>
-                        <div className="text-sm font-medium">Gesamt-Fairness</div>
+                        <div className="text-sm font-medium">{t('schedule.overallFairness')}</div>
                       </div>
                       
                       {/* Detail-Metriken */}
                       <div className="space-y-3 text-sm">
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Partner-Vielfalt:</span>
+                          <span className="text-gray-600">{t('schedule.partnerVariety')}:</span>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{option.fairness.avgUniquePartners}</span>
                             <div className={`text-xs px-2 py-1 rounded ${getFairnessColor(option.fairness.partnerScore)}`}>
@@ -969,7 +976,7 @@ export function EventDetailView({
                         </div>
                         
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Gegner-Vielfalt:</span>
+                          <span className="text-gray-600">{t('schedule.opponentVariety')}:</span>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{option.fairness.avgUniqueOpponents}</span>
                             <div className={`text-xs px-2 py-1 rounded ${getFairnessColor(option.fairness.opponentScore)}`}>
@@ -979,7 +986,7 @@ export function EventDetailView({
                         </div>
                         
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Max. Partner-Wdh:</span>
+                          <span className="text-gray-600">{t('schedule.maxPartnerRepeats')}:</span>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{option.fairness.maxPartnerRepeats}x</span>
                             <div className={`text-xs px-2 py-1 rounded ${getFairnessColor(option.fairness.repeatScore)}`}>
@@ -989,7 +996,7 @@ export function EventDetailView({
                         </div>
                         
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Spiel-Balance:</span>
+                          <span className="text-gray-600">{t('schedule.gameBalance')}:</span>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">±{option.fairness.gameBalance}</span>
                             <div className={`text-xs px-2 py-1 rounded ${getFairnessColor(option.fairness.balanceScore)}`}>
@@ -1001,18 +1008,18 @@ export function EventDetailView({
                       
                       {/* Erste Runden Preview */}
                       <div className="mt-4 pt-4 border-t">
-                        <p className="text-xs text-gray-600 mb-2">Erste 2 Runden:</p>
+                        <p className="text-xs text-gray-600 mb-2">{t('schedule.firstRounds')}:</p>
                         {option.schedule.slice(0, 2).map((round, rIdx) => (
                           <div key={rIdx} className="mb-2">
-                            <p className="text-xs font-semibold">Runde {round.round}:</p>
+                            <p className="text-xs font-semibold">{t('schedule.round')} {round.round}:</p>
                             {round.matches.slice(0, 2).map((match, mIdx) => (
                               <p key={mIdx} className="text-xs text-gray-600 ml-2">
-                                Platz {match.court}: {match.team1[0].name.split(' ')[0]} & {match.team1[1].name.split(' ')[0]} vs {match.team2[0].name.split(' ')[0]} & {match.team2[1].name.split(' ')[0]}
+                                {t('schedule.court')} {match.court}: {match.team1[0].name.split(' ')[0]} & {match.team1[1].name.split(' ')[0]} vs {match.team2[0].name.split(' ')[0]} & {match.team2[1].name.split(' ')[0]}
                               </p>
                             ))}
                             {round.matches.length > 2 && (
                               <p className="text-xs text-gray-400 ml-2">
-                                + {round.matches.length - 2} weitere Matches
+                                + {round.matches.length - 2} {t('schedule.moreMatches')}
                               </p>
                             )}
                           </div>
@@ -1023,7 +1030,7 @@ export function EventDetailView({
                     <button
                       className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
                     >
-                      Diese Variante wählen
+                      {t('buttons.selectVariant')}
                     </button>
                   </div>
                 ))}
@@ -1032,23 +1039,23 @@ export function EventDetailView({
             
             {/* Erklärung */}
             <div className="mt-6 p-4 bg-gray-50 rounded text-sm">
-              <p className="font-semibold mb-2">Fairness-Bewertung:</p>
+              <p className="font-semibold mb-2">{t('schedule.fairnessRating')}:</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">80-100%</span>
-                  <span>Exzellent</span>
+                  <span>{t('schedule.ratingExcellent')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded font-semibold">60-79%</span>
-                  <span>Gut</span>
+                  <span>{t('schedule.ratingGood')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-semibold">40-59%</span>
-                  <span>Akzeptabel</span>
+                  <span>{t('schedule.ratingAcceptable')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-1 bg-red-100 text-red-800 rounded font-semibold">0-39%</span>
-                  <span>Verbesserungswürdig</span>
+                  <span>{t('schedule.ratingNeedsImprovement')}</span>
                 </div>
               </div>
             </div>
@@ -1061,7 +1068,7 @@ export function EventDetailView({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">Spieler aus Datenbank wählen</h2>
+              <h2 className="text-2xl font-bold">{t('player.selectFromDatabase')}</h2>
               <button
                 onClick={() => setShowPlayerDatabase(false)}
                 className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -1073,7 +1080,7 @@ export function EventDetailView({
             {/* Mock Spieler-Datenbank */}
             <div className="flex-1 overflow-y-auto">
               <p className="text-gray-600 mb-4">
-                Demo-Spieler für {localEvent.sport}:
+                {interpolate(t('player.demoPlayers'), { sport: t(`sports.${localEvent.sport}`) })}
               </p>
               
               <div className="space-y-2">
@@ -1101,7 +1108,7 @@ export function EventDetailView({
                         )
                         
                         if (exists) {
-                          alert(`${player.name} ist bereits angemeldet!`)
+                          alert(interpolate(t('messages.playerAlreadyRegistered'), { name: player.name }))
                           return
                         }
                         
@@ -1118,7 +1125,7 @@ export function EventDetailView({
                       }}
                       className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
-                      Hinzufügen
+                      {t('buttons.add')}
                     </button>
                   </div>
                 ))}
@@ -1143,7 +1150,7 @@ export function EventDetailView({
                         )
                         
                         if (exists) {
-                          alert(`${player.name} ist bereits angemeldet!`)
+                          alert(interpolate(t('messages.playerAlreadyRegistered'), { name: player.name }))
                           return
                         }
                         
@@ -1159,7 +1166,7 @@ export function EventDetailView({
                       }}
                       className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
-                      Hinzufügen
+                      {t('buttons.add')}
                     </button>
                   </div>
                 ))}
@@ -1168,9 +1175,7 @@ export function EventDetailView({
               {/* Info-Box */}
               <div className="mt-6 p-4 bg-blue-50 rounded">
                 <p className="text-sm text-blue-800">
-                  <strong>Hinweis:</strong> Dies ist eine Demo-Spielerliste. 
-                  In der vollständigen App können Sie Ihre eigene Spieler-Datenbank 
-                  verwalten, Spieler importieren und exportieren.
+                  <strong>{t('messages.note')}:</strong> {t('messages.demoPlayerList')}
                 </p>
               </div>
             </div>
@@ -1180,7 +1185,7 @@ export function EventDetailView({
                 onClick={() => setShowPlayerDatabase(false)}
                 className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
               >
-                Schließen
+                {t('buttons.close')}
               </button>
             </div>
           </div>

@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'  // Lassen Sie das aktiv!
+import { supabase } from '../lib/supabase'
+import { useTranslation } from '../components/LanguageSelector'
 
 export default function Auth() {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,7 +23,7 @@ export default function Auth() {
           password,
         })
         if (error) throw error
-        setMessage('Bitte prüfen Sie Ihre E-Mails zur Bestätigung!')
+        setMessage(t('auth.checkEmail'))
       } else {
         // Login
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -29,7 +31,7 @@ export default function Auth() {
           password,
         })
         if (error) throw error
-        setMessage('Erfolgreich eingeloggt!')
+        setMessage(t('auth.loginSuccess'))
       }
     } catch (error) {
       setMessage(error.message)
@@ -43,17 +45,17 @@ export default function Auth() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            {isSignUp ? 'Konto erstellen' : 'Anmelden'}
+            {isSignUp ? t('auth.createAccount') : t('auth.login')}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Play2.es - Tournament Management
+            {t('app.title')}
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleAuth}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="email" className="sr-only">
-                E-Mail
+                {t('auth.email')}
               </label>
               <input
                 id="email"
@@ -64,12 +66,12 @@ export default function Auth() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="E-Mail Adresse"
+                placeholder={t('auth.email')}
               />
             </div>
             <div>
               <label htmlFor="password" className="sr-only">
-                Passwort
+                {t('auth.password')}
               </label>
               <input
                 id="password"
@@ -80,13 +82,17 @@ export default function Auth() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Passwort"
+                placeholder={t('auth.password')}
               />
             </div>
           </div>
 
           {message && (
-            <div className={`text-sm text-center ${message.includes('Erfolg') || message.includes('prüfen') ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`text-sm text-center ${
+              message === t('auth.loginSuccess') || message === t('auth.checkEmail') 
+                ? 'text-green-600' 
+                : 'text-red-600'
+            }`}>
               {message}
             </div>
           )}
@@ -97,7 +103,7 @@ export default function Auth() {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400"
             >
-              {loading ? 'Lädt...' : (isSignUp ? 'Registrieren' : 'Anmelden')}
+              {loading ? t('auth.loading') : (isSignUp ? t('auth.register') : t('auth.login'))}
             </button>
           </div>
 
@@ -107,7 +113,7 @@ export default function Auth() {
               onClick={() => setIsSignUp(!isSignUp)}
               className="text-sm text-blue-600 hover:text-blue-500"
             >
-              {isSignUp ? 'Bereits ein Konto? Anmelden' : 'Noch kein Konto? Registrieren'}
+              {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.noAccount')}
             </button>
           </div>
         </form>

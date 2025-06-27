@@ -1,5 +1,6 @@
 // src/components/ScoreEntry.jsx
 import { useState } from 'react'
+import { useTranslation } from './LanguageSelector'
 
 export const ScoreEntry = ({ 
   event, 
@@ -10,6 +11,7 @@ export const ScoreEntry = ({
   existingResults = {},
   showStandings = false
 }) => {
+  const { t } = useTranslation()
   const [scores, setScores] = useState({})
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
   
@@ -228,14 +230,14 @@ export const ScoreEntry = ({
         <table className="w-full">
           <thead>
             <tr className="border-b bg-gray-50">
-              <th className="text-left py-3 px-2">Rang</th>
-              <th className="text-left py-3 px-2">Spieler</th>
-              <th className="text-center py-3 px-2">Punkte</th>
-              <th className="text-center py-3 px-2">Gewonnene Spiele</th>
-              <th className="text-center py-3 px-2">Matches</th>
-              <th className="text-center py-3 px-2">Partner</th>
-              <th className="text-center py-3 px-2">Gegner</th>
-              <th className="text-center py-3 px-2">Fairness</th>
+              <th className="text-left py-3 px-2">{t('results.rank')}</th>
+              <th className="text-left py-3 px-2">{t('results.player')}</th>
+              <th className="text-center py-3 px-2">{t('results.points')}</th>
+              <th className="text-center py-3 px-2">{t('results.gamesWon')}</th>
+              <th className="text-center py-3 px-2">{t('results.matches')}</th>
+              <th className="text-center py-3 px-2">{t('results.partners')}</th>
+              <th className="text-center py-3 px-2">{t('results.opponents')}</th>
+              <th className="text-center py-3 px-2">{t('schedule.fairness')}</th>
             </tr>
           </thead>
           <tbody>
@@ -269,23 +271,23 @@ export const ScoreEntry = ({
         
         {/* Fairness-Legende */}
         <div className="mt-4 p-4 bg-gray-50 rounded text-sm">
-          <p className="font-semibold mb-2">Fairness-Score Erklärung:</p>
+          <p className="font-semibold mb-2">{t('schedule.fairnessScoreExplanation')}:</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <div className="flex items-center gap-2">
               <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">80-100%</span>
-              <span className="text-xs">Sehr gut durchmischt</span>
+              <span className="text-xs">{t('schedule.fairnessExcellent')}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold">60-79%</span>
-              <span className="text-xs">Gut durchmischt</span>
+              <span className="text-xs">{t('schedule.fairnessGood')}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-semibold">40-59%</span>
-              <span className="text-xs">Mittelmäßig</span>
+              <span className="text-xs">{t('schedule.fairnessAverage')}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-semibold">0-39%</span>
-              <span className="text-xs">Wenig Variation</span>
+              <span className="text-xs">{t('schedule.fairnessLowVariation')}</span>
             </div>
           </div>
         </div>
@@ -297,12 +299,12 @@ export const ScoreEntry = ({
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
       <h3 className="text-xl font-bold mb-4">
-        Ergebnisse eintragen - Runde {currentRound + 1}
+        {t('results.enterResults')} - {t('schedule.round')} {currentRound + 1}
       </h3>
       
       {showSuccessMessage && (
         <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-lg">
-          Ergebnisse erfolgreich gespeichert!
+          {t('messages.resultsSaved')}
         </div>
       )}
       
@@ -322,11 +324,11 @@ export const ScoreEntry = ({
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
           >
-            ← Vorherige Runde
+            ← {t('tournament.previousRound')}
           </button>
           
           <span className="font-semibold text-lg">
-            Runde {currentRound + 1} von {schedule.length}
+            {t('schedule.round')} {currentRound + 1} {t('schedule.of')} {schedule.length}
           </span>
           
           <button
@@ -342,7 +344,7 @@ export const ScoreEntry = ({
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
           >
-            Nächste Runde →
+            {t('tournament.nextRound')} →
           </button>
         </div>
       )}
@@ -356,7 +358,7 @@ export const ScoreEntry = ({
           return (
             <div key={idx} className="border rounded-lg p-4">
               <div className="text-sm font-semibold text-gray-600 mb-2">
-                Platz {match.court}
+                {t('schedule.court')} {match.court}
               </div>
               
               <div className="grid grid-cols-3 gap-4 items-center">
@@ -400,7 +402,7 @@ export const ScoreEntry = ({
                 <div className="mt-2 text-sm text-gray-600 text-center">
                   {(() => {
                     const points = calculatePoints(score.team1Score, score.team2Score)
-                    return `Punkte: ${points.team1Points} - ${points.team2Points}`
+                    return `${t('results.points')}: ${points.team1Points} - ${points.team2Points}`
                   })()}
                 </div>
               )}
@@ -414,23 +416,23 @@ export const ScoreEntry = ({
         disabled={!allScoresEntered}
         className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-medium"
       >
-        Runden-Ergebnisse speichern
+        {t('buttons.saveRoundResults')}
       </button>
       
       {/* Aktuelle Zwischentabelle */}
       <div className="mt-8">
-        <h4 className="text-lg font-bold mb-3">Aktueller Stand</h4>
+        <h4 className="text-lg font-bold mb-3">{t('results.currentStandings')}</h4>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b bg-gray-50">
-                <th className="text-left py-2 px-1 text-sm">Rang</th>
-                <th className="text-left py-2 px-1 text-sm">Spieler</th>
-                <th className="text-center py-2 px-1 text-sm">Punkte</th>
-                <th className="text-center py-2 px-1 text-sm">Spiele</th>
-                <th className="text-center py-2 px-1 text-sm">Matches</th>
-                <th className="text-center py-2 px-1 text-sm">Partner</th>
-                <th className="text-center py-2 px-1 text-sm">Gegner</th>
+                <th className="text-left py-2 px-1 text-sm">{t('results.rank')}</th>
+                <th className="text-left py-2 px-1 text-sm">{t('results.player')}</th>
+                <th className="text-center py-2 px-1 text-sm">{t('results.points')}</th>
+                <th className="text-center py-2 px-1 text-sm">{t('results.games')}</th>
+                <th className="text-center py-2 px-1 text-sm">{t('results.matches')}</th>
+                <th className="text-center py-2 px-1 text-sm">{t('results.partners')}</th>
+                <th className="text-center py-2 px-1 text-sm">{t('results.opponents')}</th>
               </tr>
             </thead>
             <tbody>

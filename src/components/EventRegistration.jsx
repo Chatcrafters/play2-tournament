@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Calendar, Clock, MapPin, Users, Trophy, Info } from 'lucide-react'
+import { useTranslation } from '../components/LanguageSelector'
 
 export const EventRegistration = () => {
+  const { t, interpolate } = useTranslation()
   const { eventId } = useParams()
   const navigate = useNavigate()
   const [event, setEvent] = useState(null)
@@ -34,7 +36,7 @@ export const EventRegistration = () => {
       const foundEvent = eventData.find(e => e.id === eventId)
       
       if (!foundEvent) {
-        setError('Event nicht gefunden')
+        setError(t('eventRegistration.eventNotFound'))
         return
       }
       
@@ -53,7 +55,7 @@ export const EventRegistration = () => {
       }
     } catch (error) {
       console.error('Fehler beim Laden des Events:', error)
-      setError('Fehler beim Laden des Events')
+      setError(t('eventRegistration.eventNotFound'))
     } finally {
       setIsLoading(false)
     }
@@ -63,7 +65,7 @@ export const EventRegistration = () => {
     e.preventDefault()
     
     if (!formData.agreeToTerms) {
-      alert('Bitte akzeptieren Sie die Teilnahmebedingungen')
+      alert(t('eventRegistration.acceptTerms'))
       return
     }
 
@@ -71,13 +73,15 @@ export const EventRegistration = () => {
     if (event.genderMode !== 'open' && 
         ((event.genderMode === 'men' && formData.gender !== 'male') ||
          (event.genderMode === 'women' && formData.gender !== 'female'))) {
-      alert(`Dieses Event ist nur für ${event.genderMode === 'men' ? 'Männer' : 'Frauen'} zugänglich.`)
+      alert(interpolate(t('eventRegistration.eventOnlyFor'), { 
+        gender: event.genderMode === 'men' ? t('database.men').toLowerCase() : t('database.women').toLowerCase() 
+      }))
       return
     }
 
     // Prüfe ob Event voll ist
     if (event.players.length >= event.maxPlayers) {
-      alert('Dieses Event ist leider bereits voll.')
+      alert(t('eventRegistration.eventFull'))
       return
     }
 
@@ -86,7 +90,7 @@ export const EventRegistration = () => {
       p => p.email === formData.email || p.phone === formData.phone
     )
     if (alreadyRegistered) {
-      alert('Sie sind bereits für dieses Event angemeldet.')
+      alert(t('eventRegistration.alreadyRegisteredError'))
       return
     }
 
@@ -141,7 +145,7 @@ export const EventRegistration = () => {
 
     } catch (error) {
       console.error('Fehler bei der Anmeldung:', error)
-      alert('Fehler bei der Anmeldung. Bitte versuchen Sie es erneut.')
+      alert(t('eventRegistration.registrationError'))
     } finally {
       setIsSubmitting(false)
     }
@@ -152,7 +156,7 @@ export const EventRegistration = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Lade Event-Daten...</p>
+          <p className="mt-4 text-gray-600">{t('eventRegistration.loading')}</p>
         </div>
       </div>
     )
@@ -162,12 +166,12 @@ export const EventRegistration = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-xl text-red-600 mb-4">{error || 'Event nicht gefunden'}</p>
+          <p className="text-xl text-red-600 mb-4">{error || t('eventRegistration.eventNotFound')}</p>
           <button
             onClick={() => navigate('/')}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            Zur Startseite
+            {t('eventRegistration.backToHome')}
           </button>
         </div>
       </div>
@@ -200,7 +204,7 @@ export const EventRegistration = () => {
             
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-gray-500" />
-              <span>{event.startTime} - {event.endTime} Uhr</span>
+              <span>{event.startTime} - {event.endTime} {t('event.time')}</span>
             </div>
             
             {event.location && (
@@ -212,9 +216,7 @@ export const EventRegistration = () => {
             
             <div className="flex items-center gap-2">
               <Trophy className="w-4 h-4 text-gray-500" />
-              <span>{event.sport === 'padel' ? 'Padel' : 
-                     event.sport === 'pickleball' ? 'Pickleball' : 
-                     'SpinXball'}</span>
+              <span>{t(`sports.${event.sport}`)}</span>
             </div>
           </div>
 
@@ -223,7 +225,7 @@ export const EventRegistration = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-gray-600" />
-                <span className="font-medium">Teilnehmer:</span>
+                <span className="font-medium">{t('eventRegistration.participants')}:</span>
               </div>
               <span className={`font-bold ${isEventFull ? 'text-red-600' : 'text-green-600'}`}>
                 {event.players.length} / {event.maxPlayers}
@@ -232,13 +234,16 @@ export const EventRegistration = () => {
             
             {!isEventFull && (
               <p className="text-sm text-gray-600 mt-2">
-                Noch {availableSlots} {availableSlots === 1 ? 'Platz' : 'Plätze'} verfügbar
+                {interpolate(t('eventRegistration.spotsAvailable'), { 
+                  count: availableSlots,
+                  singular: availableSlots === 1 ? t('eventRegistration.spot') : t('eventRegistration.spots')
+                })}
               </p>
             )}
             
             {event.genderMode !== 'open' && (
               <p className="text-sm text-blue-600 mt-2">
-                {event.genderMode === 'men' ? '👨 Nur für Männer' : '👩 Nur für Frauen'}
+                {event.genderMode === 'men' ? `👨 ${t('eventRegistration.onlyForMen')}` : `👩 ${t('eventRegistration.onlyForWomen')}`}
               </p>
             )}
           </div>
@@ -247,20 +252,20 @@ export const EventRegistration = () => {
         {/* Success Message */}
         {showSuccessMessage && (
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-6">
-            <p className="font-bold">Erfolgreich angemeldet!</p>
-            <p className="text-sm">Sie erhalten in Kürze eine Bestätigung per E-Mail.</p>
+            <p className="font-bold">{t('eventRegistration.successfullyRegistered')}</p>
+            <p className="text-sm">{t('eventRegistration.confirmationEmail')}</p>
           </div>
         )}
 
         {/* Anmeldeformular */}
         {!isEventFull && !isEventPast ? (
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold mb-6">Jetzt anmelden</h2>
+            <h2 className="text-2xl font-bold mb-6">{t('eventRegistration.registerNow')}</h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Name *
+                  {t('player.name')} *
                 </label>
                 <input
                   type="text"
@@ -274,7 +279,7 @@ export const EventRegistration = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  E-Mail *
+                  {t('player.email')} *
                 </label>
                 <input
                   type="email"
@@ -288,7 +293,7 @@ export const EventRegistration = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Telefon *
+                  {t('player.phone')} *
                 </label>
                 <input
                   type="tel"
@@ -299,13 +304,13 @@ export const EventRegistration = () => {
                   placeholder="+49 123 456789"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Für kurzfristige Änderungen oder Absagen
+                  {t('eventRegistration.forShortNotice')}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Geschlecht *
+                  {t('player.gender')} *
                 </label>
                 <select
                   value={formData.gender}
@@ -314,19 +319,17 @@ export const EventRegistration = () => {
                   required
                 >
                   {(event.genderMode === 'open' || event.genderMode === 'men') && (
-                    <option value="male">Männlich</option>
+                    <option value="male">{t('player.male')}</option>
                   )}
                   {(event.genderMode === 'open' || event.genderMode === 'women') && (
-                    <option value="female">Weiblich</option>
+                    <option value="female">{t('player.female')}</option>
                   )}
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  {event.sport === 'padel' ? 'Padel' : 
-                   event.sport === 'pickleball' ? 'Pickleball' : 
-                   'SpinXball'} Level *
+                  {t(`sports.${event.sport}`)} {t('player.level')} *
                 </label>
                 {event.sport === 'padel' ? (
                   <select
@@ -335,12 +338,12 @@ export const EventRegistration = () => {
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
-                    <option value="C">C (Anfänger)</option>
-                    <option value="B-">B- (Fortgeschrittener Anfänger)</option>
-                    <option value="B">B (Unteres Mittelstufe)</option>
-                    <option value="B+">B+ (Gutes Mittelstufe)</option>
-                    <option value="A-">A- (Oberes Mittelstufe)</option>
-                    <option value="A">A (Fortgeschritten/Profi)</option>
+                    <option value="C">C ({t('playerManagement.beginner')})</option>
+                    <option value="B-">B- ({t('playerManagement.advancedBeginner')})</option>
+                    <option value="B">B ({t('playerManagement.lowerIntermediate')})</option>
+                    <option value="B+">B+ ({t('playerManagement.goodIntermediate')})</option>
+                    <option value="A-">A- ({t('playerManagement.upperIntermediate')})</option>
+                    <option value="A">A ({t('playerManagement.advancedPro')})</option>
                   </select>
                 ) : (
                   <select
@@ -349,15 +352,15 @@ export const EventRegistration = () => {
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
-                    <option value="1">1.0 - Anfänger</option>
-                    <option value="2">2.0 - Fortgeschritten</option>
-                    <option value="3">3.0 - Gut</option>
-                    <option value="4">4.0 - Sehr gut</option>
-                    <option value="5">5.0 - Experte</option>
+                    <option value="1">1.0 - {t('playerManagement.beginner')}</option>
+                    <option value="2">2.0 - {t('playerManagement.advanced')}</option>
+                    <option value="3">3.0 - {t('playerManagement.good')}</option>
+                    <option value="4">4.0 - {t('playerManagement.veryGood')}</option>
+                    <option value="5">5.0 - {t('playerManagement.expert')}</option>
                   </select>
                 )}
                 <p className="text-xs text-gray-500 mt-1">
-                  Für ausgeglichene Spielpaarungen
+                  {t('eventRegistration.forBalancedPairings')}
                 </p>
               </div>
 
@@ -365,12 +368,12 @@ export const EventRegistration = () => {
                 <div className="flex items-start gap-3">
                   <Info className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div className="text-sm text-blue-800">
-                    <p className="font-semibold mb-1">Wichtige Informationen:</p>
+                    <p className="font-semibold mb-1">{t('eventRegistration.importantInfo')}:</p>
                     <ul className="list-disc list-inside space-y-1">
-                      <li>Die Teilnahmegebühr beträgt {event.price || '10'}€</li>
-                      <li>Zahlung erfolgt vor Ort</li>
-                      <li>Bei Absage bitte mindestens 24h vorher Bescheid geben</li>
-                      <li>Spielpaarungen werden nach Skill-Level eingeteilt</li>
+                      <li>{interpolate(t('eventRegistration.entryFee'), { fee: event.price || '10' })}</li>
+                      <li>{t('eventRegistration.paymentOnSite')}</li>
+                      <li>{t('eventRegistration.cancelAdvance')}</li>
+                      <li>{t('eventRegistration.pairingsByLevel')}</li>
                     </ul>
                   </div>
                 </div>
@@ -386,8 +389,7 @@ export const EventRegistration = () => {
                     required
                   />
                   <span className="text-sm">
-                    Ich akzeptiere die Teilnahmebedingungen und bin damit einverstanden, 
-                    dass meine Daten für die Organisation des Events verwendet werden. *
+                    {t('eventRegistration.acceptDataUsage')} *
                   </span>
                 </label>
               </div>
@@ -401,22 +403,22 @@ export const EventRegistration = () => {
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
-                {isSubmitting ? 'Wird angemeldet...' : 'Verbindlich anmelden'}
+                {isSubmitting ? t('eventRegistration.registering') : t('eventRegistration.bindingRegistration')}
               </button>
             </form>
           </div>
         ) : isEventFull ? (
           <div className="bg-orange-100 border border-orange-400 text-orange-700 px-4 py-3 rounded-lg">
-            <p className="font-bold">Event ausgebucht!</p>
+            <p className="font-bold">{t('eventRegistration.eventCompleted')}!</p>
             <p className="text-sm mt-1">
-              Leider sind bereits alle Plätze vergeben. Kontaktieren Sie den Veranstalter für die Warteliste.
+              {t('eventRegistration.eventFull')}
             </p>
           </div>
         ) : (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
-            <p className="font-bold">Event bereits vorbei</p>
+            <p className="font-bold">{t('eventRegistration.eventCompleted')}</p>
             <p className="text-sm mt-1">
-              Dieses Event hat bereits stattgefunden.
+              {t('eventRegistration.eventAlreadyPassed')}
             </p>
           </div>
         )}
@@ -425,7 +427,7 @@ export const EventRegistration = () => {
         {event.players.length > 0 && (
           <div className="bg-white rounded-lg shadow-md p-6 mt-6">
             <h3 className="text-lg font-semibold mb-4">
-              Angemeldete Teilnehmer ({event.players.length})
+              {t('eventRegistration.registeredParticipants')} ({event.players.length})
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {event.players.map((player, index) => (

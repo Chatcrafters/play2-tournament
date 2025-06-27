@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from '../components/LanguageSelector'
 
 export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase }) => {
+  const { t } = useTranslation()
   const [newPlayerName, setNewPlayerName] = useState('')
   const [playerSkillLevel, setPlayerSkillLevel] = useState('B') // Für Padel default
   const [playerGender, setPlayerGender] = useState('male')
@@ -10,7 +12,7 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
   if (!event) {
     return (
       <div className="bg-gray-50 p-4 rounded-lg mb-6">
-        <p className="text-gray-500 text-center">Kein Event ausgewählt</p>
+        <p className="text-gray-500 text-center">{t('event.noEventsSelected')}</p>
       </div>
     )
   }
@@ -74,30 +76,25 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
 
   const getSkillLabel = (level) => {
     const labels = {
-      1: 'Anfänger',
-      2: 'Fortgeschritten',
-      3: 'Gut',
-      4: 'Sehr gut',
-      5: 'Experte'
+      1: t('playerManagement.beginner'),
+      2: t('playerManagement.advanced'),
+      3: t('playerManagement.good'),
+      4: t('playerManagement.veryGood'),
+      5: t('playerManagement.expert')
     }
-    return labels[level] || 'Gut'
+    return labels[level] || t('playerManagement.good')
   }
 
   const getSportLabel = (sport) => {
-    const labels = {
-      'padel': 'Padel',
-      'pickleball': 'Pickleball',
-      'spinxball': 'SpinXball'
-    }
-    return labels[sport] || sport
+    return t(`sports.${sport}`)
   }
 
   return (
     <div className="bg-white p-4 rounded-lg mb-6">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Spieler verwalten</h3>
+        <h3 className="text-lg font-semibold">{t('player.managePlayer')}</h3>
         <span className="text-sm text-gray-600">
-          {players.length} / {maxPlayers} Spieler
+          {players.length} / {maxPlayers} {t('player.players')}
         </span>
       </div>
 
@@ -113,7 +110,7 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
                 handleAddPlayer()
               }
             }}
-            placeholder="Spielername eingeben..."
+            placeholder={t('player.enterName')}
             className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={players.length >= maxPlayers}
           />
@@ -126,19 +123,19 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
           >
-            + Hinzufügen
+            + {t('buttons.add')}
           </button>
           <button
-  onClick={onOpenPlayerDatabase}
-  disabled={players.length >= maxPlayers}
-  className={`px-4 py-2 rounded-lg ${
-    players.length >= maxPlayers
-      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-      : 'bg-green-600 text-white hover:bg-green-700'
-  }`}
->
-  📚 Aus Datenbank
-</button>
+            onClick={onOpenPlayerDatabase}
+            disabled={players.length >= maxPlayers}
+            className={`px-4 py-2 rounded-lg ${
+              players.length >= maxPlayers
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
+          >
+            📚 {t('player.fromDatabase')}
+          </button>
         </div>
       </div>
 
@@ -147,12 +144,12 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h4 className="text-lg font-semibold mb-4">
-              Details für {newPlayerName}
+              {t('player.details')} {newPlayerName}
             </h4>
             
             {/* Geschlecht - Angepasst an genderMode */}
             <div className="mb-4">
-              <label className="block mb-2 font-medium">Geschlecht</label>
+              <label className="block mb-2 font-medium">{t('player.gender')}</label>
               <select
                 value={playerGender}
                 onChange={(e) => setPlayerGender(e.target.value)}
@@ -160,21 +157,21 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
               >
                 {/* Zeige nur erlaubte Optionen basierend auf genderMode */}
                 {(genderMode === 'open' || genderMode === 'men') && (
-                  <option value="male">Männlich</option>
+                  <option value="male">{t('player.male')}</option>
                 )}
                 {(genderMode === 'open' || genderMode === 'women') && (
-                  <option value="female">Weiblich</option>
+                  <option value="female">{t('player.female')}</option>
                 )}
               </select>
               {/* Warnung wenn nicht passend */}
               {genderMode === 'men' && playerGender === 'female' && (
                 <p className="text-xs text-orange-600 mt-1">
-                  Hinweis: Dies ist ein Männer-Event
+                  {t('playerManagement.menEventNote')}
                 </p>
               )}
               {genderMode === 'women' && playerGender === 'male' && (
                 <p className="text-xs text-orange-600 mt-1">
-                  Hinweis: Dies ist ein Frauen-Event
+                  {t('playerManagement.womenEventNote')}
                 </p>
               )}
             </div>
@@ -182,7 +179,7 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
             {/* Skill Level */}
             <div className="mb-4">
               <label className="block mb-2 font-medium">
-                {getSportLabel(sport)} Skill Level
+                {getSportLabel(sport)} {t('player.skillLevel')}
               </label>
               {sport === 'padel' ? (
                 <select
@@ -190,12 +187,12 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
                   onChange={(e) => setPlayerSkillLevel(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg"
                 >
-                  <option value="C">C (Anfänger)</option>
-                  <option value="B-">B- (Fortgeschrittener Anfänger)</option>
-                  <option value="B">B (Unteres Mittelstufe)</option>
-                  <option value="B+">B+ (Gutes Mittelstufe)</option>
-                  <option value="A-">A- (Oberes Mittelstufe)</option>
-                  <option value="A">A (Fortgeschritten/Profi)</option>
+                  <option value="C">C ({t('playerManagement.beginner')})</option>
+                  <option value="B-">B- ({t('playerManagement.advancedBeginner')})</option>
+                  <option value="B">B ({t('playerManagement.lowerIntermediate')})</option>
+                  <option value="B+">B+ ({t('playerManagement.goodIntermediate')})</option>
+                  <option value="A-">A- ({t('playerManagement.upperIntermediate')})</option>
+                  <option value="A">A ({t('playerManagement.advancedPro')})</option>
                 </select>
               ) : (
                 <select
@@ -203,11 +200,11 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
                   onChange={(e) => setPlayerSkillLevel(parseFloat(e.target.value))}
                   className="w-full px-3 py-2 border rounded-lg"
                 >
-                  <option value="1">1.0 - Anfänger</option>
-                  <option value="2">2.0 - Fortgeschritten</option>
-                  <option value="3">3.0 - Gut</option>
-                  <option value="4">4.0 - Sehr gut</option>
-                  <option value="5">5.0 - Experte</option>
+                  <option value="1">1.0 - {t('playerManagement.beginner')}</option>
+                  <option value="2">2.0 - {t('playerManagement.advanced')}</option>
+                  <option value="3">3.0 - {t('playerManagement.good')}</option>
+                  <option value="4">4.0 - {t('playerManagement.veryGood')}</option>
+                  <option value="5">5.0 - {t('playerManagement.expert')}</option>
                 </select>
               )}
             </div>
@@ -217,7 +214,7 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
                 onClick={confirmAddPlayer}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
-                Spieler hinzufügen
+                {t('player.addPlayer')}
               </button>
               <button
                 onClick={() => {
@@ -226,7 +223,7 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
                 }}
                 className="flex-1 px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
-                Abbrechen
+                {t('navigation.cancel')}
               </button>
             </div>
           </div>
@@ -237,7 +234,7 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
       <div className="space-y-2">
         {players.length === 0 ? (
           <p className="text-gray-500 text-center py-4">
-            Noch keine Spieler hinzugefügt
+            {t('player.noPlayers')}
           </p>
         ) : (
           players.map((player) => {
@@ -265,7 +262,7 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
                     {player.gender === 'female' ? '♀️' : '♂️'}
                   </span>
                   <span className="ml-2 text-sm text-gray-600">
-                    Level: {displaySkillLevel}
+                    {t('player.level')}: {displaySkillLevel}
                   </span>
                 </div>
                 <button
@@ -283,14 +280,14 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
       {/* Info wenn Event voll */}
       {players.length >= maxPlayers && (
         <p className="mt-4 text-sm text-orange-600 text-center">
-          Das Event ist voll. Entfernen Sie Spieler, um neue hinzuzufügen.
+          {t('messages.eventFull')}
         </p>
       )}
 
       {/* Info zu Geschlechts-Modus */}
       {genderMode !== 'open' && (
         <p className="mt-4 text-xs text-gray-600 text-center">
-          {genderMode === 'men' ? '👨 Nur Männer können teilnehmen' : '👩 Nur Frauen können teilnehmen'}
+          {genderMode === 'men' ? `👨 ${t('playerManagement.menOnly')}` : `👩 ${t('playerManagement.womenOnly')}`}
         </p>
       )}
     </div>

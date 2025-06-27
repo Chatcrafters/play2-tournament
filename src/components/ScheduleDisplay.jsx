@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from './LanguageSelector'
 
 export const ScheduleDisplay = ({ 
   schedule, 
@@ -18,6 +19,7 @@ export const ScheduleDisplay = ({
   sharePlayerSchedule,
   highlightRound
 }) => {
+  const { t } = useTranslation()
   const [activeDay, setActiveDay] = useState(0)
   
   // Gruppiere Runden nach Tagen
@@ -43,15 +45,17 @@ export const ScheduleDisplay = ({
     const player = selectedEvent.players.find(p => p.id === playerId)
     return player ? player.name : 'Unknown'
   }
-const formatTime = (seconds) => {
+  
+  const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
+  
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-2xl font-bold">Spielplan</h3>
+        <h3 className="text-2xl font-bold">{t('schedule.schedule')}</h3>
         <div className="flex gap-2">
           <button
             onClick={() => setShowResults(!showResults)}
@@ -61,7 +65,7 @@ const formatTime = (seconds) => {
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
-            {showResults ? '✓ Ergebnisse' : 'Ergebnisse'}
+            {showResults ? `✓ ${t('results.results')}` : t('results.results')}
           </button>
           
           <div className="relative">
@@ -69,7 +73,7 @@ const formatTime = (seconds) => {
               onClick={() => setShowExportMenu(!showExportMenu)}
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
             >
-              Export ↓
+              {t('buttons.export')} ↓
             </button>
             
             {showExportMenu && (
@@ -81,7 +85,7 @@ const formatTime = (seconds) => {
                   }}
                   className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                 >
-                  📄 Als PDF drucken
+                  📄 {t('buttons.exportPDF')}
                 </button>
                 <button
                   onClick={() => {
@@ -90,7 +94,7 @@ const formatTime = (seconds) => {
                   }}
                   className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                 >
-                  💬 Ergebnisse teilen
+                  💬 {t('buttons.shareResults')}
                 </button>
               </div>
             )}
@@ -123,7 +127,7 @@ const formatTime = (seconds) => {
         </div>
       )}
 
-{/* Spielplan für aktiven Tag */}
+      {/* Spielplan für aktiven Tag */}
       <div className="space-y-4">
         {(days[activeDay] || days[0]).rounds.map((round, roundIndex) => {
           const actualRoundIndex = schedule.rounds.findIndex(r => r === round)
@@ -143,7 +147,7 @@ const formatTime = (seconds) => {
                 <div className="mb-3 flex items-center justify-between bg-purple-100 p-2 rounded">
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-purple-600 rounded-full animate-pulse mr-2"></div>
-                    <span className="text-purple-800 font-semibold">Aktive Runde</span>
+                    <span className="text-purple-800 font-semibold">{t('tournament.activeRound')}</span>
                   </div>
                   <div className="text-purple-800 font-mono font-bold">
                     {formatTime(timerState.timeRemaining)}
@@ -160,7 +164,7 @@ const formatTime = (seconds) => {
               
               <div className="flex justify-between items-center mb-2">
                 <h4 className="font-semibold">
-                  {round.isBreak ? round.breakName : `Runde ${round.roundNumber}`}
+                  {round.isBreak ? round.breakName : `${t('schedule.round')} ${round.roundNumber}`}
                 </h4>
                 <span className="text-sm text-gray-500">
                   {round.startTime} - {round.endTime}
@@ -173,7 +177,7 @@ const formatTime = (seconds) => {
                     {round.matches.map((match, matchIndex) => (
                       <div key={matchIndex} className="bg-gray-50 rounded p-3">
                         <div className="font-medium text-sm text-gray-600 mb-1">
-                          Court {match.court}
+                          {t('schedule.court')} {match.court}
                         </div>
                         
                         {/* Team 1 */}
@@ -230,7 +234,7 @@ const formatTime = (seconds) => {
                   {/* Pausende Spieler */}
                   {round.restingPlayerIds && round.restingPlayerIds.length > 0 && (
                     <div className="mt-3 text-sm text-gray-600">
-                      <span className="font-medium">Pause: </span>
+                      <span className="font-medium">{t('player.pause')}: </span>
                       {round.restingPlayerIds.map(id => getPlayerName(id)).join(', ')}
                     </div>
                   )}
@@ -245,7 +249,7 @@ const formatTime = (seconds) => {
       {showResults && (
         <div className="mt-8">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold">Tabelle</h3>
+            <h3 className="text-xl font-bold">{t('results.standings')}</h3>
             <div className="flex gap-2">
               <button
                 onClick={() => setScoreSystem('americano')}
@@ -265,7 +269,7 @@ const formatTime = (seconds) => {
                     : 'bg-gray-200 text-gray-700'
                 }`}
               >
-                Normal (3-1-0)
+                {t('schedule.normalScoring')} (3-1-0)
               </button>
             </div>
           </div>
@@ -275,12 +279,12 @@ const formatTime = (seconds) => {
               <thead>
                 <tr className="bg-gray-100">
                   <th className="border p-2 text-left">#</th>
-                  <th className="border p-2 text-left">Name</th>
-                  <th className="border p-2 text-center">Spiele</th>
-                  <th className="border p-2 text-center">Punkte</th>
-                  <th className="border p-2 text-center">Tore</th>
-                  <th className="border p-2 text-center">Diff</th>
-                  <th className="border p-2 text-center">Aktionen</th>
+                  <th className="border p-2 text-left">{t('player.name')}</th>
+                  <th className="border p-2 text-center">{t('results.games')}</th>
+                  <th className="border p-2 text-center">{t('results.points')}</th>
+                  <th className="border p-2 text-center">{t('results.goals')}</th>
+                  <th className="border p-2 text-center">{t('results.diff')}</th>
+                  <th className="border p-2 text-center">{t('results.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -304,7 +308,7 @@ const formatTime = (seconds) => {
                         }}
                         className="text-blue-600 hover:text-blue-800 text-sm"
                       >
-                        📅 Spielplan
+                        📅 {t('schedule.playerSchedule')}
                       </button>
                     </td>
                   </tr>

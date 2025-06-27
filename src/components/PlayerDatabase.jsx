@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { dbOperations } from '../lib/supabase'
 import { transformFromDB, transformToDB } from '../utils/dbHelpers'
+import { useTranslation } from '../components/LanguageSelector'
 
 // Helper-Funktionen für Level-Konvertierung
 const getPadelNumericValue = (level) => {
@@ -51,6 +52,8 @@ const calculateAge = (birthday) => {
 }
 
 const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = [], event }) => {
+  const { t, interpolate } = useTranslation()
+  
   // NEUE ZEILEN für Spielerlimit-Prüfung
   const remainingSlots = event?.maxPlayers - existingPlayers.length || 0;
   const canAddMore = remainingSlots > 0;
@@ -96,7 +99,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
       setPlayers(data || [])
     } catch (error) {
       console.error('Fehler beim Laden der Spieler:', error)
-      alert('Fehler beim Laden der Spieler')
+      alert(t('database.errorLoading'))
     } finally {
       setIsLoading(false)
     }
@@ -149,7 +152,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
         console.log('Gefilterte Spieler zum Import:', playersToImport)
 
         if (playersToImport.length === 0) {
-          alert('Keine gültigen Spieler in der Excel-Datei gefunden')
+          alert(t('database.noValidPlayers'))
           return
         }
 
@@ -189,17 +192,17 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
           }
         }
 
-        let message = `Import abgeschlossen:\n`
-        message += `✅ ${successCount} neue Spieler importiert`
-        if (skipCount > 0) message += `\n⏭️ ${skipCount} übersprungen (bereits vorhanden)`
-        if (errorCount > 0) message += `\n❌ ${errorCount} Fehler`
+        let message = `${t('database.importCompleted')}:\n`
+        message += `✅ ${successCount} ${t('database.newImported')}`
+        if (skipCount > 0) message += `\n⏭️ ${skipCount} ${t('database.skipped')}`
+        if (errorCount > 0) message += `\n❌ ${errorCount} ${t('database.errors')}`
         
         console.log(message)
         alert(message)
         await loadPlayers()
       } catch (error) {
         console.error('Excel Import Fehler:', error)
-        alert('Fehler beim Lesen der Excel-Datei')
+        alert(t('database.errorReadingExcel'))
       }
     }
     reader.readAsBinaryString(file)
@@ -217,7 +220,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
     
     // Validiere dass mindestens eine Sportart ausgewählt ist
     if (!formData.sports.padel && !formData.sports.pickleball && !formData.sports.spinxball) {
-      alert('Bitte wählen Sie mindestens eine Sportart aus')
+      alert(t('database.atLeastOneSport'))
       return
     }
     
@@ -237,8 +240,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
         
         if (existingPlayers.length > 0) {
           const confirm = window.confirm(
-            `Ein Spieler namens "${formData.name}" existiert bereits.\n\n` +
-            `Möchten Sie trotzdem fortfahren?`
+            interpolate(t('database.duplicateExists'), { name: formData.name })
           )
           if (!confirm) {
             return
@@ -277,7 +279,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
       })
     } catch (error) {
       console.error('Fehler beim Speichern:', error)
-      alert('Fehler beim Speichern des Spielers')
+      alert(t('database.errorSaving'))
     }
   }
 
@@ -307,7 +309,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
   }
 
   const handleDelete = async (playerId) => {
-    if (!window.confirm('Möchten Sie diesen Spieler wirklich löschen?')) {
+    if (!window.confirm(t('database.confirmDeletePlayer'))) {
       return
     }
     
@@ -316,7 +318,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
       await loadPlayers()
     } catch (error) {
       console.error('Fehler beim Löschen:', error)
-      alert('Fehler beim Löschen des Spielers')
+      alert(t('navigation.delete'))
     }
   }
 
@@ -325,7 +327,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
     
     // Prüfe ob Spieler bereits angemeldet ist
     if (isPlayerAlreadyRegistered(player)) {
-      alert(`${player.name} ist bereits für dieses Event angemeldet.`)
+      alert(interpolate(t('player.alreadyRegistered'), { name: player.name }))
       return
     }
     
@@ -415,15 +417,15 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
       <div className="bg-white rounded-lg p-6 max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h2 className="text-2xl font-bold">Spieler-Datenbank</h2>
+            <h2 className="text-2xl font-bold">{t('database.playerDatabase')}</h2>
             {(event?.sport || event?.genderMode) && (
               <p className="text-sm text-gray-600 mt-1">
-                Zeige nur {event.sport === 'padel' ? 'Padel' : 
-                         event.sport === 'pickleball' ? 'Pickleball' : 
-                         'SpinXball'}-Spieler
+                {interpolate(t('database.showOnlyFor'), { 
+                  sport: t(`sports.${event.sport}`) 
+                })}
                 {event?.genderMode && event.genderMode !== 'open' && (
                   <span>
-                    {' '}({event.genderMode === 'men' ? 'Männer' : 'Frauen'})
+                    {' '}({event.genderMode === 'men' ? t('database.men') : t('database.women')})
                   </span>
                 )}
               </p>
@@ -441,7 +443,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
         <div className="flex gap-4 mb-4">
           <input
             type="text"
-            placeholder="Suche nach Name, Email, Telefon, Stadt oder Verein..."
+            placeholder={t('database.search')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-1 px-4 py-2 border rounded-lg"
@@ -473,10 +475,10 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
             }}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
-            + Neuer Spieler
+            + {t('database.newPlayer')}
           </button>
           <label className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
-            📊 Excel Import
+            📊 {t('database.excelImport')}
             <input
               type="file"
               accept=".xlsx,.xls"
@@ -568,7 +570,7 @@ WICHTIGE HINWEISE:
             }}
             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
           >
-            📥 Vorlage + Anleitung
+            📥 {t('database.templateAndInstructions')}
           </button>
           <button
             onClick={async () => {
@@ -589,23 +591,22 @@ WICHTIGE HINWEISE:
                 .filter(([_, group]) => group.length > 1)
               
               if (duplicates.length === 0) {
-                alert('✅ Keine doppelten Einträge gefunden! Deine Datenbank ist sauber.')
+                alert(`✅ ${t('database.noDuplicatesFound')}`)
                 return
               }
               
               // Zeige Zusammenfassung
-              let duplicateInfo = 'Gefundene Duplikate:\n\n'
+              let duplicateInfo = `${t('database.foundDuplicates')}:\n\n`
               duplicates.forEach(([name, group]) => {
-                duplicateInfo += `"${name}": ${group.length} Einträge\n`
+                duplicateInfo += `"${name}": ${group.length} ${t('player.players')}\n`
               })
               
               const totalDuplicates = duplicates.reduce((sum, [_, group]) => sum + group.length - 1, 0)
               
               if (!window.confirm(
                 duplicateInfo + '\n' +
-                `Insgesamt ${totalDuplicates} doppelte Einträge.\n\n` +
-                `Möchten Sie alle Duplikate löschen?\n` +
-                `(Behält jeweils den Eintrag mit den meisten Daten)`
+                interpolate(t('database.totalDuplicates'), { count: totalDuplicates }) + '\n\n' +
+                t('database.confirmDeleteDuplicates')
               )) {
                 return
               }
@@ -648,12 +649,12 @@ WICHTIGE HINWEISE:
                   }
                 }
                 
-                alert(`✅ ${deletedCount} doppelte Einträge wurden gelöscht!`)
+                alert(interpolate(t('database.duplicatesDeleted'), { count: deletedCount }))
                 await loadPlayers()
                 
               } catch (error) {
                 console.error('Fehler beim Bereinigen:', error)
-                alert('❌ Fehler beim Bereinigen der Datenbank')
+                alert(`❌ ${t('database.errorCleaning')}`)
               } finally {
                 setIsLoading(false)
               }
@@ -661,7 +662,7 @@ WICHTIGE HINWEISE:
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
             disabled={isLoading}
           >
-            🧹 Duplikate löschen
+            🧹 {t('database.cleanDuplicates')}
           </button>
         </div>
 
@@ -671,7 +672,7 @@ WICHTIGE HINWEISE:
     <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-semibold">
-          {editingPlayer ? 'Spieler bearbeiten' : 'Neuen Spieler hinzufügen'}
+          {editingPlayer ? t('database.editPlayer') : t('database.addPlayer')}
         </h3>
         <button
           onClick={() => {
@@ -686,7 +687,7 @@ WICHTIGE HINWEISE:
       <div className="overflow-y-auto flex-1 pr-2">
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Name *</label>
+                <label className="block text-sm font-medium mb-1">{t('player.name')} *</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -697,34 +698,34 @@ WICHTIGE HINWEISE:
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Geschlecht</label>
+                <label className="block text-sm font-medium mb-1">{t('player.gender')}</label>
                 <select
                   value={formData.gender}
                   onChange={(e) => setFormData({...formData, gender: e.target.value})}
                   className="w-full px-3 py-2 border rounded"
                 >
                   {(event?.genderMode === 'open' || event?.genderMode === 'men' || !event?.genderMode) && (
-                    <option value="male">Männlich</option>
+                    <option value="male">{t('player.male')}</option>
                   )}
                   {(event?.genderMode === 'open' || event?.genderMode === 'women' || !event?.genderMode) && (
-                    <option value="female">Weiblich</option>
+                    <option value="female">{t('player.female')}</option>
                   )}
                 </select>
                 {event?.genderMode === 'men' && formData.gender === 'female' && (
                   <p className="text-xs text-orange-600 mt-1">
-                    Hinweis: Dies ist ein Männer-Event
+                    {interpolate(t('messages.noteEvent'), { gender: t('player.male') })}
                   </p>
                 )}
                 {event?.genderMode === 'women' && formData.gender === 'male' && (
                   <p className="text-xs text-orange-600 mt-1">
-                    Hinweis: Dies ist ein Frauen-Event
+                    {interpolate(t('messages.noteEvent'), { gender: t('player.female') })}
                   </p>
                 )}
               </div>
               
               {/* Sportarten Auswahl */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Sportarten *</label>
+                <label className="block text-sm font-medium mb-2">{t('database.sports')} *</label>
                 <div className="space-y-2">
                   <label className="flex items-center">
                     <input
@@ -736,7 +737,7 @@ WICHTIGE HINWEISE:
                       })}
                       className="mr-2"
                     />
-                    <span>Padel</span>
+                    <span>{t('sports.padel')}</span>
                   </label>
                   <label className="flex items-center">
                     <input
@@ -748,7 +749,7 @@ WICHTIGE HINWEISE:
                       })}
                       className="mr-2"
                     />
-                    <span>Pickleball</span>
+                    <span>{t('sports.pickleball')}</span>
                   </label>
                   <label className="flex items-center">
                     <input
@@ -760,75 +761,75 @@ WICHTIGE HINWEISE:
                       })}
                       className="mr-2"
                     />
-                    <span>SpinXball</span>
+                    <span>{t('sports.spinxball')}</span>
                   </label>
                 </div>
                 {!formData.sports.padel && !formData.sports.pickleball && !formData.sports.spinxball && (
-                  <p className="text-red-500 text-xs mt-1">Mindestens eine Sportart muss ausgewählt werden</p>
+                  <p className="text-red-500 text-xs mt-1">{t('database.atLeastOneSport')}</p>
                 )}
               </div>
 
               {/* Skill Level nur für ausgewählte Sportarten */}
               {formData.sports.padel && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">Padel Level</label>
+                  <label className="block text-sm font-medium mb-1">{t('sports.padel')} {t('player.level')}</label>
                   <select
                     value={formData.padelSkill}
                     onChange={(e) => setFormData({...formData, padelSkill: e.target.value})}
                     className="w-full px-3 py-2 border rounded"
                   >
-                    <option value="C">C / C+ (1.0-3.0) - Anfänger</option>
-                    <option value="B-">B- (3.0-3.5) - Fortgeschrittener Anfänger</option>
-                    <option value="B">B (3.5-4.0) - Unteres Mittelstufe</option>
-                    <option value="B+">B+ (4.0-4.5) - Gutes Mittelstufe</option>
-                    <option value="A-">A- (4.5-5.0) - Oberes Mittelstufe</option>
-                    <option value="A">A / A+ (5.0-6.0) - Fortgeschritten/Profi</option>
+                    <option value="C">C / C+ (1.0-3.0) - {t('playerManagement.beginner')}</option>
+                    <option value="B-">B- (3.0-3.5) - {t('playerManagement.advancedBeginner')}</option>
+                    <option value="B">B (3.5-4.0) - {t('playerManagement.lowerIntermediate')}</option>
+                    <option value="B+">B+ (4.0-4.5) - {t('playerManagement.goodIntermediate')}</option>
+                    <option value="A-">A- (4.5-5.0) - {t('playerManagement.upperIntermediate')}</option>
+                    <option value="A">A / A+ (5.0-6.0) - {t('playerManagement.advancedPro')}</option>
                   </select>
                 </div>
               )}
 
               {formData.sports.pickleball && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">Pickleball Level</label>
+                  <label className="block text-sm font-medium mb-1">{t('sports.pickleball')} {t('player.level')}</label>
                   <select
                     value={formData.pickleballSkill}
                     onChange={(e) => setFormData({...formData, pickleballSkill: parseFloat(e.target.value)})}
                     className="w-full px-3 py-2 border rounded"
                   >
-                    <option value="1.5">1.0-2.0 - Anfänger</option>
-                    <option value="2.5">2.5 - Fortgeschrittener Anfänger</option>
-                    <option value="3.0">3.0 - Einsteiger mit Spielpraxis</option>
-                    <option value="3.5">3.5 - Mittleres Niveau</option>
-                    <option value="4.0">4.0 - Gutes Clubniveau</option>
-                    <option value="4.5">4.5 - Erfahren</option>
-                    <option value="5.0">5.0 - Semiprofessionell</option>
-                    <option value="5.5">5.5-6.0+ - Profi</option>
+                    <option value="1.5">1.0-2.0 - {t('playerManagement.beginner')}</option>
+                    <option value="2.5">2.5 - {t('playerManagement.advancedBeginner')}</option>
+                    <option value="3.0">3.0 - {t('playerManagement.lowerIntermediate')}</option>
+                    <option value="3.5">3.5 - {t('playerManagement.goodIntermediate')}</option>
+                    <option value="4.0">4.0 - {t('playerManagement.upperIntermediate')}</option>
+                    <option value="4.5">4.5 - {t('playerManagement.advancedPro')}</option>
+                    <option value="5.0">5.0 - {t('playerManagement.expert')}</option>
+                    <option value="5.5">5.5-6.0+ - {t('playerManagement.advancedPro')}</option>
                   </select>
                 </div>
               )}
 
               {formData.sports.spinxball && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">SpinXball Level</label>
+                  <label className="block text-sm font-medium mb-1">{t('sports.spinxball')} {t('player.level')}</label>
                   <select
                     value={formData.spinxballSkill}
                     onChange={(e) => setFormData({...formData, spinxballSkill: parseFloat(e.target.value)})}
                     className="w-full px-3 py-2 border rounded"
                   >
-                    <option value="1.5">1.0-2.0 - Anfänger</option>
-                    <option value="2.5">2.5 - Fortgeschrittener Anfänger</option>
-                    <option value="3.0">3.0 - Einsteiger mit Spielpraxis</option>
-                    <option value="3.5">3.5 - Mittleres Niveau</option>
-                    <option value="4.0">4.0 - Gutes Clubniveau</option>
-                    <option value="4.5">4.5 - Erfahren</option>
-                    <option value="5.0">5.0 - Semiprofessionell</option>
-                    <option value="5.5">5.5-6.0+ - Profi</option>
+                    <option value="1.5">1.0-2.0 - {t('playerManagement.beginner')}</option>
+                    <option value="2.5">2.5 - {t('playerManagement.advancedBeginner')}</option>
+                    <option value="3.0">3.0 - {t('playerManagement.lowerIntermediate')}</option>
+                    <option value="3.5">3.5 - {t('playerManagement.goodIntermediate')}</option>
+                    <option value="4.0">4.0 - {t('playerManagement.upperIntermediate')}</option>
+                    <option value="4.5">4.5 - {t('playerManagement.advancedPro')}</option>
+                    <option value="5.0">5.0 - {t('playerManagement.expert')}</option>
+                    <option value="5.5">5.5-6.0+ - {t('playerManagement.advancedPro')}</option>
                   </select>
                 </div>
               )}
               
               <div>
-                <label className="block text-sm font-medium mb-1">Telefon</label>
+                <label className="block text-sm font-medium mb-1">{t('player.phone')}</label>
                 <input
                   type="tel"
                   value={formData.phone}
@@ -838,7 +839,7 @@ WICHTIGE HINWEISE:
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
+                <label className="block text-sm font-medium mb-1">{t('player.email')}</label>
                 <input
                   type="email"
                   value={formData.email}
@@ -849,7 +850,7 @@ WICHTIGE HINWEISE:
 
               {/* Neue Felder */}
               <div>
-                <label className="block text-sm font-medium mb-1">Geburtstag *</label>
+                <label className="block text-sm font-medium mb-1">{t('database.birthday')} *</label>
                 <input
                   type="date"
                   value={formData.birthday}
@@ -860,7 +861,7 @@ WICHTIGE HINWEISE:
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Stadt *</label>
+                <label className="block text-sm font-medium mb-1">{t('database.city')} *</label>
                 <input
                   type="text"
                   value={formData.city}
@@ -872,7 +873,7 @@ WICHTIGE HINWEISE:
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Land *</label>
+                <label className="block text-sm font-medium mb-1">{t('database.country')} *</label>
                 <input
                   type="text"
                   value={formData.country}
@@ -884,7 +885,7 @@ WICHTIGE HINWEISE:
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Nationalität (für Flagge) *</label>
+                <label className="block text-sm font-medium mb-1">{t('database.nationality')} *</label>
                 <select
                   value={formData.nationality}
                   onChange={(e) => setFormData({...formData, nationality: e.target.value})}
@@ -893,25 +894,25 @@ WICHTIGE HINWEISE:
                 >
             
                   <option value="DE">🇩🇪 Deutschland</option>
-                  <option value="ES">🇪🇸 Spanien</option>
-                  <option value="FR">🇫🇷 Frankreich</option>
-                  <option value="IT">🇮🇹 Italien</option>
+                  <option value="ES">🇪🇸 España</option>
+                  <option value="FR">🇫🇷 France</option>
+                  <option value="IT">🇮🇹 Italia</option>
                   <option value="US">🇺🇸 USA</option>
-                  <option value="GB">🇬🇧 Großbritannien</option>
+                  <option value="GB">🇬🇧 Great Britain</option>
                   <option value="AT">🇦🇹 Österreich</option>
                   <option value="CH">🇨🇭 Schweiz</option>
-                  <option value="NL">🇳🇱 Niederlande</option>
-                  <option value="BE">🇧🇪 Belgien</option>
+                  <option value="NL">🇳🇱 Nederland</option>
+                  <option value="BE">🇧🇪 België</option>
                   <option value="PT">🇵🇹 Portugal</option>
-                  <option value="SE">🇸🇪 Schweden</option>
-                  <option value="DK">🇩🇰 Dänemark</option>
-                  <option value="NO">🇳🇴 Norwegen</option>
-                  <option value="PL">🇵🇱 Polen</option>
+                  <option value="SE">🇸🇪 Sverige</option>
+                  <option value="DK">🇩🇰 Danmark</option>
+                  <option value="NO">🇳🇴 Norge</option>
+                  <option value="PL">🇵🇱 Polska</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Verein/Club *</label>
+                <label className="block text-sm font-medium mb-1">{t('database.clubAssociation')} *</label>
                 <input
                   type="text"
                   value={formData.club}
@@ -926,18 +927,17 @@ WICHTIGE HINWEISE:
               {formData.sports.pickleball && (
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    DUPR ID 
-                    <span className="text-xs text-gray-500 ml-1">(optional)</span>
+                    {t('database.duprIdOptional')}
                   </label>
                   <input
                     type="text"
                     value={formData.duprId}
                     onChange={(e) => setFormData({...formData, duprId: e.target.value})}
                     className="w-full px-3 py-2 border rounded"
-                    placeholder="z.B. 12345-ABC (optional)"
+                    placeholder={`z.B. 12345-ABC (${t('database.optional')})`}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Dynamic Universal Pickleball Rating - nur wenn vorhanden
+                    {t('database.duprDescription')}
                   </p>
                 </div>
               )}
@@ -947,7 +947,7 @@ WICHTIGE HINWEISE:
                   type="submit"
                   className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
-                  {editingPlayer ? 'Änderungen speichern' : 'Spieler hinzufügen'}
+                  {editingPlayer ? t('database.saveChanges') : t('database.addPlayer')}
                 </button>
                 <button
                   type="button"
@@ -957,7 +957,7 @@ WICHTIGE HINWEISE:
                   }}
                   className="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400"
                 >
-                  Abbrechen
+                  {t('navigation.cancel')}
                 </button>
               </div>
             </form>
@@ -972,20 +972,23 @@ WICHTIGE HINWEISE:
           {isLoading ? (
             <div className="text-center py-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <p className="mt-2">Lade Spieler...</p>
+              <p className="mt-2">{t('database.loadingPlayers')}</p>
             </div>
           ) : filteredPlayers.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              {searchTerm ? 'Keine Spieler gefunden' : 
+              {searchTerm ? t('database.noPlayersFound') : 
                event?.sport || event?.genderMode ? 
-                 `Keine passenden Spieler in der Datenbank` :
-                 'Noch keine Spieler in der Datenbank'}
+                 t('database.noMatchingPlayers') :
+                 t('player.noPlayers')}
             </div>
           ) : (
             <div>
               <div className="flex justify-between items-center mb-2">
                 <p className="text-sm text-gray-600">
-                  {filteredPlayers.length} Spieler gefunden ({availablePlayersCount} verfügbar)
+                  {interpolate(t('database.playersFound'), { 
+                    count: filteredPlayers.length, 
+                    available: availablePlayersCount 
+                  })}
                 </p>
                 <button
                   onClick={handleSelectAll}
@@ -993,8 +996,8 @@ WICHTIGE HINWEISE:
                   disabled={availablePlayersCount === 0}
                 >
                   {selectedPlayers.length === availablePlayersCount && availablePlayersCount > 0 
-                    ? 'Alle verfügbaren abwählen' 
-                    : 'Alle verfügbaren auswählen'}
+                    ? `${t('database.allAvailable')} ${t('database.deselectAll')}` 
+                    : `${t('database.allAvailable')} ${t('database.selectAll')}`}
                 </button>
               </div>
               
@@ -1033,20 +1036,20 @@ WICHTIGE HINWEISE:
                                 <span className="ml-2">{getFlagEmoji(player.nationality)}</span>
                               )}
                               {isRegistered && (
-                                <span className="ml-2 text-xs text-gray-500 font-normal">(bereits angemeldet)</span>
+                                <span className="ml-2 text-xs text-gray-500 font-normal">({t('database.alreadyRegistered')})</span>
                               )}
                             </p>
                             <div className="text-sm text-gray-600 flex gap-4">
                               <span>{player.gender === 'female' ? '♀️' : '♂️'}</span>
-                              {player.sports?.padel && <span>Padel: {player.padelSkill}</span>}
-                              {player.sports?.pickleball && <span>Pickleball: {player.pickleballSkill}</span>}
-                              {player.sports?.spinxball && <span>SpinXball: {player.spinxballSkill}</span>}
+                              {player.sports?.padel && <span>{t('sports.padel')}: {player.padelSkill}</span>}
+                              {player.sports?.pickleball && <span>{t('sports.pickleball')}: {player.pickleballSkill}</span>}
+                              {player.sports?.spinxball && <span>{t('sports.spinxball')}: {player.spinxballSkill}</span>}
                             </div>
                             {/* Neue Zeile für zusätzliche Infos */}
                             <div className="text-xs text-gray-500 mt-1">
                               {player.club && <span className="mr-3">🏛️ {player.club}</span>}
                               {player.city && <span className="mr-3">📍 {player.city}</span>}
-                              {age && <span className="mr-3">🎂 {age} Jahre</span>}
+                              {age && <span className="mr-3">🎂 {age} {t('database.age')}</span>}
                               {player.duprId && player.sports?.pickleball && (
                                 <span className="mr-3">DUPR: {player.duprId}</span>
                               )}
@@ -1065,13 +1068,13 @@ WICHTIGE HINWEISE:
                             onClick={() => handleEdit(player)}
                             className="px-3 py-1 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600"
                           >
-                            Bearbeiten
+                            {t('database.edit')}
                           </button>
                           <button
                             onClick={() => handleDelete(player.id)}
                             className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
                           >
-                            Löschen
+                            {t('database.delete')}
                           </button>
                         </div>
                       </div>
@@ -1086,14 +1089,14 @@ WICHTIGE HINWEISE:
         {/* Footer with Import Button */}
         <div className="mt-4 pt-4 border-t flex justify-between items-center">
           <p className="text-sm text-gray-600">
-            {selectedPlayers.length} Spieler ausgewählt
+            {interpolate(t('database.playersSelected'), { count: selectedPlayers.length })}
           </p>
           <div className="flex gap-2">
             <button
               onClick={onClose}
               className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
             >
-              Abbrechen
+              {t('navigation.cancel')}
             </button>
             <button
               onClick={handleImport}
@@ -1104,7 +1107,7 @@ WICHTIGE HINWEISE:
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {selectedPlayers.length} Spieler importieren
+              {interpolate(t('database.importPlayers'), { count: selectedPlayers.length })}
             </button>
           </div>
         </div>
