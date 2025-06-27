@@ -1,32 +1,24 @@
-import { Calendar, Clock, MapPin, Trophy, Users, Edit, Play } from 'lucide-react'
+import { Calendar, Clock, MapPin, Trophy, Users, Edit, Play, BarChart3 } from 'lucide-react'
 import { EventShare } from './EventShare'
 import { useTranslation } from './LanguageSelector'
 import { interpolate } from '../utils/translations'
 
-export const EventDetail = ({ event, onEdit, onStartTournament }) => {
+export const EventDetail = ({ event, onEdit, onStartTournament, canManageEvent = false }) => {
   const { t } = useTranslation()
   
   if (!event) return null
 
-  const canStartTournament = event.players && event.players.length >= 4 && event.status !== 'completed'
+  // Status-Prüfungen
+  const hasEnoughPlayers = event.players && event.players.length >= 4
+  const hasSchedule = event.schedule && event.schedule.length > 0
+  const canGenerateSchedule = hasEnoughPlayers && !hasSchedule && event.status !== 'completed' && canManageEvent
+  const canStartTournament = hasEnoughPlayers && hasSchedule && event.status !== 'completed' && canManageEvent
+  
   const eventDate = new Date(event.date)
   const isEventPast = eventDate < new Date() && event.status !== 'completed'
 
-  // Sicherer Zugriff auf Schedule-Daten
+  // Zeit-Informationen
   const getTimeInfo = () => {
-    // Sicherer Zugriff auf schedule - stelle sicher dass es ein Array ist
-    const schedule = Array.isArray(event.schedule) ? event.schedule : []
-    
-    // Prüfe verschiedene mögliche Quellen für Zeitinformationen
-    if (schedule.length > 0 && schedule[0]) {
-      const firstSchedule = schedule[0];
-      return {
-        startTime: firstSchedule.start_time || firstSchedule.startTime || '',
-        endTime: firstSchedule.end_time || firstSchedule.endTime || ''
-      };
-    }
-    
-    // Fallback auf direkte Event-Eigenschaften
     return {
       startTime: event.startTime || event.start_time || '',
       endTime: event.endTime || event.end_time || ''
@@ -34,6 +26,112 @@ export const EventDetail = ({ event, onEdit, onStartTournament }) => {
   };
 
   const { startTime, endTime } = getTimeInfo();
+
+  // Spielplan generieren
+  const handleGenerateSchedule = () => {
+    if (!hasEnoughPlayers) {
+      alert('Mindestens 4 Spieler erforderlich für einen Spielplan!')
+      return
+    }
+
+    // Americano Schedule Generation
+    const generateAmericanoSchedule = (players, courts, rounds) => {
+      const schedule = []
+      const playerCount = players.length
+      const playersPerMatch = 4
+      const matchesPerRound = Math.floor(courts)
+      
+      // Erstelle eine Kopie der Spielerliste für die Rotation
+      let playerRotation = [...players]
+      
+      for (let round = 0; round < rounds; round++) {
+        const roundMatches = []
+        const usedPlayers = new Set()
+        
+        // Rotiere die Spielerliste für jede Runde
+        if (round > 0) {
+          playerRotation.push(playerRotation.shift())
+        }
+        
+        for (let court = 0; court < matchesPerRound; court++) {
+          if (usedPlayers.size + playersPerMatch > playerCount) break
+          
+          const match = {
+            court: court + 1,
+            players: []
+          }
+          
+          // Wähle die nächsten 4 verfügbaren Spieler
+          for (let i = 0; i < playerRotation.length && match.players.length < playersPerMatch; i++) {
+            const player = playerRotation[i]
+            if (!usedPlayers.has(player.id)) {
+              match.players.push(player.id)
+              usedPlayers.add(player.id)
+            }
+          }
+          
+          if (match.players.length === playersPerMatch) {
+            // Erstelle Teams
+            match.team1 = [
+              players.find(p => p.id === match.players[0]),
+              players.find(p => p.id === match.players[1])
+            ]
+            match.team2 = [
+              players.find(p => p.id === match.players[2]),
+              players.find(p => p.id === match.players[3])
+            ]
+            
+            roundMatches.push(match)
+          }
+        }
+        
+        // Spieler die pausieren
+        const restingPlayerIds = players
+          .filter(p => !usedPlayers.has(p.id))
+          .map(p => p.id)
+        
+        schedule.push({
+          round: round + 1,
+          matches: roundMatches,
+          restingPlayerIds
+        })
+      }
+      
+      return schedule
+    }
+
+    // Berechne Anzahl der Runden basierend auf Mindestspiele
+    const playersCount = event.players.length
+    const courtsCount = event.courts || 2
+    const minGamesPerPlayer = event.minGamesPerPlayer || 3
+    
+    // Spieler pro Runde = Courts * 4
+    const playersPerRound = courtsCount * 4
+    
+    // Berechne benötigte Runden
+    let numberOfRounds = minGamesPerPlayer
+    if (playersCount > playersPerRound) {
+      // Wenn mehr Spieler als Plätze, brauchen wir mehr Runden
+      numberOfRounds = Math.ceil(minGamesPerPlayer * playersCount / playersPerRound)
+    }
+    
+    const schedule = generateAmericanoSchedule(
+      event.players,
+      courtsCount,
+      numberOfRounds
+    )
+
+    // Update Event mit Schedule
+    const updatedEvent = {
+      ...event,
+      schedule: schedule,
+      currentRound: 0,
+      status: 'scheduled'
+    }
+
+    onEdit(updatedEvent)
+    alert('Spielplan erfolgreich generiert!')
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -45,13 +143,15 @@ export const EventDetail = ({ event, onEdit, onStartTournament }) => {
         
         <div className="flex gap-2">
           <EventShare event={event} />
-          <button
-            onClick={() => onEdit(event)}
-            className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
-          >
-            <Edit className="w-4 h-4" />
-            {t('navigation.edit')}
-          </button>
+          {canManageEvent && (
+            <button
+              onClick={() => onEdit(event)}
+              className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
+            >
+              <Edit className="w-4 h-4" />
+              {t('navigation.edit')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -163,6 +263,18 @@ export const EventDetail = ({ event, onEdit, onStartTournament }) => {
         </div>
       </div>
 
+      {/* Schedule Info */}
+      {hasSchedule && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-blue-600" />
+            <p className="font-medium text-blue-800">
+              Spielplan vorhanden: {event.schedule.length} Runden
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Status and Actions */}
       {event.status === 'completed' ? (
         <div className="bg-green-100 text-green-800 px-4 py-3 rounded-lg">
@@ -172,21 +284,43 @@ export const EventDetail = ({ event, onEdit, onStartTournament }) => {
         <div className="bg-yellow-100 text-yellow-800 px-4 py-3 rounded-lg">
           <p className="font-semibold">⚠️ Event-Datum ist vorbei</p>
         </div>
-      ) : canStartTournament ? (
-        <button
-          onClick={() => onStartTournament(event)}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-        >
-          <Play className="w-5 h-5" />
-          {t('event.startTournament')}
-        </button>
       ) : (
-        <div className="bg-gray-100 text-gray-600 px-4 py-3 rounded-lg text-center">
-          <p className="font-medium">
-            {event.players?.length < 4 
-              ? `Noch ${4 - (event.players?.length || 0)} Spieler benötigt zum Starten`
-              : 'Turnier kann gestartet werden'}
-          </p>
+        <div className="space-y-3">
+          {!hasEnoughPlayers && (
+            <div className="bg-gray-100 text-gray-600 px-4 py-3 rounded-lg text-center">
+              <p className="font-medium">
+                Noch {4 - (event.players?.length || 0)} Spieler benötigt
+              </p>
+            </div>
+          )}
+          
+          {canGenerateSchedule && (
+            <button
+              onClick={handleGenerateSchedule}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              <BarChart3 className="w-5 h-5" />
+              Spielplan generieren
+            </button>
+          )}
+          
+          {canStartTournament && (
+            <button
+              onClick={() => onStartTournament(event)}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+            >
+              <Play className="w-5 h-5" />
+              {t('event.startTournament')}
+            </button>
+          )}
+          
+          {!canManageEvent && hasEnoughPlayers && !hasSchedule && (
+            <div className="bg-yellow-100 text-yellow-800 px-4 py-3 rounded-lg text-center">
+              <p className="font-medium">
+                Warten auf Spielplan-Generierung durch Turnierleiter
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

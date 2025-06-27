@@ -197,21 +197,8 @@ function AppContent() {
         } else if (data) {
           console.log('Event erfolgreich erstellt:', data)
           
-          // Wenn User vorhanden, versuche created_by nachträglich zu setzen
-          if (user && user.id && data.id) {
-            console.log('Versuche created_by nachträglich zu setzen...')
-            const { error: updateError } = await supabase
-              .from('events')
-              .update({ created_by: user.id })
-              .eq('id', data.id)
-            
-            if (updateError) {
-              console.warn('created_by konnte nicht gesetzt werden:', updateError)
-            } else {
-              console.log('created_by erfolgreich gesetzt')
-              data.created_by = user.id
-            }
-          }
+          // Nach erfolgreichem Insert - NICHT versuchen created_by zu setzen
+          console.log('Event erfolgreich erstellt ohne created_by')
           
           // Aktualisiere die temporäre ID mit der echten Supabase ID
           const index = updatedEvents.findIndex(e => e.id === eventToSave.id)
