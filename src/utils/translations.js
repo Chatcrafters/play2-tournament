@@ -178,7 +178,9 @@
       leagueDesc: 'Liga-Format mit mehreren Spieltagen',
       eventBasics: 'Event-Grundlagen',
       eventName: 'Event-Name',
-      sport: 'Sportart'
+      sport: 'Sportart',
+      // Neuer Key
+      entryFee: 'Teilnahmegebühr'
     },
     
     // Player
@@ -201,7 +203,10 @@
       // Neue Keys
       managePlayer: 'Spieler verwalten',
       fromDatabase: 'Aus Datenbank',
-      level: 'Level'
+      level: 'Level',
+      addPlayer: 'Spieler hinzufügen',
+      details: 'Details',
+      skillLevel: 'Spielstärke'
     },
     
     // Schedule
@@ -377,8 +382,21 @@
       age: 'Alter',
       close: 'Schließen',
       importPlayers: 'Spieler importieren',
-      playersSelected: 'Spieler ausgewählt'
+      playersSelected: 'Spieler ausgewählt',
+      // Neue Keys
+      cleanDuplicates: 'Duplikate bereinigen',
+      loadingPlayers: 'Lade Spieler...'
     }
+  },
+  
+  // Player Management (nuevo)
+  playerManagement: {
+    beginner: 'Anfänger',
+    advancedBeginner: 'Fortgeschrittener Anfänger',
+    lowerIntermediate: 'Unteres Mittelfeld',
+    goodIntermediate: 'Gutes Mittelfeld',
+    upperIntermediate: 'Oberes Mittelfeld',
+    advancedPro: 'Fortgeschrittener Profi'
   },
   
   // ENGLISCH
@@ -550,7 +568,10 @@
       // New keys
       managePlayer: 'Manage Players',
       fromDatabase: 'From Database',
-      level: 'Level'
+      level: 'Level',
+      addPlayer: 'Add Player',
+      details: 'Details',
+      skillLevel: 'Skill Level'
     },
     
     // Schedule
@@ -721,8 +742,21 @@
       age: 'Age',
       close: 'Close',
       importPlayers: 'Import Players',
-      playersSelected: 'players selected'
+      playersSelected: 'players selected',
+      // New keys
+      cleanDuplicates: 'Clean Duplicates',
+      loadingPlayers: 'Loading players...'
     }
+  },
+  
+  // Player Management (new)
+  playerManagement: {
+    beginner: 'Beginner',
+    advancedBeginner: 'Advanced Beginner',
+    lowerIntermediate: 'Lower Intermediate',
+    goodIntermediate: 'Good Intermediate',
+    upperIntermediate: 'Upper Intermediate',
+    advancedPro: 'Advanced Pro'
   },
   
   // SPANISCH
@@ -915,7 +949,10 @@
       // Nuevos keys
       managePlayer: 'Gestionar jugadores',
       fromDatabase: 'Desde base de datos',
-      level: 'Nivel'
+      level: 'Nivel',
+      addPlayer: 'Añadir jugador',
+      details: 'Detalles',
+      skillLevel: 'Nivel de juego'
     },
     
     // Schedule
@@ -1086,8 +1123,21 @@
       age: 'Edad',
       close: 'Cerrar',
       importPlayers: 'Importar jugadores',
-      playersSelected: 'jugadores seleccionados'
+      playersSelected: 'jugadores seleccionados',
+      // Nuevos keys
+      cleanDuplicates: 'Limpiar duplicados',
+      loadingPlayers: 'Cargando jugadores...'
     }
+  },
+  
+  // Player Management (nuevo)
+  playerManagement: {
+    beginner: 'Principiante',
+    advancedBeginner: 'Principiante avanzado',
+    lowerIntermediate: 'Intermedio bajo',
+    goodIntermediate: 'Intermedio bueno',
+    upperIntermediate: 'Intermedio alto',
+    advancedPro: 'Profesional avanzado'
   }
 }
 
