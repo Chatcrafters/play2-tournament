@@ -12,11 +12,15 @@ import Auth from './components/Auth'
 import { supabase } from './lib/supabase'
 import { LanguageProvider, LanguageSelector, useTranslation } from './components/LanguageSelector'
 import { transformToDB, transformFromDB, cleanEventData } from './utils/dbHelpers'
+import { ToastProvider, useToast, ErrorBoundary } from './components/Toast'
+import { withErrorHandling, createNetworkStatusHandler, handleSupabaseError, validateForm } from './utils/errorHandling'
 import './App.css'
 
 // Hauptinhalt der App als separate Komponente für useTranslation Hook
 function AppContent() {
   const { t } = useTranslation()
+  const toast = useToast()
+  
   const [events, setEvents] = useState([])
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [showEventForm, setShowEventForm] = useState(false)
@@ -29,6 +33,12 @@ function AppContent() {
   const [user, setUser] = useState(null)
   const [userProfile, setUserProfile] = useState(null)
   const [showUserMenu, setShowUserMenu] = useState(false)
+
+  // Network status monitoring
+  useEffect(() => {
+    const cleanup = createNetworkStatusHandler(toast, t)
+    return cleanup
+  }, [toast, t])
 
   // Check authentication on mount
   useEffect(() => {
@@ -57,148 +67,209 @@ function AppContent() {
   }, [user])
 
   const checkUser = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUser(user)
-        await loadUserProfile(user.id)
+    const result = await withErrorHandling(
+      async () => {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          setUser(user)
+          await loadUserProfile(user.id)
+        }
+        return user
+      },
+      toast,
+      t,
+      {
+        showErrorToast: false, // Don't show error for initial auth check
+        retries: 2,
+        retryDelay: 1000
       }
-    } catch (error) {
-      console.error('Error checking user:', error)
+    )
+
+    if (!result.success) {
+      console.warn('Initial auth check failed:', result.error)
     }
   }
 
   const loadUserProfile = async (userId) => {
-    try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-      
-      if (error) throw error
-      
-      setUserProfile(profile)
-    } catch (error) {
-      console.error('Error loading profile:', error)
-    }
+    return await withErrorHandling(
+      async () => {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single()
+        
+        if (error) throw error
+        
+        setUserProfile(profile)
+        return profile
+      },
+      toast,
+      t,
+      {
+        loadingMessage: t('app.loadingProfile') || 'Profil wird geladen...',
+        successMessage: null, // Don't show success for profile loading
+        retries: 2
+      }
+    )
   }
 
   const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-      
-      setUser(null)
-      setUserProfile(null)
-      setEvents([])
-      setSelectedEvent(null)
-      setShowUserMenu(false)
-    } catch (error) {
-      console.error('Logout error:', error)
-    }
+    const result = await withErrorHandling(
+      async () => {
+        const { error } = await supabase.auth.signOut()
+        if (error) throw error
+        
+        setUser(null)
+        setUserProfile(null)
+        setEvents([])
+        setSelectedEvent(null)
+        setShowUserMenu(false)
+        
+        return true
+      },
+      toast,
+      t,
+      {
+        loadingMessage: t('auth.loggingOut') || 'Abmeldung...',
+        successMessage: t('auth.loggedOut') || 'Erfolgreich abgemeldet'
+      }
+    )
+
+    return result.success
   }
 
   const loadEvents = async () => {
-    try {
-      setIsLoading(true)
-      console.log('Lade Events...')
-      
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .order('date', { ascending: true })
-      
-      if (error) {
-        console.error('Supabase error:', error)
-        // Fallback zu localStorage
-        loadFromLocalStorage()
-      } else if (data) {
+    setIsLoading(true)
+    
+    const result = await withErrorHandling(
+      async () => {
+        console.log('Lade Events aus Supabase...')
+        
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .order('date', { ascending: true })
+        
+        if (error) throw error
+        
         // Transformiere Events von snake_case zu camelCase
         const transformedEvents = data.map(event => transformFromDB(event))
-        console.log('Events aus Supabase geladen:', transformedEvents)
+        console.log('Events erfolgreich geladen:', transformedEvents.length)
+        
         setEvents(transformedEvents || [])
         
-        // Speichere auch in localStorage als Backup (aber ohne saveEvents aufzurufen!)
+        // Speichere auch in localStorage als Backup
         localStorage.setItem('events', JSON.stringify(transformedEvents || []))
+        
+        return transformedEvents
+      },
+      toast,
+      t,
+      {
+        loadingMessage: t('app.loadingEvents') || 'Events werden geladen...',
+        successMessage: null, // Don't show success for loading
+        showErrorToast: false // Handle error manually for fallback
       }
-    } catch (error) {
-      console.error('Fehler beim Laden der Events:', error)
+    )
+
+    if (!result.success) {
+      // Fallback to localStorage
+      console.log('Supabase failed, falling back to localStorage...')
       loadFromLocalStorage()
-    } finally {
-      setIsLoading(false)
+      
+      // Show user-friendly message
+      toast.showWarning(
+        t('app.offlineMode') || 'Offline-Modus: Events werden aus dem lokalen Speicher geladen.',
+        6000
+      )
     }
+    
+    setIsLoading(false)
   }
 
   const loadFromLocalStorage = () => {
-    const savedEvents = localStorage.getItem('events')
-    if (savedEvents) {
-      console.log('Events aus localStorage geladen')
-      setEvents(JSON.parse(savedEvents))
+    try {
+      const savedEvents = localStorage.getItem('events')
+      if (savedEvents) {
+        const parsedEvents = JSON.parse(savedEvents)
+        console.log('Events aus localStorage geladen:', parsedEvents.length)
+        setEvents(parsedEvents)
+        return true
+      }
+    } catch (error) {
+      console.error('Fehler beim Laden aus localStorage:', error)
+      toast.showError(t('errors.localStorage') || 'Lokale Daten konnten nicht geladen werden.')
     }
+    return false
   }
 
   // Save events to both Supabase and localStorage
   const saveEvents = async (updatedEvents, eventToSave = null) => {
-    // Speichere sofort in localStorage
-    localStorage.setItem('events', JSON.stringify(updatedEvents))
-    setEvents(updatedEvents)
-    
-    // Wenn kein spezifisches Event angegeben, nichts weiter tun
-    if (!eventToSave) return
-    
-    // Versuche nur das spezifische Event in Supabase zu speichern
+    // Sofort lokal speichern für bessere UX
     try {
-      console.log('Speichere Event:', eventToSave)
-      
-      // Bereinige und transformiere Event für die Datenbank
-      const cleanedEvent = cleanEventData(eventToSave)
-      const dbEvent = transformToDB(cleanedEvent)
-      console.log('Transformiertes Event für DB:', dbEvent)
-      
-      if (eventToSave.id.startsWith('temp_')) {
-        // Neues Event - INSERT
-        console.log('Current user:', user) // Debug: User anzeigen
+      localStorage.setItem('events', JSON.stringify(updatedEvents))
+      setEvents(updatedEvents)
+    } catch (error) {
+      console.error('localStorage save failed:', error)
+      toast.showError(t('errors.localStorageSave') || 'Lokale Speicherung fehlgeschlagen.')
+    }
+    
+    // Wenn kein spezifisches Event angegeben, nicht in Supabase speichern
+    if (!eventToSave) return { success: true }
+    
+    // Validierung vor dem Speichern
+    const validationRules = {
+      name: { required: true, minLength: 3, maxLength: 100 },
+      date: { required: true },
+      startTime: { required: true },
+      endTime: { required: true },
+      sport: { required: true },
+      courts: { required: true, number: true, min: 1, max: 10 }
+    }
+    
+    const validation = validateForm(eventToSave, validationRules)
+    if (!validation.isValid) {
+      const firstError = Object.values(validation.errors)[0][0]
+      toast.showError(`Validierungsfehler: ${firstError}`)
+      return { success: false, error: 'Validation failed' }
+    }
+
+    return await withErrorHandling(
+      async () => {
+        console.log('Speichere Event in Supabase:', eventToSave.id)
         
-        // Neues Event - INSERT
-        const insertData = {
-          ...dbEvent,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          // Stelle sicher, dass alle required fields vorhanden sind
-          format: dbEvent.format || 'doubles',
-          event_type: dbEvent.event_type || 'americano',
-          sport: dbEvent.sport || 'padel',
-          status: dbEvent.status || 'upcoming'
-        }
+        // Bereinige und transformiere Event für die Datenbank
+        const cleanedEvent = cleanEventData(eventToSave)
+        const dbEvent = transformToDB(cleanedEvent)
         
-        // Entferne die temporäre ID
-        delete insertData.id
-        
-        // Entferne null/undefined Werte
-        Object.keys(insertData).forEach(key => {
-          if (insertData[key] === undefined || insertData[key] === null) {
-            delete insertData[key]
+        if (eventToSave.id.startsWith('temp_')) {
+          // Neues Event - INSERT
+          const insertData = {
+            ...dbEvent,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            format: dbEvent.format || 'doubles',
+            event_type: dbEvent.event_type || 'americano',
+            sport: dbEvent.sport || 'padel',
+            status: dbEvent.status || 'upcoming'
           }
-        })
-        
-        console.log('Insert data (ohne created_by):', JSON.stringify(insertData, null, 2))
-        
-        // Erst Event ohne created_by erstellen
-        const { data, error } = await supabase
-          .from('events')
-          .insert([insertData])
-          .select()
-          .single()
-        
-        if (error) {
-          console.error('Fehler beim Erstellen des Events:', error)
-          alert(`Fehler beim Speichern: ${error.message}`)
-        } else if (data) {
-          console.log('Event erfolgreich erstellt:', data)
           
-          // Nach erfolgreichem Insert - NICHT versuchen created_by zu setzen
-          console.log('Event erfolgreich erstellt ohne created_by')
+          // Entferne die temporäre ID und null/undefined Werte
+          delete insertData.id
+          Object.keys(insertData).forEach(key => {
+            if (insertData[key] === undefined || insertData[key] === null) {
+              delete insertData[key]
+            }
+          })
+          
+          const { data, error } = await supabase
+            .from('events')
+            .insert([insertData])
+            .select()
+            .single()
+          
+          if (error) throw error
           
           // Aktualisiere die temporäre ID mit der echten Supabase ID
           const index = updatedEvents.findIndex(e => e.id === eventToSave.id)
@@ -207,36 +278,43 @@ function AppContent() {
             localStorage.setItem('events', JSON.stringify(updatedEvents))
             setEvents([...updatedEvents])
           }
-        }
-      } else {
-        // Bestehendes Event - UPDATE
-        const updateData = {
-          ...dbEvent,
-          updated_at: new Date().toISOString()
-        }
-        
-        const { error } = await supabase
-          .from('events')
-          .update(updateData)
-          .eq('id', eventToSave.id)
-        
-        if (error) {
-          console.error('Fehler beim Aktualisieren des Events:', error)
-          alert(`Fehler beim Aktualisieren: ${error.message}`)
+          
+          return data
         } else {
-          console.log('Event erfolgreich aktualisiert')
+          // Bestehendes Event - UPDATE
+          const updateData = {
+            ...dbEvent,
+            updated_at: new Date().toISOString()
+          }
+          
+          const { error } = await supabase
+            .from('events')
+            .update(updateData)
+            .eq('id', eventToSave.id)
+          
+          if (error) throw error
+          
+          return true
         }
+      },
+      toast,
+      t,
+      {
+        loadingMessage: eventToSave.id.startsWith('temp_') 
+          ? (t('event.creating') || 'Event wird erstellt...') 
+          : (t('event.updating') || 'Event wird aktualisiert...'),
+        successMessage: eventToSave.id.startsWith('temp_') 
+          ? (t('event.created') || 'Event erfolgreich erstellt') 
+          : (t('event.updated') || 'Event erfolgreich aktualisiert'),
+        retries: 2
       }
-    } catch (error) {
-      console.error('Fehler beim Speichern in Supabase:', error)
-      alert('Die Änderungen wurden lokal gespeichert, konnten aber nicht mit der Datenbank synchronisiert werden.')
-    }
+    )
   }
 
-  const handleCreateEvent = (eventData) => {
+  const handleCreateEvent = async (eventData) => {
     const newEvent = {
       ...eventData,
-      id: `temp_${Date.now()}`, // Temporäre ID
+      id: `temp_${Date.now()}`,
       players: [],
       results: {},
       status: 'upcoming',
@@ -245,57 +323,70 @@ function AppContent() {
     }
     
     const updatedEvents = [...events, newEvent]
-    saveEvents(updatedEvents, newEvent) // Übergebe das spezifische Event
-    setShowEventForm(false)
-    setSelectedEvent(newEvent)
+    const result = await saveEvents(updatedEvents, newEvent)
+    
+    if (result.success) {
+      setShowEventForm(false)
+      setSelectedEvent(newEvent)
+    }
   }
 
   const handleUpdateEvent = async (updatedEvent) => {
     const updatedEvents = events.map(event => 
       event.id === updatedEvent.id ? updatedEvent : event
     )
-    await saveEvents(updatedEvents, updatedEvent) // Übergebe das spezifische Event
-    setSelectedEvent(updatedEvent)
     
-    if (editingEvent) {
-      setEditingEvent(null)
-      setShowEventForm(false)
+    const result = await saveEvents(updatedEvents, updatedEvent)
+    
+    if (result.success) {
+      setSelectedEvent(updatedEvent)
+      
+      if (editingEvent) {
+        setEditingEvent(null)
+        setShowEventForm(false)
+      }
     }
   }
 
   const handleDeleteEvent = async (eventId) => {
     // Zeige Bestätigungsdialog
-    if (!window.confirm(t('messages.confirmDelete'))) {
+    if (!window.confirm(t('messages.confirmDelete') || 'Wirklich löschen?')) {
       return
     }
     
-    // Lösche aus lokalem State
-    const updatedEvents = events.filter(event => event.id !== eventId)
-    setEvents(updatedEvents)
-    localStorage.setItem('events', JSON.stringify(updatedEvents))
-    
-    if (selectedEvent && selectedEvent.id === eventId) {
-      setSelectedEvent(null)
-    }
-    
-    // Versuche aus Supabase zu löschen
-    if (!eventId.startsWith('temp_')) {
-      try {
-        const { error } = await supabase
-          .from('events')
-          .delete()
-          .eq('id', eventId)
+    const result = await withErrorHandling(
+      async () => {
+        // Lösche aus lokalem State
+        const updatedEvents = events.filter(event => event.id !== eventId)
+        setEvents(updatedEvents)
+        localStorage.setItem('events', JSON.stringify(updatedEvents))
         
-        if (error) {
-          console.error('Fehler beim Löschen aus Supabase:', error)
-          alert(`Fehler beim Löschen: ${error.message}`)
-        } else {
-          console.log('Event erfolgreich gelöscht')
+        if (selectedEvent && selectedEvent.id === eventId) {
+          setSelectedEvent(null)
         }
-      } catch (error) {
-        console.error('Fehler beim Löschen:', error)
+        
+        // Versuche aus Supabase zu löschen (nur wenn nicht temp)
+        if (!eventId.startsWith('temp_')) {
+          const { error } = await supabase
+            .from('events')
+            .delete()
+            .eq('id', eventId)
+          
+          if (error) throw error
+        }
+        
+        return true
+      },
+      toast,
+      t,
+      {
+        loadingMessage: t('event.deleting') || 'Event wird gelöscht...',
+        successMessage: t('event.deleted') || 'Event erfolgreich gelöscht',
+        retries: 1
       }
-    }
+    )
+
+    return result.success
   }
 
   const handleSelectEvent = (event) => {
@@ -308,70 +399,95 @@ function AppContent() {
     setShowEventForm(true)
   }
 
-  const handleSelectPlayersFromDatabase = (selectedPlayers) => {
-    if (selectedEvent) {
-      const updatedPlayers = [...(selectedEvent.players || [])]
-      const maxPlayers = selectedEvent.maxPlayers || 16
-      const remainingSlots = maxPlayers - updatedPlayers.length
+  const handleSelectPlayersFromDatabase = async (selectedPlayers) => {
+    if (!selectedEvent) return
+
+    const result = await withErrorHandling(
+      async () => {
+        const updatedPlayers = [...(selectedEvent.players || [])]
+        const maxPlayers = selectedEvent.maxPlayers || 16
+        const remainingSlots = maxPlayers - updatedPlayers.length
+          
+        let addedCount = 0
         
-      // Nur so viele Spieler hinzufügen, wie noch Plätze frei sind
-      let addedCount = 0
-      
-      selectedPlayers.forEach(dbPlayer => {
-        // Stoppe, wenn max erreicht
-        if (addedCount >= remainingSlots) return
-        
-        // Prüfe ob Spieler bereits existiert (nach Name, Email oder Telefon)
-        const alreadyExists = updatedPlayers.some(p => 
-          p.name === dbPlayer.name || 
-          (p.email && p.email === dbPlayer.email) ||
-          (p.phone && p.phone === dbPlayer.phone)
-        )
-        
-        if (!alreadyExists) {
-          const newPlayer = {
-            id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${updatedPlayers.length}`,
-            name: dbPlayer.name,
-            gender: dbPlayer.gender || 'male',
-            skillLevel: dbPlayer.skillLevel || (selectedEvent.sport === 'padel' ? 'B' : 3),
-            skillLevels: dbPlayer.skillLevels || {
-              padel: dbPlayer.padelSkill || 'B',
-              pickleball: dbPlayer.pickleballSkill || 3,
-              spinxball: dbPlayer.spinxballSkill || 3
+        selectedPlayers.forEach(dbPlayer => {
+          if (addedCount >= remainingSlots) return
+          
+          const alreadyExists = updatedPlayers.some(p => 
+            p.name === dbPlayer.name || 
+            (p.email && p.email === dbPlayer.email) ||
+            (p.phone && p.phone === dbPlayer.phone)
+          )
+          
+          if (!alreadyExists) {
+            const newPlayer = {
+              id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${updatedPlayers.length}`,
+              name: dbPlayer.name,
+              gender: dbPlayer.gender || 'male',
+              skillLevel: dbPlayer.skillLevel || (selectedEvent.sport === 'padel' ? 'B' : 3),
+              skillLevels: dbPlayer.skillLevels || {
+                padel: dbPlayer.padelSkill || 'B',
+                pickleball: dbPlayer.pickleballSkill || 3,
+                spinxball: dbPlayer.spinxballSkill || 3
+              }
             }
+            
+            // Füge alle verfügbaren Kontaktdaten hinzu
+            if (dbPlayer.email) newPlayer.email = dbPlayer.email
+            if (dbPlayer.phone) newPlayer.phone = dbPlayer.phone
+            if (dbPlayer.birthday) newPlayer.birthday = dbPlayer.birthday
+            if (dbPlayer.city) newPlayer.city = dbPlayer.city
+            if (dbPlayer.club) newPlayer.club = dbPlayer.club
+            if (dbPlayer.nationality) newPlayer.nationality = dbPlayer.nationality
+            
+            updatedPlayers.push(newPlayer)
+            addedCount++
+          }
+        })
+        
+        // Info über hinzugefügte Spieler
+        if (addedCount > 0) {
+          const updatedEvent = {
+            ...selectedEvent,
+            players: updatedPlayers
           }
           
-          // Füge alle verfügbaren Kontaktdaten hinzu
-          if (dbPlayer.email) newPlayer.email = dbPlayer.email
-          if (dbPlayer.phone) newPlayer.phone = dbPlayer.phone
-          if (dbPlayer.birthday) newPlayer.birthday = dbPlayer.birthday
-          if (dbPlayer.city) newPlayer.city = dbPlayer.city
-          if (dbPlayer.club) newPlayer.club = dbPlayer.club
-          if (dbPlayer.nationality) newPlayer.nationality = dbPlayer.nationality
+          await handleUpdateEvent(updatedEvent)
           
-          updatedPlayers.push(newPlayer)
-          addedCount++
+          if (selectedPlayers.length > remainingSlots) {
+            throw new Error(`Nur ${remainingSlots} von ${selectedPlayers.length} Spielern konnten hinzugefügt werden. Das Event ist auf ${maxPlayers} Spieler begrenzt.`)
+          }
+          
+          return addedCount
+        } else {
+          throw new Error('Keine neuen Spieler hinzugefügt. Alle ausgewählten Spieler sind bereits angemeldet.')
         }
-      })
-      
-      // Warnung anzeigen, wenn nicht alle hinzugefügt werden konnten
-      if (selectedPlayers.length > remainingSlots) {
-        alert(`Es konnten nur ${remainingSlots} von ${selectedPlayers.length} Spielern hinzugefügt werden. Das Event ist auf ${maxPlayers} Spieler begrenzt.`)
+      },
+      toast,
+      t,
+      {
+        loadingMessage: t('player.adding') || 'Spieler werden hinzugefügt...',
+        successMessage: null // Custom success message below
       }
-      
-      const updatedEvent = {
-        ...selectedEvent,
-        players: updatedPlayers
-      }
-      handleUpdateEvent(updatedEvent)
+    )
+
+    if (result.success && result.data > 0) {
+      toast.showSuccess(`${result.data} Spieler erfolgreich hinzugefügt`)
     }
   }
 
   const handleStartTournament = (event) => {
+    // Validierung vor dem Start
+    if (!event.players || event.players.length < 4) {
+      toast.showError(t('tournament.needMorePlayers') || 'Mindestens 4 Spieler benötigt')
+      return
+    }
+    
     setRunningTournament(event)
+    toast.showSuccess(t('tournament.started') || 'Turnier gestartet!')
   }
 
-  const handleTournamentComplete = (results) => {
+  const handleTournamentComplete = async (results) => {
     if (runningTournament) {
       const updatedEvent = {
         ...runningTournament,
@@ -379,13 +495,14 @@ function AppContent() {
         status: 'completed',
         completed_at: new Date().toISOString()
       }
-      handleUpdateEvent(updatedEvent)
+      
+      await handleUpdateEvent(updatedEvent)
       setRunningTournament(null)
+      toast.showSuccess(t('tournament.completed') || 'Turnier erfolgreich abgeschlossen!')
     }
   }
 
   const calculateTotalMinutes = (start, end, breaks = []) => {
-    // Sicherstellen, dass start und end Strings sind
     const startStr = String(start || '00:00')
     const endStr = String(end || '00:00')
     
@@ -394,12 +511,10 @@ function AppContent() {
     
     let totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin)
     
-    // Wenn Endzeit vor Startzeit liegt, nehmen wir an, es geht über Mitternacht
     if (totalMinutes < 0) {
       totalMinutes += 24 * 60
     }
     
-    // Ziehe Pausenzeiten ab
     const breakMinutes = Array.isArray(breaks) 
       ? breaks.reduce((sum, breakItem) => sum + (breakItem.duration || 0), 0)
       : 0
@@ -423,13 +538,11 @@ function AppContent() {
     const playersPerGame = teamFormat === 'single' ? 2 : 4
 
     if (!playMode || playMode === 'simple' || !isAmericano) {
-      // Einfache Berechnung
       const totalPlayerSlots = gamesPerCourt * courts * playersPerGame
       const uniquePlayers = Math.floor(totalPlayerSlots / (minGamesPerPlayer || 3))
       return Math.max(4, Math.min(64, uniquePlayers))
     }
 
-    // Komplexere Berechnung für Americano-Turniere
     const simultaneousGames = courts
     const playersNeeded = simultaneousGames * playersPerGame
     const rotationFactor = gamesPerCourt / (minGamesPerPlayer || 3)
@@ -446,13 +559,10 @@ function AppContent() {
   return (
     <Router>
       <Routes>
-        {/* Öffentliche Anmelde-Route */}
         <Route path="/event/:eventId" element={<EventRegistration />} />
         
-        {/* Haupt-App Route */}
         <Route path="/" element={
           <div className="min-h-screen bg-gray-100">
-            {/* Running Tournament View */}
             {runningTournament && (
               <AmericanoTournament
                 event={runningTournament}
@@ -461,7 +571,6 @@ function AppContent() {
               />
             )}
             
-            {/* Main App View */}
             {!runningTournament && (
               <>
                 {/* Header */}
@@ -469,7 +578,6 @@ function AppContent() {
                   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        {/* Logo */}
                         <div className="flex items-center gap-2">
                           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                             <span className="text-white font-bold text-xl">P2</span>
@@ -479,7 +587,6 @@ function AppContent() {
                       </div>
                       
                       <div className="flex items-center gap-4">
-                        {/* Sprachauswahl */}
                         <LanguageSelector />
                         
                         {/* User Menu */}
@@ -497,7 +604,6 @@ function AppContent() {
                             </svg>
                           </button>
                           
-                          {/* Dropdown Menu */}
                           {showUserMenu && (
                             <>
                               <div 
@@ -529,7 +635,6 @@ function AppContent() {
                           )}
                         </div>
                         
-                        {/* Create Event Button - nur für Turnierdirektoren */}
                         {userProfile?.role === 'tournament_director' && (
                           <button 
                             onClick={() => {
@@ -585,7 +690,6 @@ function AppContent() {
                         ) : selectedEvent ? (
                           <>
                             <div className="space-y-6">
-                              {/* Event Detail Component */}
                               <EventDetail
                                 event={selectedEvent}
                                 onEdit={handleEditEvent}
@@ -594,7 +698,6 @@ function AppContent() {
                                 canManageEvent={userProfile?.role === 'tournament_director'}
                               />
                               
-                              {/* Player Management - only for tournament directors and non-completed events */}
                               {selectedEvent.status !== 'completed' && userProfile?.role === 'tournament_director' && (
                                 <PlayerManagement
                                   event={selectedEvent}
@@ -603,7 +706,6 @@ function AppContent() {
                                 />
                               )}
                               
-                              {/* Results Display - only if results exist */}
                               {selectedEvent.results && Object.keys(selectedEvent.results).length > 0 && (
                                 <ResultsDisplay
                                   results={selectedEvent.results}
@@ -650,12 +752,16 @@ function AppContent() {
   )
 }
 
-// Haupt-App-Komponente mit LanguageProvider
+// Haupt-App-Komponente mit Error Boundary und Toast Provider
 function App() {
   return (
-    <LanguageProvider>
-      <AppContent />
-    </LanguageProvider>
+    <ErrorBoundary>
+      <LanguageProvider>
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
+      </LanguageProvider>
+    </ErrorBoundary>
   )
 }
 

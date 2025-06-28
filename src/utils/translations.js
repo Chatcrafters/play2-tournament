@@ -5,8 +5,15 @@
       title: 'Play2 Tournament',
       loading: 'Lade...',
       noEventsSelected: 'Wählen Sie ein Event aus oder erstellen Sie ein neues',
+      selectEventOrCreate: 'Wählen Sie ein Event aus oder erstellen Sie ein neues',
+      selectEventToView: 'Wählen Sie ein Event aus, um Details zu sehen',
       error: 'Ein Fehler ist aufgetreten',
-      backToOverview: 'Zurück zur Übersicht'
+      backToOverview: 'Zurück zur Übersicht',
+      loadingProfile: 'Profil wird geladen...',
+      loadingEvents: 'Events werden geladen...',
+      offlineMode: 'Offline-Modus: Events werden aus dem lokalen Speicher geladen',
+      saving: 'Speichere...',
+      saved: 'Erfolgreich gespeichert'
     },
     
     // Navigation
@@ -44,7 +51,9 @@
       createAccount: 'Konto erstellen',
       checkEmail: 'Bitte prüfen Sie Ihre E-Mails zur Bestätigung',
       loginSuccess: 'Erfolgreich angemeldet',
-      loading: 'Lade...'
+      loading: 'Lade...',
+      loggingOut: 'Abmeldung...',
+      loggedOut: 'Erfolgreich abgemeldet'
     },
     
     // User Menu
@@ -73,9 +82,12 @@
         single: 'Einzel',
         double: 'Doppel'
       },
+      singles: 'Einzel',
+      doubles: 'Doppel',
       courts: 'Plätze',
       maxPlayers: 'Max. Spieler',
       participationFee: 'Teilnahmegebühr',
+      gameTime: 'Spielzeit',
       status: {
         upcoming: 'Anstehend',
         scheduled: 'Geplant',
@@ -84,7 +96,8 @@
         completed: 'Abgeschlossen',
         cancelled: 'Abgesagt',
         past: 'Vergangen',
-        today: 'Heute'
+        today: 'Heute',
+        unknown: 'Unbekannt'
       },
       playMode: 'Spielmodus',
       noTime: 'Keine Zeit festgelegt',
@@ -98,7 +111,13 @@
       type: {
         americano: 'Americano'
       },
-      playersRegistered: '{{current}} von {{max}} Spielern angemeldet'
+      playersRegistered: '{{current}} von {{max}} Spielern angemeldet',
+      creating: 'Event wird erstellt...',
+      created: 'Event erfolgreich erstellt',
+      updating: 'Event wird aktualisiert...',
+      updated: 'Event erfolgreich aktualisiert',
+      deleting: 'Event wird gelöscht...',
+      deleted: 'Event erfolgreich gelöscht'
     },
     
     // Results
@@ -216,7 +235,7 @@
       roundDurationTooltip: 'Wie lange dauert eine Runde?',
       relaxed: 'Entspannt',
       relaxedDesc: 'Keine Garantien - flexibel spielen',
-      balanced: 'Ausgewogen', 
+      balanced: 'Ausgewogen',
       balancedDesc: 'Garantierte Mindestanzahl an Spielen',
       intensive: 'Intensiv',
       intensiveDesc: 'Maximale Spielzeit für alle',
@@ -263,6 +282,7 @@
       remove: 'Spieler entfernen',
       database: 'Spielerdatenbank',
       selectFromDatabase: 'Aus Datenbank wählen',
+      addFromDatabase: 'Aus Datenbank hinzufügen',
       enterName: 'Name eingeben',
       search: 'Spieler suchen...',
       managePlayer: 'Spieler verwalten',
@@ -274,7 +294,8 @@
       noPlayers: 'Noch keine Spieler hinzugefügt',
       waitingPlayers: 'Pausiere',
       alreadyRegistered: '{{name}} ist bereits angemeldet',
-      demoPlayers: 'Demo-Spieler für {{sport}}'
+      demoPlayers: 'Demo-Spieler für {{sport}}',
+      adding: 'Spieler werden hinzugefügt...'
     },
     
     // Schedule
@@ -315,7 +336,7 @@
       avgUniqueOpponents: 'Ø Gegner',
       chooseScheduleDescription: 'Wählen Sie die Variante mit der besten Fairness-Bewertung',
       ratingExcellent: 'Exzellent',
-      ratingGood: 'Gut', 
+      ratingGood: 'Gut',
       ratingAcceptable: 'Akzeptabel',
       ratingNeedsImprovement: 'Verbesserungswürdig',
       matchError: 'Fehler in Paarung',
@@ -358,7 +379,12 @@
       roundNavigation: 'Runden-Navigation',
       vs: 'vs',
       previous: 'Zurück',
-      next: 'Weiter'
+      next: 'Weiter',
+      needMorePlayers: 'Mindestens 4 Spieler benötigt',
+      readyToStart: 'Bereit zum Starten',
+      started: 'Turnier gestartet!',
+      completed: 'Turnier erfolgreich abgeschlossen!',
+      resultsProcessing: 'Ergebnisse werden verarbeitet...'
     },
     
     // Messages
@@ -384,6 +410,43 @@
       demoPlayerList: 'Dies ist eine Demo-Spielerliste',
       noteEvent: 'Hinweis: Dieses Event ist nur für {{gender}}',
       playerAlreadyRegistered: '{{name}} ist bereits für dieses Event angemeldet'
+    },
+    
+    // Network
+    network: {
+      offline: 'Keine Internetverbindung. Die App arbeitet im Offline-Modus.',
+      backOnline: 'Verbindung wiederhergestellt'
+    },
+    
+    // Errors
+    errors: {
+      network: {
+        title: 'Verbindungsfehler',
+        message: 'Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+        action: 'Erneut versuchen'
+      },
+      auth: {
+        title: 'Anmeldung fehlgeschlagen',
+        message: 'Ihre Anmeldedaten sind ungültig oder abgelaufen.',
+        action: 'Erneut anmelden'
+      },
+      database: {
+        title: 'Speicherfehler',
+        message: 'Die Daten konnten nicht gespeichert werden. Versuchen Sie es erneut.',
+        action: 'Erneut versuchen'
+      },
+      validation: {
+        title: 'Eingabefehler',
+        message: 'Bitte überprüfen Sie Ihre Eingaben.',
+        action: 'Korrigieren'
+      },
+      unknown: {
+        title: 'Unbekannter Fehler',
+        message: 'Ein unerwarteter Fehler ist aufgetreten.',
+        action: 'Erneut versuchen'
+      },
+      localStorage: 'Lokale Daten konnten nicht geladen werden.',
+      localStorageSave: 'Lokale Speicherung fehlgeschlagen.'
     },
     
     // Event Types
@@ -479,7 +542,7 @@
       noValidPlayers: 'Keine gültigen Spieler zum Importieren gefunden',
       errorReadingExcel: 'Fehler beim Lesen der Excel-Datei',
       birthday: 'Geburtstag',
-      city: 'Stadt', 
+      city: 'Stadt',
       country: 'Land',
       nationality: 'Nationalität',
       clubAssociation: 'Verein',
@@ -519,527 +582,6 @@
     }
   },
   
-  // ENGLISH
-  en: {
-    // App
-    app: {
-      title: 'Play2 Tournament',
-      loading: 'Loading...',
-      noEventsSelected: 'Select an event or create a new one',
-      error: 'An error occurred',
-      backToOverview: 'Back to overview'
-    },
-    
-    // Navigation
-    navigation: {
-      home: 'Home',
-      events: 'Events',
-      players: 'Players',
-      settings: 'Settings',
-      logout: 'Logout',
-      edit: 'Edit',
-      delete: 'Delete',
-      close: 'Close',
-      save: 'Save',
-      cancel: 'Cancel',
-      back: 'Back',
-      next: 'Next',
-      finish: 'Finish'
-    },
-    
-    // Auth
-    auth: {
-      login: 'Login',
-      signup: 'Sign Up',
-      email: 'Email',
-      password: 'Password',
-      confirmPassword: 'Confirm Password',
-      forgotPassword: 'Forgot Password?',
-      loginButton: 'Login',
-      signupButton: 'Sign Up',
-      roleSelection: 'I am a...',
-      player: 'Player',
-      tournamentDirector: 'Tournament Director',
-      noAccount: 'Don\'t have an account?',
-      alreadyHaveAccount: 'Already have an account?',
-      createAccount: 'Create Account',
-      checkEmail: 'Please check your email for confirmation',
-      loginSuccess: 'Successfully logged in',
-      loading: 'Loading...'
-    },
-    
-    // User Menu
-    userMenu: {
-      profile: 'Profile',
-      settings: 'Settings',
-      logout: 'Logout',
-      tournamentDirector: 'Tournament Director',
-      player: 'Player'
-    },
-    
-    // Event
-    event: {
-      new: 'New Event',
-      edit: 'Edit Event',
-      title: 'Title',
-      description: 'Description',
-      date: 'Date',
-      time: 'Time',
-      startTime: 'Start Time',
-      endTime: 'End Time',
-      location: 'Location',
-      sport: 'Sport',
-      format: {
-        title: 'Format',
-        single: 'Singles',
-        double: 'Doubles'
-      },
-      courts: 'Courts',
-      maxPlayers: 'Max Players',
-      participationFee: 'Participation Fee',
-      status: {
-        upcoming: 'Upcoming',
-        scheduled: 'Scheduled',
-        draft: 'Draft',
-        running: 'Running',
-        completed: 'Completed',
-        cancelled: 'Cancelled',
-        past: 'Past',
-        today: 'Today'
-      },
-      playMode: 'Play Mode',
-      noTime: 'No time set',
-      startTournament: 'Start Tournament',
-      unnamed: 'Unnamed Event',
-      create: 'Create Event',
-      myEvents: 'My Events',
-      noEvents: 'No events available',
-      noDate: 'No date set',
-      noLocation: 'No location set',
-      type: {
-        americano: 'Americano'
-      },
-      playersRegistered: '{{current}} of {{max}} players registered'
-    },
-    
-    // Results
-    results: {
-      standings: 'Standings',
-      rank: 'Rank',
-      player: 'Player',
-      points: 'Points',
-      gamesWon: 'Games Won',
-      matches: 'Matches',
-      liveStandings: 'Live Standings',
-      finalStandings: 'Final Standings',
-      results: 'Results',
-      score: 'Score',
-      winner: 'Winner',
-      enterResult: 'Enter Result',
-      matchResults: 'Match Results',
-      allResults: 'All Results',
-      gamesPlayed: 'Played',
-      partners: 'Partners',
-      opponents: 'Opponents'
-    },
-    
-    // Table
-    table: {
-      hide: 'Hide table',
-      show: 'Show table',
-      hiddenByDirector: 'The table has been hidden by the tournament director.'
-    },
-    
-    // Event Form
-    form: {
-      createEvent: 'Create Event',
-      editEvent: 'Edit Event',
-      basicInfo: 'Basic Information',
-      eventDetails: 'Event Details',
-      gameSettings: 'Game Settings',
-      registration: 'Registration',
-      eventTitle: 'Event Title',
-      eventDescription: 'Description',
-      eventDate: 'Date',
-      eventLocation: 'Location',
-      eventSport: 'Sport',
-      eventFormat: 'Format',
-      numberOfCourts: 'Number of Courts',
-      price: 'Participation Fee',
-      timeSettings: 'Time Settings',
-      startTime: 'Start Time',
-      endTime: 'End Time',
-      addBreak: 'Add Break',
-      breakTime: 'Break Time',
-      breakDuration: 'Break Duration',
-      minutes: 'Minutes',
-      removeBreak: 'Remove Break',
-      totalTime: 'Total Time',
-      playerSettings: 'Player Settings',
-      maxPlayers: 'Maximum Players',
-      averageGameTime: 'Average Game Time',
-      minGamesPerPlayer: 'Minimum Games per Player',
-      registrationSettings: 'Registration Settings',
-      registrationDeadline: 'Registration Deadline',
-      allowPublicRegistration: 'Allow Public Registration',
-      genderRestriction: 'Gender Restriction',
-      openToAll: 'Open to All',
-      menOnly: 'Men Only',
-      womenOnly: 'Women Only',
-      updateEvent: 'Update Event',
-      cancel: 'Cancel',
-      steps: {
-        basics: 'Basic Info',
-        timeLocation: 'Time & Location',
-        playMode: 'Play Mode',
-        players: 'Players',
-        details: 'Details'
-      },
-      visibility: 'Visibility',
-      makePublic: 'Make Public',
-      publicDesc: 'Anyone can see and register for this event',
-      enableRegistration: 'Enable Registration',
-      registrationDesc: 'Players can register themselves',
-      summary: 'Summary',
-      date: 'Date',
-      time: 'Time',
-      location: 'Location',
-      min: 'min',
-      public: 'Public',
-      private: 'Private',
-      roundDuration: 'Round Duration',
-      playTimePerPerson: 'Play Time per Person',
-      quickTemplates: 'Quick Templates',
-      selectTemplate: 'Select Template',
-      americano: 'Americano',
-      americanoDesc: 'Players change partners each round',
-      tournament: 'Tournament',
-      tournamentDesc: 'Classic tournament format',
-      league: 'League',
-      leagueDesc: 'League format with multiple match days',
-      eventBasics: 'Event Basics',
-      eventName: 'Event Name',
-      sport: 'Sport',
-      entryFee: 'Entry Fee',
-      required: 'Required',
-      eventType: 'Event Type',
-      americanoTooltip: 'In Americano format, players change partners each round',
-      selectSportTooltip: 'Select the sport for this event',
-      eventDescriptionPlaceholder: 'Describe your event...',
-      when: 'When',
-      courtsTooltip: 'Number of available courts',
-      timeOverview: 'Time Overview',
-      breaks: 'Breaks',
-      netPlayTime: 'Net Play Time',
-      possibleRounds: 'Possible Rounds',
-      contactPhone: 'Contact Phone',
-      howToPlay: 'How to Play',
-      roundDurationTooltip: 'How long does a round last?',
-      relaxed: 'Relaxed',
-      relaxedDesc: 'No guarantees - play flexibly',
-      balanced: 'Balanced',
-      balancedDesc: 'Guaranteed minimum number of games',
-      intensive: 'Intensive',
-      intensiveDesc: 'Maximum play time for everyone',
-      advancedSettings: 'Advanced Settings',
-      guaranteeGames: 'Guarantee minimum games',
-      guaranteeTime: 'Guarantee minimum play time',
-      minPlayTime: 'Minimum Play Time',
-      pauseName: 'Break Name',
-      lunchBreak: 'Lunch Break',
-      coffeBreak: 'Coffee Break',
-      recommendations: 'Recommendations',
-      optimal: 'Optimal',
-      optimalDesc: 'Best balance between play and break times',
-      adopt: 'Adopt',
-      maximum: 'Maximum',
-      withGuarantees: 'With Guarantees',
-      atLeast4Players: 'At least 4 players required',
-      warning: 'Warning',
-      guaranteeWarning: 'With {{players}} players, guarantees may not be met',
-      recommendedMax: 'Recommended Maximum',
-      preview: 'Preview with',
-      gamesPerPerson: 'Games per Person',
-      breakTime: 'Break Time',
-      utilization: 'Utilization',
-      additionalInfo: 'Additional Information',
-      noName: 'No Name',
-      notSpecified: 'Not Specified',
-      saveChanges: 'Save Changes',
-      proceedAnyway: 'Proceed anyway?'
-    },
-    
-    // Player
-    player: {
-      players: 'Players',
-      name: 'Name',
-      gender: 'Gender',
-      male: 'Male',
-      female: 'Female',
-      skill: 'Skill Level',
-      email: 'Email',
-      phone: 'Phone',
-      add: 'Add Player',
-      edit: 'Edit Player',
-      remove: 'Remove Player',
-      database: 'Player Database',
-      selectFromDatabase: 'Select from Database',
-      enterName: 'Enter name',
-      search: 'Search players...',
-      managePlayer: 'Manage Players',
-      fromDatabase: 'From Database',
-      level: 'Level',
-      addPlayer: 'Add Player',
-      details: 'Details for',
-      skillLevel: 'Skill Level',
-      noPlayers: 'No players added yet',
-      waitingPlayers: 'Waiting',
-      alreadyRegistered: '{{name}} is already registered',
-      demoPlayers: 'Demo players for {{sport}}'
-    },
-    
-    // Schedule
-    schedule: {
-      schedule: 'Schedule',
-      generateSchedule: 'Generate Schedule',
-      round: 'Round',
-      court: 'Court',
-      match: 'Match',
-      waitingPlayers: 'Waiting Players',
-      scheduled: '{{rounds}} rounds scheduled',
-      chooseSchedule: 'Choose Schedule',
-      scheduleVariants: 'Choose one of three generated variants for optimal mixing:',
-      variant: 'Variant',
-      overallFairness: 'Overall Fairness',
-      partnerVariety: 'Partner Variety',
-      opponentVariety: 'Opponent Variety',
-      maxPartnerRepeat: 'Max Partner Repeat',
-      maxPartnerRepeats: 'Max Partner Repeats',
-      gameBalance: 'Game Balance',
-      firstRounds: 'First Rounds',
-      moreMatches: 'more matches',
-      selectVariant: 'Select This Variant',
-      fairnessRating: 'Fairness Rating',
-      excellent: 'Excellent',
-      good: 'Good',
-      acceptable: 'Acceptable',
-      needsImprovement: 'Needs Improvement',
-      fairness: 'Fairness',
-      regenerate: 'Regenerate',
-      rounds: 'Rounds',
-      courts: 'Courts',
-      showRealTimeTable: 'Show Live Table',
-      tableOnlyWhenComplete: 'Table will only be shown after tournament ends',
-      scheduleAndResults: 'Schedule & Results',
-      avgFairness: 'Avg Fairness',
-      avgUniquePartners: 'Avg Partners',
-      avgUniqueOpponents: 'Avg Opponents',
-      chooseScheduleDescription: 'Choose the variant with the best fairness rating',
-      ratingExcellent: 'Excellent',
-      ratingGood: 'Good',
-      ratingAcceptable: 'Acceptable',
-      ratingNeedsImprovement: 'Needs Improvement',
-      matchError: 'Error in pairing',
-      fairnessScoreExplanation: 'The fairness rating shows how well players were mixed',
-      fairnessExcellent: 'Excellent mixing',
-      fairnessGood: 'Good mixing',
-      fairnessAverage: 'Average mixing',
-      fairnessLowVariation: 'Low variation'
-    },
-    
-    // Timer
-    timer: {
-      timer: 'Timer',
-      start: 'Start',
-      pause: 'Pause',
-      resume: 'Resume',
-      stop: 'Stop',
-      reset: 'Reset',
-      roundTime: 'Round Time',
-      roundTimer: 'Round Timer'
-    },
-    
-    // Tournament
-    tournament: {
-      running: 'Tournament Running',
-      currentRound: 'Current Round',
-      standings: 'Standings',
-      liveStandings: 'Live Standings',
-      position: 'Position',
-      points: 'Points',
-      games: 'Games',
-      gamesWon: 'Won',
-      completeTournament: 'Complete Tournament',
-      cancelTournament: 'Cancel Tournament',
-      allMatchesComplete: 'All Matches Complete',
-      nextRound: 'Next Round',
-      previousRound: 'Previous Round',
-      currentGames: 'Current Games',
-      waitingPlayers: 'Waiting Players',
-      roundNavigation: 'Round Navigation',
-      vs: 'vs',
-      previous: 'Back',
-      next: 'Next'
-    },
-    
-    // Messages
-    messages: {
-      confirmDelete: 'Are you sure you want to delete this event?',
-      minPlayersForSchedule: 'At least 4 players required for schedule generation',
-      tournamentComplete: 'Tournament completed!',
-      eventDatePast: 'Event date is in the past',
-      minPlayersNeeded: '{{count}} more players needed',
-      waitingForSchedule: 'Waiting for schedule generation by tournament director',
-      saveSuccess: 'Successfully saved',
-      deleteSuccess: 'Successfully deleted',
-      error: 'An error occurred',
-      tournamentManagement: 'Tournament Management',
-      currentGames: 'Current Games',
-      tableSettings: 'Table Settings',
-      errorGeneratingSchedule: 'Error generating schedule',
-      minPlayersRequired: 'At least 4 players required',
-      eventNotLoaded: 'Event could not be loaded',
-      enterBothScores: 'Please enter both scores',
-      eventFull: 'Event is full',
-      note: 'Note',
-      demoPlayerList: 'This is a demo player list',
-      noteEvent: 'Note: This event is for {{gender}} only',
-      playerAlreadyRegistered: '{{name}} is already registered for this event'
-    },
-    
-    // Event Types
-    eventTypes: {
-      americano: 'Americano',
-      roundRobin: 'Round Robin',
-      swiss: 'Swiss System',
-      knockout: 'Knockout'
-    },
-    
-    // Sports
-    sports: {
-      padel: 'Padel',
-      pickleball: 'Pickleball',
-      spinxball: 'SpinXball'
-    },
-    
-    // Buttons
-    buttons: {
-      add: 'Add',
-      remove: 'Remove',
-      edit: 'Edit',
-      save: 'Save',
-      cancel: 'Cancel',
-      delete: 'Delete',
-      close: 'Close',
-      confirm: 'Confirm',
-      back: 'Back',
-      next: 'Next',
-      finish: 'Finish',
-      create: 'Create',
-      update: 'Update',
-      search: 'Search',
-      filter: 'Filter',
-      export: 'Export',
-      import: 'Import',
-      print: 'Print',
-      share: 'Share',
-      refresh: 'Refresh',
-      selectVariant: 'Select Variant'
-    },
-    
-    // Player Database
-    database: {
-      title: 'Player Database',
-      playerDatabase: 'Player Database',
-      selectPlayers: 'Select Players',
-      importExcel: 'Import Excel',
-      exportExcel: 'Export Excel',
-      addDemoPlayers: 'Add Demo Players',
-      search: 'Search by name or email...',
-      selected: '{{count}} selected',
-      noPlayers: 'No players in database',
-      importSuccess: '{{count}} players imported',
-      exportSuccess: 'Players exported',
-      columns: {
-        name: 'Name',
-        email: 'Email',
-        phone: 'Phone',
-        gender: 'Gender',
-        skillPadel: 'Padel',
-        skillPickleball: 'Pickleball',
-        skillSpinxball: 'SpinXball'
-      },
-      showOnlyFor: 'Show only players for {{sport}}',
-      men: 'Men',
-      women: 'Women',
-      newPlayer: 'New Player',
-      excelImport: 'Excel Import',
-      templateAndInstructions: 'Template & Instructions',
-      allAvailable: 'All available',
-      selectAll: 'select all',
-      deselectAll: 'deselect all',
-      playersFound: '{{count}} players found, {{available}} available',
-      edit: 'Edit',
-      delete: 'Delete',
-      age: 'years',
-      close: 'Close',
-      importPlayers: 'Import {{count}} Players',
-      playersSelected: '{{count}} players selected',
-      cleanDuplicates: 'Clean Duplicates',
-      loadingPlayers: 'Loading players...',
-      errorLoading: 'Error loading players',
-      errorSaving: 'Error saving',
-      confirmDeletePlayer: 'Are you sure you want to delete this player?',
-      alreadyRegistered: 'already registered',
-      atLeastOneSport: 'At least one sport must be selected',
-      duplicateExists: '{{name}} already exists. Add anyway?',
-      importCompleted: 'Import completed',
-      newImported: 'new players imported',
-      skipped: 'skipped (already exist)',
-      errors: 'errors',
-      noValidPlayers: 'No valid players found to import',
-      errorReadingExcel: 'Error reading Excel file',
-      birthday: 'Birthday',
-      city: 'City',
-      country: 'Country',
-      nationality: 'Nationality',
-      clubAssociation: 'Club',
-      duprIdOptional: 'DUPR ID (optional)',
-      optional: 'optional',
-      duprDescription: 'Dynamic Universal Pickleball Rating ID',
-      sports: 'Sports',
-      editPlayer: 'Edit Player',
-      addPlayer: 'Add Player',
-      saveChanges: 'Save Changes',
-      noDuplicatesFound: 'No duplicates found',
-      foundDuplicates: 'Following duplicates found',
-      totalDuplicates: 'Total {{count}} duplicates',
-      confirmDeleteDuplicates: 'Do you want to delete the duplicates?',
-      duplicatesDeleted: '{{count}} duplicates deleted',
-      errorCleaning: 'Error cleaning duplicates',
-      noMatchingPlayers: 'No matching players found for this event',
-      noPlayersFound: 'No players found'
-    },
-    
-    // Player Management
-    playerManagement: {
-      beginner: 'Beginner',
-      advancedBeginner: 'Advanced Beginner',
-      lowerIntermediate: 'Lower Intermediate',
-      goodIntermediate: 'Good Intermediate',
-      upperIntermediate: 'Upper Intermediate',
-      advancedPro: 'Advanced/Pro',
-      advanced: 'Advanced',
-      good: 'Good',
-      veryGood: 'Very Good',
-      expert: 'Expert',
-      menOnly: 'Men Only',
-      womenOnly: 'Women Only',
-      menEventNote: 'Note: This is a men\'s event',
-      womenEventNote: 'Note: This is a women\'s event'
-    }
-  },
-  
   // SPANISH
   es: {
     // App
@@ -1047,8 +589,15 @@
       title: 'Play2 Tournament',
       loading: 'Cargando...',
       noEventsSelected: 'Selecciona un evento o crea uno nuevo',
+      selectEventOrCreate: 'Selecciona un evento o crea uno nuevo',
+      selectEventToView: 'Selecciona un evento para ver los detalles',
       error: 'Ha ocurrido un error',
-      backToOverview: 'Volver al resumen'
+      backToOverview: 'Volver al resumen',
+      loadingProfile: 'Cargando perfil...',
+      loadingEvents: 'Cargando eventos...',
+      offlineMode: 'Modo sin conexión: Eventos cargados desde almacenamiento local',
+      saving: 'Guardando...',
+      saved: 'Guardado exitosamente'
     },
     
     // Navigation
@@ -1086,7 +635,9 @@
       createAccount: 'Crear cuenta',
       checkEmail: 'Por favor revisa tu correo para confirmar',
       loginSuccess: 'Sesión iniciada correctamente',
-      loading: 'Cargando...'
+      loading: 'Cargando...',
+      loggingOut: 'Cerrando sesión...',
+      loggedOut: 'Sesión cerrada correctamente'
     },
     
     // User Menu
@@ -1115,9 +666,12 @@
         single: 'Individual',
         double: 'Dobles'
       },
+      singles: 'Individual',
+      doubles: 'Dobles',
       courts: 'Pistas',
       maxPlayers: 'Máx. jugadores',
       participationFee: 'Cuota de participación',
+      gameTime: 'Tiempo de juego',
       status: {
         upcoming: 'Próximo',
         scheduled: 'Programado',
@@ -1126,7 +680,8 @@
         completed: 'Completado',
         cancelled: 'Cancelado',
         past: 'Pasado',
-        today: 'Hoy'
+        today: 'Hoy',
+        unknown: 'Desconocido'
       },
       playMode: 'Modo de juego',
       noTime: 'Sin hora establecida',
@@ -1140,7 +695,13 @@
       type: {
         americano: 'Americano'
       },
-      playersRegistered: '{{current}} de {{max}} jugadores registrados'
+      playersRegistered: '{{current}} de {{max}} jugadores registrados',
+      creating: 'Creando evento...',
+      created: 'Evento creado exitosamente',
+      updating: 'Actualizando evento...',
+      updated: 'Evento actualizado exitosamente',
+      deleting: 'Eliminando evento...',
+      deleted: 'Evento eliminado exitosamente'
     },
     
     // Results
@@ -1305,6 +866,7 @@
       remove: 'Eliminar jugador',
       database: 'Base de datos de jugadores',
       selectFromDatabase: 'Seleccionar de base de datos',
+      addFromDatabase: 'Desde base de datos',
       enterName: 'Introducir nombre',
       search: 'Buscar jugadores...',
       managePlayer: 'Gestionar jugadores',
@@ -1316,57 +878,58 @@
       noPlayers: 'Aún no se han añadido jugadores',
       waitingPlayers: 'Esperando',
       alreadyRegistered: '{{name}} ya está registrado',
-      demoPlayers: 'Jugadores de demostración para {{sport}}'
+      demoPlayers: 'Jugadores de demostración para {{sport}}',
+      adding: 'Añadiendo jugadores...'
     },
     
     // Schedule
-schedule: {
-  schedule: 'Calendario',
-  generateSchedule: 'Generar calendario',
-  round: 'Ronda',
-  court: 'Pista',
-  match: 'Partido',
-  waitingPlayers: 'Jugadores esperando',
-  scheduled: '{{rounds}} rondas programadas',
-  chooseSchedule: 'Elegir calendario',
-  scheduleVariants: 'Elige una de las tres variantes generadas para una mezcla óptima:',
-  variant: 'Variante',
-  overallFairness: 'Equidad general',
-  partnerVariety: 'Variedad de parejas',
-  opponentVariety: 'Variedad de oponentes',
-  maxPartnerRepeat: 'Máx. repetición pareja',
-  maxPartnerRepeats: 'Máx. repeticiones pareja',
-  gameBalance: 'Balance de juegos',
-  firstRounds: 'Primeras rondas',
-  moreMatches: 'más partidos',  // <-- Hier fehlte das Komma
-  selectVariant: 'Seleccionar esta variante',
-  fairnessRating: 'Calificación de equidad',
-  excellent: 'Excelente',
-  good: 'Bueno',
-  acceptable: 'Aceptable',
-  needsImprovement: 'Necesita mejora',
-  fairness: 'Equidad',
-  regenerate: 'Regenerar',
-  rounds: 'Rondas',
-  courts: 'Pistas',
-  showRealTimeTable: 'Mostrar tabla en vivo',
-  tableOnlyWhenComplete: 'La tabla solo se mostrará al finalizar el torneo',
-  scheduleAndResults: 'Calendario y resultados',
-  avgFairness: 'Equidad prom.',
-  avgUniquePartners: 'Parejas prom.',
-  avgUniqueOpponents: 'Oponentes prom.',
-  chooseScheduleDescription: 'Elige la variante con la mejor calificación de equidad',
-  ratingExcellent: 'Excelente',
-  ratingGood: 'Bueno',
-  ratingAcceptable: 'Aceptable',
-  ratingNeedsImprovement: 'Necesita mejora',
-  matchError: 'Error en emparejamiento',
-  fairnessScoreExplanation: 'La calificación de equidad muestra qué tan bien se mezclaron los jugadores',
-  fairnessExcellent: 'Excelente mezcla',
-  fairnessGood: 'Buena mezcla',
-  fairnessAverage: 'Mezcla promedio',
-  fairnessLowVariation: 'Poca variación'
-},
+    schedule: {
+      schedule: 'Calendario',
+      generateSchedule: 'Generar calendario',
+      round: 'Ronda',
+      court: 'Pista',
+      match: 'Partido',
+      waitingPlayers: 'Jugadores esperando',
+      scheduled: '{{rounds}} rondas programadas',
+      chooseSchedule: 'Elegir calendario',
+      scheduleVariants: 'Elige una de las tres variantes generadas para una mezcla óptima:',
+      variant: 'Variante',
+      overallFairness: 'Equidad general',
+      partnerVariety: 'Variedad de parejas',
+      opponentVariety: 'Variedad de oponentes',
+      maxPartnerRepeat: 'Máx. repetición pareja',
+      maxPartnerRepeats: 'Máx. repeticiones pareja',
+      gameBalance: 'Balance de juegos',
+      firstRounds: 'Primeras rondas',
+      moreMatches: 'más partidos',
+      selectVariant: 'Seleccionar esta variante',
+      fairnessRating: 'Calificación de equidad',
+      excellent: 'Excelente',
+      good: 'Bueno',
+      acceptable: 'Aceptable',
+      needsImprovement: 'Necesita mejora',
+      fairness: 'Equidad',
+      regenerate: 'Regenerar',
+      rounds: 'Rondas',
+      courts: 'Pistas',
+      showRealTimeTable: 'Mostrar tabla en vivo',
+      tableOnlyWhenComplete: 'La tabla solo se mostrará al finalizar el torneo',
+      scheduleAndResults: 'Calendario y resultados',
+      avgFairness: 'Equidad prom.',
+      avgUniquePartners: 'Parejas prom.',
+      avgUniqueOpponents: 'Oponentes prom.',
+      chooseScheduleDescription: 'Elige la variante con la mejor calificación de equidad',
+      ratingExcellent: 'Excelente',
+      ratingGood: 'Bueno',
+      ratingAcceptable: 'Aceptable',
+      ratingNeedsImprovement: 'Necesita mejora',
+      matchError: 'Error en emparejamiento',
+      fairnessScoreExplanation: 'La calificación de equidad muestra qué tan bien se mezclaron los jugadores',
+      fairnessExcellent: 'Excelente mezcla',
+      fairnessGood: 'Buena mezcla',
+      fairnessAverage: 'Mezcla promedio',
+      fairnessLowVariation: 'Poca variación'
+    },
     
     // Timer
     timer: {
@@ -1400,7 +963,12 @@ schedule: {
       roundNavigation: 'Navegación de rondas',
       vs: 'vs',
       previous: 'Atrás',
-      next: 'Siguiente'
+      next: 'Siguiente',
+      needMorePlayers: 'Se necesitan al menos 4 jugadores',
+      readyToStart: 'Listo para empezar',
+      started: '¡Torneo iniciado!',
+      completed: '¡Torneo completado exitosamente!',
+      resultsProcessing: 'Procesando resultados...'
     },
     
     // Messages
@@ -1426,6 +994,43 @@ schedule: {
       demoPlayerList: 'Esta es una lista de jugadores de demostración',
       noteEvent: 'Nota: Este evento es solo para {{gender}}',
       playerAlreadyRegistered: '{{name}} ya está registrado para este evento'
+    },
+    
+    // Network
+    network: {
+      offline: 'Sin conexión a internet. La aplicación funciona en modo sin conexión.',
+      backOnline: 'Conexión restaurada'
+    },
+    
+    // Errors
+    errors: {
+      network: {
+        title: 'Error de conexión',
+        message: 'Por favor revisa tu conexión a internet e inténtalo de nuevo.',
+        action: 'Reintentar'
+      },
+      auth: {
+        title: 'Error de autenticación',
+        message: 'Tus credenciales son inválidas o han expirado.',
+        action: 'Iniciar sesión nuevamente'
+      },
+      database: {
+        title: 'Error de almacenamiento',
+        message: 'Los datos no pudieron guardarse. Inténtalo de nuevo.',
+        action: 'Reintentar'
+      },
+      validation: {
+        title: 'Error de validación',
+        message: 'Por favor revisa tus datos.',
+        action: 'Corregir'
+      },
+      unknown: {
+        title: 'Error desconocido',
+        message: 'Ha ocurrido un error inesperado.',
+        action: 'Reintentar'
+      },
+      localStorage: 'No se pudieron cargar los datos locales.',
+      localStorageSave: 'Error al guardar localmente.'
     },
     
     // Event Types
@@ -1572,5 +1177,3 @@ export const interpolate = (str, params) => {
   })
   return result
 }
-
-      

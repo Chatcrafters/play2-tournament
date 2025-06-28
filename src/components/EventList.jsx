@@ -14,76 +14,125 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
     hasOnDeleteEvent: !!onDeleteEvent 
   });
   
+  // ROBUSTE DATUM-STATUS LOGIC - BUG FIX
   const getEventStatus = (event) => {
     if (event.status === 'completed') return t('event.status.completed')
     if (event.status === 'running') return t('event.status.running')
     
+    // Aktuelles Datum (lokale Zeitzone)
     const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()) // Heute 00:00:00
     
-    // Parse das Datum korrekt - als lokale Zeit
+    // Event-Datum parsen (lokale Zeitzone, NICHT UTC!)
     let eventDate
-    if (event.date && event.date.includes('T')) {
-      // Bereits im ISO Format
-      eventDate = new Date(event.date)
-    } else if (event.date) {
-      // Nur Datum ohne Zeit - füge lokale Mitternacht hinzu
-      const [year, month, day] = event.date.split('-')
-      eventDate = new Date(year, month - 1, day) // month - 1 weil JS Monate 0-basiert sind
-    } else {
-      eventDate = new Date()
+    try {
+      if (event.date) {
+        if (event.date.includes('T')) {
+          // ISO Format mit Zeit - nur Datum extrahieren
+          eventDate = new Date(event.date.split('T')[0] + 'T00:00:00')
+        } else if (event.date.includes('-')) {
+          // YYYY-MM-DD Format
+          const [year, month, day] = event.date.split('-').map(Number)
+          eventDate = new Date(year, month - 1, day) // month-1 weil JS 0-basiert
+        } else {
+          console.warn('Unbekanntes Datumsformat:', event.date)
+          eventDate = new Date(event.date)
+        }
+      } else {
+        console.warn('Event hat kein Datum:', event)
+        return t('event.status.unknown') || 'Unbekannt'
+      }
+    } catch (error) {
+      console.error('Fehler beim Parsen des Event-Datums:', error, event.date)
+      return t('event.status.unknown') || 'Unbekannt'
     }
     
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    // Datum auf Mitternacht setzen für korrekten Vergleich
+    const eventDateMidnight = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate())
     
-    const eventDateMidnight = new Date(eventDate)
-    eventDateMidnight.setHours(0, 0, 0, 0)
+    console.log('Event:', event.name, {
+      originalDate: event.date,
+      parsedDate: eventDate,
+      eventDateMidnight: eventDateMidnight,
+      today: today,
+      comparison: eventDateMidnight.getTime() - today.getTime()
+    })
     
-    // Event ist in der Vergangenheit (anderer Tag)
-    if (eventDateMidnight < today) {
+    // Datum-Vergleich (nur Tage, keine Zeit)
+    const daysDifference = Math.floor((eventDateMidnight.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (daysDifference < 0) {
+      // Event war an einem vergangenen Tag
       return t('event.status.past')
-    }
-    
-    // Event ist heute
-    if (eventDateMidnight.getTime() === today.getTime()) {
-      // Prüfe ob das Event schon vorbei ist basierend auf der Endzeit
+    } else if (daysDifference === 0) {
+      // Event ist heute - prüfe zusätzlich die Endzeit
       if (event.endTime || event.end_time) {
-        const endTime = event.endTime || event.end_time
-        const [endHour, endMinute] = endTime.split(':').map(Number)
-        
-        // Erstelle End-DateTime basierend auf dem geparsten eventDate
-        const eventEndDateTime = new Date(eventDate)
-        eventEndDateTime.setHours(endHour, endMinute, 0, 0)
-        
-        // Nur als "past" markieren wenn die Endzeit vorbei ist
-        if (now > eventEndDateTime) {
-          return t('event.status.past')
+        try {
+          const endTime = event.endTime || event.end_time
+          const [endHour, endMinute] = endTime.split(':').map(Number)
+          
+          // Event-Ende-DateTime für heute
+          const eventEndDateTime = new Date()
+          eventEndDateTime.setHours(endHour, endMinute, 0, 0)
+          
+          // Nur als "past" markieren wenn SOWOHL Datum vergangen UND Endzeit vorbei
+          if (now > eventEndDateTime) {
+            return t('event.status.past')
+          }
+        } catch (timeError) {
+          console.warn('Fehler beim Parsen der Endzeit:', timeError, event.endTime || event.end_time)
+          // Bei Zeit-Parsing-Fehlern: Event als "heute" behandeln
         }
       }
+      
       return t('event.status.today')
+    } else {
+      // Event ist in der Zukunft
+      return t('event.status.upcoming')
     }
-    
-    // Event ist in der Zukunft
-    return t('event.status.upcoming')
   }
 
   const getStatusColor = (status) => {
-    const statusKey = Object.keys(t('event.status')).find(
-      key => t(`event.status.${key}`) === status
-    )
-    
-    switch (statusKey) {
-      case 'completed': return 'text-gray-500'
-      case 'running': return 'text-green-600'
-      case 'today': return 'text-blue-600'
-      case 'past': return 'text-red-600'
-      default: return 'text-gray-700'
+    // Verbesserter Status-Color-Mapping
+    const statusMappings = {
+      // Deutsch
+      'Abgeschlossen': 'text-gray-500',
+      'Laufend': 'text-green-600', 
+      'Heute': 'text-blue-600',
+      'Vergangen': 'text-red-600',
+      'Geplant': 'text-gray-700',
+      'Unbekannt': 'text-gray-400',
+      
+      // Spanisch
+      'Completado': 'text-gray-500',
+      'En curso': 'text-green-600',
+      'Hoy': 'text-blue-600', 
+      'Pasado': 'text-red-600',
+      'Próximo': 'text-gray-700',
+      'Desconocido': 'text-gray-400',
+      
+      // Englisch (Fallback)
+      'Completed': 'text-gray-500',
+      'Running': 'text-green-600',
+      'Today': 'text-blue-600',
+      'Past': 'text-red-600',
+      'Upcoming': 'text-gray-700',
+      'Unknown': 'text-gray-400'
     }
+    
+    return statusMappings[status] || 'text-gray-700'
   }
 
   const sortedEvents = [...events].sort((a, b) => {
     // Sortiere nach Datum (neueste zuerst)
-    return new Date(b.date) - new Date(a.date)
+    try {
+      const dateA = new Date(a.date)
+      const dateB = new Date(b.date)
+      return dateB.getTime() - dateA.getTime()
+    } catch (error) {
+      console.warn('Fehler beim Sortieren der Events:', error)
+      return 0
+    }
   })
 
   // Event Selection Handler
@@ -132,6 +181,37 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
     }
   };
 
+  // Verbessertes Datum-Rendering
+  const formatEventDate = (dateString) => {
+    try {
+      if (!dateString) return 'Kein Datum'
+      
+      let date
+      if (dateString.includes('T')) {
+        date = new Date(dateString.split('T')[0])
+      } else {
+        date = new Date(dateString)
+      }
+      
+      // Prüfe ob Datum gültig ist
+      if (isNaN(date.getTime())) {
+        console.warn('Ungültiges Datum:', dateString)
+        return dateString // Fallback: Original-String anzeigen
+      }
+      
+      // Formatiere Datum lokalisiert
+      return date.toLocaleDateString('de-DE', {
+        weekday: 'short',
+        year: 'numeric', 
+        month: 'short',
+        day: 'numeric'
+      })
+    } catch (error) {
+      console.error('Fehler beim Formatieren des Datums:', error, dateString)
+      return dateString || 'Ungültiges Datum'
+    }
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-bold mb-4">{t('event.myEvents')}</h2>
@@ -145,6 +225,8 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
           {sortedEvents.map(event => {
             const status = getEventStatus(event)
             const isSelected = selectedEvent?.id === event.id
+            
+            console.log('Rendering event:', event.name, 'Status:', status) // Debug
             
             return (
               <div
@@ -190,7 +272,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
                 <div className="text-sm text-gray-600 space-y-1">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    <span>{new Date(event.date).toLocaleDateString()}</span>
+                    <span>{formatEventDate(event.date)}</span>
                   </div>
                   
                   <div className="flex items-center gap-2">
@@ -242,7 +324,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
                       style={{ touchAction: 'manipulation' }}
                     >
                       {t('navigation.delete')}
-                    </button>
+                    </span>
                   )}
                 </div>
               </div>
