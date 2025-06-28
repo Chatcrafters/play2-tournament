@@ -266,24 +266,24 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
                   <h3 className="font-semibold text-lg">{event.title || event.name || 'Unbenanntes Event'}</h3>
                   <span className={`text-sm font-medium ${getStatusColor(status)}`}>
                     {status}
-                  </span>
+                  </button>
                 </div>
                 
                 <div className="text-sm text-gray-600 space-y-1">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    <span>{formatEventDate(event.date)}</span>
+                    <span>{formatEventDate(event.date)}</button>
                   </div>
                   
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    <span>{event.startTime || event.start_time} - {event.endTime || event.end_time}</span>
+                    <span>{event.startTime || event.start_time} - {event.endTime || event.end_time}</button>
                   </div>
                   
                   {event.location && (
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
-                      <span>{event.location}</span>
+                      <span>{event.location}</button>
                     </div>
                   )}
                   
@@ -291,7 +291,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
                     <Users className="w-4 h-4" />
                     <span>
                       {event.players?.length || 0} / {event.maxPlayers || event.max_players || 16} {t('player.players')}
-                    </span>
+                    </button>
                   </div>
                 </div>
                 
@@ -301,16 +301,16 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
                       {event.sport === 'padel' ? t('sports.padel') : 
                        event.sport === 'pickleball' ? t('sports.pickleball') : 
                        t('sports.spinxball')}
-                    </span>
+                    </button>
                     {(event.isAmericano || event.event_type === 'americano' || event.eventType === 'americano') && (
                       <span className="text-xs bg-purple-200 px-2 py-1 rounded">
                         {t('eventTypes.americano')}
-                      </span>
+                      </button>
                     )}
                     {event.genderMode && event.genderMode !== 'open' && event.genderMode !== 'mixed' && (
                       <span className="text-xs bg-pink-200 px-2 py-1 rounded">
                         {event.genderMode === 'men' || event.genderMode === 'menOnly' ? t('player.male') : t('player.female')}
-                      </span>
+                      </button>
                     )}
                   </div>
                   
@@ -324,7 +324,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
                       style={{ touchAction: 'manipulation' }}
                     >
                       {t('navigation.delete')}
-                    </span>
+                    </button>
                   )}
                 </div>
               </div>
