@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { EventList } from './components/EventList'
 import { EventForm } from './components/EventForm'
@@ -15,6 +15,22 @@ import { transformToDB, transformFromDB, cleanEventData } from './utils/dbHelper
 import { ToastProvider, useToast, ErrorBoundary } from './components/Toast'
 import { withErrorHandling, createNetworkStatusHandler, handleSupabaseError, validateForm } from './utils/errorHandling'
 import './App.css'
+
+// Date validation utility
+const isValidEventDate = (dateStr) => {
+  if (!dateStr || typeof dateStr !== 'string') return false
+  if (dateStr.startsWith('000') || dateStr.length < 8) return false
+  
+  try {
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return false
+    
+    const year = date.getFullYear()
+    return year >= 2020 && year <= 2030
+  } catch {
+    return false
+  }
+}
 
 // Hauptinhalt der App als separate Komponente für useTranslation Hook
 function AppContent() {
@@ -139,13 +155,12 @@ function AppContent() {
     return result.success
   }
 
+  // OPTIMIZED: Enhanced loadEvents with proper date validation
   const loadEvents = async () => {
     setIsLoading(true)
     
     const result = await withErrorHandling(
       async () => {
-        console.log('Lade Events aus Supabase...')
-        
         const { data, error } = await supabase
           .from('events')
           .select('*')
@@ -153,14 +168,31 @@ function AppContent() {
         
         if (error) throw error
         
-        // Transformiere Events von snake_case zu camelCase
-        const transformedEvents = data.map(event => transformFromDB(event))
-        console.log('Events erfolgreich geladen:', transformedEvents.length)
+        // Transform and validate events
+        const transformedEvents = (data || [])
+          .map(event => transformFromDB(event))
+          .filter(event => {
+            // Filter out events with invalid dates
+            if (!isValidEventDate(event.date)) {
+              console.warn('Filtering out event with invalid date:', event.name, event.date)
+              return false
+            }
+            // Filter out events without required fields
+            if (!event.id || !event.name) {
+              console.warn('Filtering out incomplete event:', event)
+              return false
+            }
+            return true
+          })
         
-        setEvents(transformedEvents || [])
+        setEvents(transformedEvents)
         
-        // Speichere auch in localStorage als Backup
-        localStorage.setItem('events', JSON.stringify(transformedEvents || []))
+        // Save to localStorage as backup
+        try {
+          localStorage.setItem('events', JSON.stringify(transformedEvents))
+        } catch (storageError) {
+          console.warn('Failed to save to localStorage:', storageError)
+        }
         
         return transformedEvents
       },
@@ -168,17 +200,15 @@ function AppContent() {
       t,
       {
         loadingMessage: t('app.loadingEvents') || 'Events werden geladen...',
-        successMessage: null, // Don't show success for loading
-        showErrorToast: false // Handle error manually for fallback
+        successMessage: null,
+        showErrorToast: false
       }
     )
 
     if (!result.success) {
       // Fallback to localStorage
-      console.log('Supabase failed, falling back to localStorage...')
       loadFromLocalStorage()
       
-      // Show user-friendly message
       toast.showWarning(
         t('app.offlineMode') || 'Offline-Modus: Events werden aus dem lokalen Speicher geladen.',
         6000
@@ -188,17 +218,28 @@ function AppContent() {
     setIsLoading(false)
   }
 
+  // OPTIMIZED: Enhanced localStorage loading with validation
   const loadFromLocalStorage = () => {
     try {
       const savedEvents = localStorage.getItem('events')
       if (savedEvents) {
         const parsedEvents = JSON.parse(savedEvents)
-        console.log('Events aus localStorage geladen:', parsedEvents.length)
-        setEvents(parsedEvents)
+        
+        // Filter out invalid events
+        const validEvents = parsedEvents.filter(event => {
+          if (!event || !event.id) return false
+          if (!isValidEventDate(event.date)) {
+            console.warn('Filtering out localStorage event with invalid date:', event.name, event.date)
+            return false
+          }
+          return true
+        })
+        
+        setEvents(validEvents)
         return true
       }
     } catch (error) {
-      console.error('Fehler beim Laden aus localStorage:', error)
+      console.error('Error loading from localStorage:', error)
       toast.showError(t('errors.localStorage') || 'Lokale Daten konnten nicht geladen werden.')
     }
     return false
@@ -206,7 +247,7 @@ function AppContent() {
 
   // Save events to both Supabase and localStorage
   const saveEvents = async (updatedEvents, eventToSave = null) => {
-    // Sofort lokal speichern für bessere UX
+    // Immediately save locally for better UX
     try {
       localStorage.setItem('events', JSON.stringify(updatedEvents))
       setEvents(updatedEvents)
@@ -215,10 +256,10 @@ function AppContent() {
       toast.showError(t('errors.localStorageSave') || 'Lokale Speicherung fehlgeschlagen.')
     }
     
-    // Wenn kein spezifisches Event angegeben, nicht in Supabase speichern
+    // If no specific event given, don't save to Supabase
     if (!eventToSave) return { success: true }
     
-    // Validierung vor dem Speichern
+    // Validation before saving
     const validationRules = {
       name: { required: true, minLength: 3, maxLength: 100 },
       date: { required: true },
@@ -235,16 +276,20 @@ function AppContent() {
       return { success: false, error: 'Validation failed' }
     }
 
+    // Additional date validation
+    if (!isValidEventDate(eventToSave.date)) {
+      toast.showError('Ungültiges Datum. Bitte wählen Sie ein Datum zwischen 2020 und 2030.')
+      return { success: false, error: 'Invalid date' }
+    }
+
     return await withErrorHandling(
       async () => {
-        console.log('Speichere Event in Supabase:', eventToSave.id)
-        
-        // Bereinige und transformiere Event für die Datenbank
+        // Clean and transform event for database
         const cleanedEvent = cleanEventData(eventToSave)
         const dbEvent = transformToDB(cleanedEvent)
         
         if (eventToSave.id.startsWith('temp_')) {
-          // Neues Event - INSERT
+          // New event - INSERT
           const insertData = {
             ...dbEvent,
             created_at: new Date().toISOString(),
@@ -255,7 +300,7 @@ function AppContent() {
             status: dbEvent.status || 'upcoming'
           }
           
-          // Entferne die temporäre ID und null/undefined Werte
+          // Remove temp ID and null/undefined values
           delete insertData.id
           Object.keys(insertData).forEach(key => {
             if (insertData[key] === undefined || insertData[key] === null) {
@@ -271,7 +316,7 @@ function AppContent() {
           
           if (error) throw error
           
-          // Aktualisiere die temporäre ID mit der echten Supabase ID
+          // Update temp ID with real Supabase ID
           const index = updatedEvents.findIndex(e => e.id === eventToSave.id)
           if (index !== -1) {
             updatedEvents[index] = { ...updatedEvents[index], id: data.id, created_by: data.created_by }
@@ -281,7 +326,7 @@ function AppContent() {
           
           return data
         } else {
-          // Bestehendes Event - UPDATE
+          // Existing event - UPDATE
           const updateData = {
             ...dbEvent,
             updated_at: new Date().toISOString()
@@ -349,14 +394,14 @@ function AppContent() {
   }
 
   const handleDeleteEvent = async (eventId) => {
-    // Zeige Bestätigungsdialog
+    // Show confirmation dialog
     if (!window.confirm(t('messages.confirmDelete') || 'Wirklich löschen?')) {
       return
     }
     
     const result = await withErrorHandling(
       async () => {
-        // Lösche aus lokalem State
+        // Delete from local state
         const updatedEvents = events.filter(event => event.id !== eventId)
         setEvents(updatedEvents)
         localStorage.setItem('events', JSON.stringify(updatedEvents))
@@ -365,7 +410,7 @@ function AppContent() {
           setSelectedEvent(null)
         }
         
-        // Versuche aus Supabase zu löschen (nur wenn nicht temp)
+        // Try to delete from Supabase (only if not temp)
         if (!eventId.startsWith('temp_')) {
           const { error } = await supabase
             .from('events')
@@ -389,39 +434,48 @@ function AppContent() {
     return result.success
   }
 
-  const handleSelectEvent = (event) => {
-    console.log('App.jsx - handleSelectEvent called with:', event);
-    setSelectedEvent(event);
-  };
+  // OPTIMIZED: Memoized and robust event selection
+  const handleSelectEvent = useCallback((event) => {
+    if (!event || !event.id) {
+      console.warn('Invalid event selected:', event)
+      return
+    }
+    setSelectedEvent(event)
+  }, [])
 
-  const handleEditEvent = (event) => {
+  const handleEditEvent = useCallback((event) => {
     setEditingEvent(event)
     setShowEventForm(true)
-  }
+  }, [])
 
-  const handleSelectPlayersFromDatabase = async (selectedPlayers) => {
-    if (!selectedEvent) return
+  // OPTIMIZED: Enhanced player selection with better validation
+  const handleSelectPlayersFromDatabase = useCallback(async (selectedPlayers) => {
+    if (!selectedEvent || !Array.isArray(selectedPlayers)) return
 
     const result = await withErrorHandling(
       async () => {
-        const updatedPlayers = [...(selectedEvent.players || [])]
+        const currentPlayers = selectedEvent.players || []
         const maxPlayers = selectedEvent.maxPlayers || 16
-        const remainingSlots = maxPlayers - updatedPlayers.length
+        const remainingSlots = Math.max(0, maxPlayers - currentPlayers.length)
           
-        let addedCount = 0
+        if (remainingSlots === 0) {
+          throw new Error(`Event ist bereits voll (${maxPlayers}/${maxPlayers} Spieler)`)
+        }
         
-        selectedPlayers.forEach(dbPlayer => {
-          if (addedCount >= remainingSlots) return
+        const newPlayers = []
+        
+        for (const dbPlayer of selectedPlayers.slice(0, remainingSlots)) {
+          if (!dbPlayer || !dbPlayer.name) continue
           
-          const alreadyExists = updatedPlayers.some(p => 
+          const alreadyExists = currentPlayers.some(p => 
             p.name === dbPlayer.name || 
-            (p.email && p.email === dbPlayer.email) ||
-            (p.phone && p.phone === dbPlayer.phone)
+            (p.email && dbPlayer.email && p.email === dbPlayer.email) ||
+            (p.phone && dbPlayer.phone && p.phone === dbPlayer.phone)
           )
           
           if (!alreadyExists) {
             const newPlayer = {
-              id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${updatedPlayers.length}`,
+              id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               name: dbPlayer.name,
               gender: dbPlayer.gender || 'male',
               skillLevel: dbPlayer.skillLevel || (selectedEvent.sport === 'padel' ? 'B' : 3),
@@ -429,55 +483,48 @@ function AppContent() {
                 padel: dbPlayer.padelSkill || 'B',
                 pickleball: dbPlayer.pickleballSkill || 3,
                 spinxball: dbPlayer.spinxballSkill || 3
-              }
+              },
+              // Add contact data safely
+              ...(dbPlayer.email && { email: dbPlayer.email }),
+              ...(dbPlayer.phone && { phone: dbPlayer.phone }),
+              ...(dbPlayer.birthday && { birthday: dbPlayer.birthday }),
+              ...(dbPlayer.city && { city: dbPlayer.city }),
+              ...(dbPlayer.club && { club: dbPlayer.club }),
+              ...(dbPlayer.nationality && { nationality: dbPlayer.nationality })
             }
             
-            // Füge alle verfügbaren Kontaktdaten hinzu
-            if (dbPlayer.email) newPlayer.email = dbPlayer.email
-            if (dbPlayer.phone) newPlayer.phone = dbPlayer.phone
-            if (dbPlayer.birthday) newPlayer.birthday = dbPlayer.birthday
-            if (dbPlayer.city) newPlayer.city = dbPlayer.city
-            if (dbPlayer.club) newPlayer.club = dbPlayer.club
-            if (dbPlayer.nationality) newPlayer.nationality = dbPlayer.nationality
-            
-            updatedPlayers.push(newPlayer)
-            addedCount++
+            newPlayers.push(newPlayer)
           }
-        })
+        }
         
-        // Info über hinzugefügte Spieler
-        if (addedCount > 0) {
-          const updatedEvent = {
-            ...selectedEvent,
-            players: updatedPlayers
-          }
-          
-          await handleUpdateEvent(updatedEvent)
-          
-          if (selectedPlayers.length > remainingSlots) {
-            throw new Error(`Nur ${remainingSlots} von ${selectedPlayers.length} Spielern konnten hinzugefügt werden. Das Event ist auf ${maxPlayers} Spieler begrenzt.`)
-          }
-          
-          return addedCount
-        } else {
+        if (newPlayers.length === 0) {
           throw new Error('Keine neuen Spieler hinzugefügt. Alle ausgewählten Spieler sind bereits angemeldet.')
         }
+        
+        const updatedEvent = {
+          ...selectedEvent,
+          players: [...currentPlayers, ...newPlayers]
+        }
+        
+        await handleUpdateEvent(updatedEvent)
+        
+        return newPlayers.length
       },
       toast,
       t,
       {
         loadingMessage: t('player.adding') || 'Spieler werden hinzugefügt...',
-        successMessage: null // Custom success message below
+        successMessage: null
       }
     )
 
     if (result.success && result.data > 0) {
       toast.showSuccess(`${result.data} Spieler erfolgreich hinzugefügt`)
     }
-  }
+  }, [selectedEvent, handleUpdateEvent, toast, t])
 
-  const handleStartTournament = (event) => {
-    // Validierung vor dem Start
+  const handleStartTournament = useCallback((event) => {
+    // Validation before start
     if (!event.players || event.players.length < 4) {
       toast.showError(t('tournament.needMorePlayers') || 'Mindestens 4 Spieler benötigt')
       return
@@ -485,9 +532,9 @@ function AppContent() {
     
     setRunningTournament(event)
     toast.showSuccess(t('tournament.started') || 'Turnier gestartet!')
-  }
+  }, [toast, t])
 
-  const handleTournamentComplete = async (results) => {
+  const handleTournamentComplete = useCallback(async (results) => {
     if (runningTournament) {
       const updatedEvent = {
         ...runningTournament,
@@ -500,9 +547,10 @@ function AppContent() {
       setRunningTournament(null)
       toast.showSuccess(t('tournament.completed') || 'Turnier erfolgreich abgeschlossen!')
     }
-  }
+  }, [runningTournament, handleUpdateEvent, toast, t])
 
-  const calculateTotalMinutes = (start, end, breaks = []) => {
+  // Utility functions (memoized where beneficial)
+  const calculateTotalMinutes = useCallback((start, end, breaks = []) => {
     const startStr = String(start || '00:00')
     const endStr = String(end || '00:00')
     
@@ -520,9 +568,9 @@ function AppContent() {
       : 0
     
     return totalMinutes - breakMinutes
-  }
+  }, [])
     
-  const calculateMaxPlayers = ({
+  const calculateMaxPlayers = useCallback(({
     totalMinutes,
     courts,
     averageGameTime,
@@ -549,7 +597,7 @@ function AppContent() {
     const maxPlayers = Math.floor(playersNeeded * rotationFactor)
 
     return Math.max(playersNeeded, Math.min(64, maxPlayers))
-  }
+  }, [])
 
   // Show auth screen if not logged in
   if (!user) {

@@ -3,7 +3,7 @@ import { EventShare } from './EventShare'
 import { useTranslation } from './LanguageSelector'
 import { interpolate } from '../utils/translations'
 import { generateAmericanoSchedule } from '../utils/americanoAlgorithm'
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 
 export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, canManageEvent = false }) => {
   const { t, language } = useTranslation() // language hinzugefügt!
@@ -13,97 +13,140 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
   
   if (!event) return null
 
-  // Locale-Map für korrekte Sprachformatierung
-  const getLocale = (lang) => {
+  // Memoized locale function
+  const getLocale = useCallback((lang) => {
     const localeMap = {
       'de': 'de-DE',
       'es': 'es-ES', 
       'en': 'en-US'
     }
     return localeMap[lang] || 'de-DE'
-  }
+  }, [])
 
-  // Sichere Defaults für alle event properties
-  const safeEvent = {
-    ...event,
-    players: Array.isArray(event.players) ? event.players : [],
-    schedule: Array.isArray(event.schedule) ? event.schedule : [],
-    startTime: event.startTime || event.start_time || '09:00',
-    endTime: event.endTime || event.end_time || '13:00',
-    courts: parseInt(event.courts) || 2,
-    roundDuration: parseInt(event.roundDuration) || 15,
-    minGamesPerPlayer: parseInt(event.minGamesPerPlayer) || 3,
-    status: event.status || 'pending',
-    fairnessScore: event.fairnessScore || 0,
-    regenerateCount: event.regenerateCount || 0,
-    maxPlayers: event.maxPlayers || event.max_players || 16,
-    sport: event.sport || 'padel',
-    format: event.format || 'doubles',
-    eventType: event.eventType || event.event_type || 'americano',
-    genderMode: event.genderMode || 'open',
-    location: event.location || '',
-    price: event.price || event.entryFee || 0,
-    name: event.name || event.title || '',
-    description: event.description || event.eventInfo || '',
-    date: event.date || new Date().toISOString().split('T')[0],
-    registrationDeadline: event.registrationDeadline || event.registration_deadline
-  }
+  // Memoized safe event to prevent recalculations
+  const safeEvent = useMemo(() => {
+    if (!event) return null
+    
+    // Validate date
+    let validDate = event.date
+    if (event.date && (event.date.startsWith('000') || event.date.length < 8)) {
+      console.warn('Invalid date detected in event:', event.date)
+      validDate = new Date().toISOString().split('T')[0]
+    }
+    
+    return {
+      ...event,
+      players: Array.isArray(event.players) ? event.players : [],
+      schedule: Array.isArray(event.schedule) ? event.schedule : [],
+      startTime: event.startTime || event.start_time || '09:00',
+      endTime: event.endTime || event.end_time || '13:00',
+      courts: parseInt(event.courts) || 2,
+      roundDuration: parseInt(event.roundDuration) || 15,
+      minGamesPerPlayer: parseInt(event.minGamesPerPlayer) || 3,
+      status: event.status || 'pending',
+      fairnessScore: event.fairnessScore || 0,
+      regenerateCount: event.regenerateCount || 0,
+      maxPlayers: event.maxPlayers || event.max_players || 16,
+      sport: event.sport || 'padel',
+      format: event.format || 'doubles',
+      eventType: event.eventType || event.event_type || 'americano',
+      genderMode: event.genderMode || 'open',
+      location: event.location || '',
+      price: event.price || event.entryFee || 0,
+      name: event.name || event.title || '',
+      description: event.description || event.eventInfo || '',
+      date: validDate,
+      registrationDeadline: event.registrationDeadline || event.registration_deadline
+    }
+  }, [event])
 
   // Status-Prüfungen
-  const hasEnoughPlayers = safeEvent.players.length >= 4
-  const hasSchedule = safeEvent.schedule.length > 0
-  const canGenerateSchedule = hasEnoughPlayers && !hasSchedule && safeEvent.status !== 'completed' && canManageEvent
-  const canStartTournament = hasEnoughPlayers && hasSchedule && safeEvent.status !== 'completed' && canManageEvent
+  // Memoized status checks
+  const statusChecks = useMemo(() => {
+    if (!safeEvent) return {}
+    
+    const hasEnoughPlayers = safeEvent.players.length >= 4
+    const hasSchedule = safeEvent.schedule.length > 0
+    const canGenerateSchedule = hasEnoughPlayers && !hasSchedule && safeEvent.status !== 'completed' && canManageEvent
+    const canStartTournament = hasEnoughPlayers && hasSchedule && safeEvent.status !== 'completed' && canManageEvent
+    
+    let eventDate, isEventPast = false
+    try {
+      eventDate = new Date(safeEvent.date)
+      if (!isNaN(eventDate.getTime())) {
+        isEventPast = eventDate < new Date() && safeEvent.status !== 'completed'
+      }
+    } catch (error) {
+      console.warn('Invalid event date:', safeEvent.date)
+    }
+    
+    return {
+      hasEnoughPlayers,
+      hasSchedule,
+      canGenerateSchedule,
+      canStartTournament,
+      eventDate,
+      isEventPast
+    }
+  }, [safeEvent, canManageEvent])
   
-  const eventDate = new Date(safeEvent.date)
-  const isEventPast = eventDate < new Date() && safeEvent.status !== 'completed'
+  const { hasEnoughPlayers, hasSchedule, canGenerateSchedule, canStartTournament, eventDate, isEventPast } = statusChecks
 
-  // Zeit-Informationen
-  const getTimeInfo = () => {
+ // Memoized time info
+  const timeInfo = useMemo(() => {
+    if (!safeEvent) return { startTime: '', endTime: '' }
     return {
       startTime: safeEvent.startTime,
       endTime: safeEvent.endTime
-    };
-  };
+    }
+  }, [safeEvent])
 
-  const { startTime, endTime } = getTimeInfo();
+  const { startTime, endTime } = timeInfo
 
-  // Formatiere Anmeldeschluss - LOCALE-AWARE!
-  const formatRegistrationDeadline = (deadline) => {
+  // Memoized registration deadline formatting
+  const formatRegistrationDeadline = useCallback((deadline) => {
     if (!deadline) return t('form.notSpecified')
     
     try {
       const date = new Date(deadline)
+      if (isNaN(date.getTime())) return deadline
+      
       return date.toLocaleDateString(getLocale(language)) + ', ' + 
              date.toLocaleTimeString(getLocale(language), { hour: '2-digit', minute: '2-digit' })
     } catch (error) {
+      console.warn('Error formatting registration deadline:', error)
       return deadline
     }
-  }
+  }, [t, getLocale, language])
 
-  // Spielplan generieren mit 3 Varianten
-  const handleGenerateSchedule = () => {
+  // Memoized schedule generation
+  const handleGenerateSchedule = useCallback(() => {
     if (!hasEnoughPlayers) {
       alert(t('messages.minPlayersForSchedule'))
       return
     }
 
-    // Berechne Anzahl der Runden basierend auf Mindestspiele
+    if (!safeEvent || !safeEvent.players || safeEvent.players.length < 4) {
+      alert(t('messages.minPlayersRequired') || 'Mindestens 4 Spieler erforderlich')
+      return
+    }
+
+    // Calculate number of rounds based on minimum games
     const playersCount = safeEvent.players.length
     const courtsCount = safeEvent.courts
     const minGamesPerPlayer = safeEvent.minGamesPerPlayer
     
-    // Spieler pro Runde = Courts * 4
+    // Players per round = Courts * 4
     const playersPerRound = courtsCount * 4
     
-    // Berechne benötigte Runden
+    // Calculate required rounds
     let numberOfRounds = minGamesPerPlayer
     if (playersCount > playersPerRound) {
-      // Wenn mehr Spieler als Plätze, brauchen wir mehr Runden
+      // If more players than courts, we need more rounds
       numberOfRounds = Math.ceil(minGamesPerPlayer * playersCount / playersPerRound)
     }
     
-    // Generiere 3 verschiedene Spielplan-Varianten
+    // Generate 3 different schedule variants
     const options = []
     for (let i = 0; i < 3; i++) {
       try {
@@ -117,7 +160,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
           }
         )
         
-        // Berechne Fairness-Metriken
+        // Calculate fairness metrics
         const fairnessMetrics = calculateFairnessMetrics(result, safeEvent.players)
         
         options.push({
@@ -126,7 +169,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
           regenerateCount: i
         })
       } catch (error) {
-        console.error('Fehler beim Generieren der Variante', i, error)
+        console.error('Error generating variant', i, error)
       }
     }
     
@@ -137,11 +180,29 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
     
     setScheduleOptions(options)
     setShowScheduleOptions(true)
-  }
+  }, [hasEnoughPlayers, safeEvent, t])
 
-  // Fairness-Metriken berechnen
-  const calculateFairnessMetrics = (result, players) => {
+  // Memoized fairness metrics calculation
+  const calculateFairnessMetrics = useCallback((result, players) => {
+    // NEUE VALIDATION
+    if (!result || !result.statistics || !Array.isArray(players) || players.length === 0) {
+      console.warn('Invalid data for fairness calculation')
+      return {
+        overallScore: 0,
+        avgUniquePartners: '0.0',
+        avgUniqueOpponents: '0.0',
+        maxPartnerRepeats: 0,
+        maxOpponentRepeats: 0,
+        gameBalance: '0.0',
+        partnerScore: 0,
+        opponentScore: 0,
+        repeatScore: 0,
+        balanceScore: 0
+     }
+  }, [])
+
     const playerCount = players.length
+    // REST DER FUNKTION BLEIBT GLEICH...
     
     // Durchschnittliche verschiedene Partner pro Spieler
     const avgUniquePartners = players.reduce((sum, player, idx) => {
@@ -196,81 +257,95 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
     }
   }
 
-  // Spielplan-Option auswählen
-  const handleSelectSchedule = (index) => {
+  // Memoized schedule selection
+  const handleSelectSchedule = useCallback((index) => {
+    if (!scheduleOptions[index] || !safeEvent) {
+      console.error('Invalid schedule option or event')
+      return
+    }
+    
     const selectedOption = scheduleOptions[index]
     
-    // Update Event mit Schedule
+    // Update Event with Schedule
     const updatedEvent = {
       ...safeEvent,
       schedule: selectedOption.schedule,
       currentRound: 0,
       status: 'scheduled',
       regenerateCount: selectedOption.regenerateCount,
-      fairnessScore: selectedOption.fairness.overallScore
+      fairnessScore: selectedOption.fairness.overallScore,
+      updated_at: new Date().toISOString()
     }
 
-    // WICHTIG: onUpdateEvent verwenden, nicht onEdit!
     onUpdateEvent(updatedEvent)
     setShowScheduleOptions(false)
     setScheduleOptions([])
-  }
+  }, [scheduleOptions, safeEvent, onUpdateEvent])
 
-  // Berechne Tabellen-Standings
-  const calculateStandings = () => {
+  // Memoized standings calculation
+  const calculateStandings = useMemo(() => {
+    if (!safeEvent || !safeEvent.players) return []
+    
     const playerStats = {}
     
-    // Initialisiere alle Spieler
+    // Initialize all players
     safeEvent.players.forEach(player => {
-      playerStats[player.id] = {
-        ...player,
-        points: 0,
-        gamesWon: 0,
-        gamesPlayed: 0
+      if (player && player.id) {
+        playerStats[player.id] = {
+          ...player,
+          points: 0,
+          gamesWon: 0,
+          gamesPlayed: 0
+        }
       }
     })
     
-    // Verarbeite alle Ergebnisse aus dem Event
-    if (safeEvent.results) {
+    // Process all results from the event
+    if (safeEvent.results && typeof safeEvent.results === 'object') {
       Object.entries(safeEvent.results).forEach(([matchKey, matchData]) => {
         if (matchData && matchData.result) {
           const { team1, team2, result } = matchData
           
           // Update Team 1
-          team1?.forEach(player => {
-            if (player?.id && playerStats[player.id]) {
-              playerStats[player.id].gamesPlayed++
-              playerStats[player.id].gamesWon += result.team1Score || 0
-              playerStats[player.id].points += result.team1Points || 0
-            }
-          })
+          if (Array.isArray(team1)) {
+            team1.forEach(player => {
+              if (player?.id && playerStats[player.id]) {
+                playerStats[player.id].gamesPlayed++
+                playerStats[player.id].gamesWon += result.team1Score || 0
+                playerStats[player.id].points += result.team1Points || 0
+              }
+            })
+          }
           
           // Update Team 2
-          team2?.forEach(player => {
-            if (player?.id && playerStats[player.id]) {
-              playerStats[player.id].gamesPlayed++
-              playerStats[player.id].gamesWon += result.team2Score || 0
-              playerStats[player.id].points += result.team2Points || 0
-            }
-          })
+          if (Array.isArray(team2)) {
+            team2.forEach(player => {
+              if (player?.id && playerStats[player.id]) {
+                playerStats[player.id].gamesPlayed++
+                playerStats[player.id].gamesWon += result.team2Score || 0
+                playerStats[player.id].points += result.team2Points || 0
+              }
+            })
+          }
         }
       })
     }
     
-    // Sortiere nach Punkten, dann nach gewonnenen Spielen
+    // Sort by points, then by games won
     return Object.values(playerStats).sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points
       return b.gamesWon - a.gamesWon
     })
-  }
+  }, [safeEvent])
 
-  // Fairness-Score Farbe
-  const getFairnessColor = (score) => {
+  // Memoized fairness color function
+  const getFairnessColor = useCallback((score) => {
+    if (typeof score !== 'number' || isNaN(score)) return 'text-gray-600 bg-gray-50'
     if (score >= 80) return 'text-green-600 bg-green-50'
     if (score >= 60) return 'text-yellow-600 bg-yellow-50'
     if (score >= 40) return 'text-orange-600 bg-orange-50'
     return 'text-red-600 bg-red-50'
-  }
+  }, [])
 
   return (
     <>
@@ -316,12 +391,17 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
               <Calendar className="w-4 h-4 text-gray-500" />
               <div>
                 <p className="text-sm text-gray-500">{t('event.date')}</p>
-                <p className="font-medium">{eventDate.toLocaleDateString(getLocale(language), { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}</p>
+                <p className="font-medium">
+                  {eventDate && !isNaN(eventDate.getTime()) ? 
+                    eventDate.toLocaleDateString(getLocale(language), { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    }) : 
+                    t('event.noDate') || 'Kein Datum'
+                  }
+                </p>
               </div>
             </div>
 
@@ -525,7 +605,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                   </tr>
                 </thead>
                 <tbody>
-                  {calculateStandings().map((player, idx) => (
+                  {calculateStandings.map((player, idx) => (
                     <tr key={player.id} className={`border-b ${
                       idx === 0 ? 'bg-yellow-50' : 
                       idx === 1 ? 'bg-gray-100' : 
