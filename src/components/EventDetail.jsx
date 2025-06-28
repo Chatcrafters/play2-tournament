@@ -6,7 +6,7 @@ import { generateAmericanoSchedule } from '../utils/americanoAlgorithm'
 import { useState, useMemo, useCallback } from 'react'
 
 export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, canManageEvent = false }) => {
-  const { t, language } = useTranslation() // language hinzugefügt!
+  const { t, language } = useTranslation()
   const [showScheduleOptions, setShowScheduleOptions] = useState(false)
   const [scheduleOptions, setScheduleOptions] = useState([])
   const [selectedScheduleIndex, setSelectedScheduleIndex] = useState(null)
@@ -60,7 +60,6 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
     }
   }, [event])
 
-  // Status-Prüfungen
   // Memoized status checks
   const statusChecks = useMemo(() => {
     if (!safeEvent) return {}
@@ -92,7 +91,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
   
   const { hasEnoughPlayers, hasSchedule, canGenerateSchedule, canStartTournament, eventDate, isEventPast } = statusChecks
 
- // Memoized time info
+  // Memoized time info
   const timeInfo = useMemo(() => {
     if (!safeEvent) return { startTime: '', endTime: '' }
     return {
@@ -118,6 +117,79 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
       return deadline
     }
   }, [t, getLocale, language])
+
+  // Memoized fairness metrics calculation
+  const calculateFairnessMetrics = useCallback((result, players) => {
+    if (!result || !result.statistics || !Array.isArray(players) || players.length === 0) {
+      console.warn('Invalid data for fairness calculation')
+      return {
+        overallScore: 0,
+        avgUniquePartners: '0.0',
+        avgUniqueOpponents: '0.0',
+        maxPartnerRepeats: 0,
+        maxOpponentRepeats: 0,
+        gameBalance: '0.0',
+        partnerScore: 0,
+        opponentScore: 0,
+        repeatScore: 0,
+        balanceScore: 0
+      }
+    }
+
+    const playerCount = players.length
+    
+    // Durchschnittliche verschiedene Partner pro Spieler
+    const avgUniquePartners = players.reduce((sum, player, idx) => {
+      const partners = Object.values(result.statistics.partnerMatrix[idx] || {})
+        .filter(count => count > 0).length
+      return sum + partners
+    }, 0) / playerCount
+    
+    // Durchschnittliche verschiedene Gegner pro Spieler
+    const avgUniqueOpponents = players.reduce((sum, player, idx) => {
+      const opponents = Object.values(result.statistics.opponentMatrix[idx] || {})
+        .filter(count => count > 0).length
+      return sum + opponents
+    }, 0) / playerCount
+    
+    // Maximale Partner-Wiederholungen
+    const maxPartnerRepeats = Math.max(...Object.values(result.statistics.partnerMatrix)
+      .map(row => Math.max(...Object.values(row))))
+    
+    // Maximale Gegner-Wiederholungen
+    const maxOpponentRepeats = Math.max(...Object.values(result.statistics.opponentMatrix)
+      .map(row => Math.max(...Object.values(row))))
+    
+    // Gleichmäßigkeit der Spiele (Standardabweichung)
+    const avgGames = result.statistics.gamesPlayed.reduce((a, b) => a + b, 0) / playerCount
+    const gameDeviation = Math.sqrt(
+      result.statistics.gamesPlayed.reduce((sum, games) => 
+        sum + Math.pow(games - avgGames, 2), 0) / playerCount
+    )
+    
+    // Gesamt-Fairness-Score (0-100)
+    const partnerScore = Math.min(100, (avgUniquePartners / (playerCount - 1)) * 100)
+    const opponentScore = Math.min(100, (avgUniqueOpponents / (playerCount - 1)) * 100)
+    const repeatScore = Math.max(0, 100 - (maxPartnerRepeats - 1) * 20)
+    const balanceScore = Math.max(0, 100 - gameDeviation * 10)
+    
+    const overallScore = Math.round(
+      (partnerScore * 0.3 + opponentScore * 0.3 + repeatScore * 0.25 + balanceScore * 0.15)
+    )
+    
+    return {
+      overallScore,
+      avgUniquePartners: avgUniquePartners.toFixed(1),
+      avgUniqueOpponents: avgUniqueOpponents.toFixed(1),
+      maxPartnerRepeats,
+      maxOpponentRepeats,
+      gameBalance: gameDeviation.toFixed(2),
+      partnerScore: Math.round(partnerScore),
+      opponentScore: Math.round(opponentScore),
+      repeatScore: Math.round(repeatScore),
+      balanceScore: Math.round(balanceScore)
+    }
+  }, [])
 
   // Memoized schedule generation
   const handleGenerateSchedule = useCallback(() => {
@@ -180,82 +252,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
     
     setScheduleOptions(options)
     setShowScheduleOptions(true)
-  }, [hasEnoughPlayers, safeEvent, t])
-
-  // Memoized fairness metrics calculation
-  const calculateFairnessMetrics = useCallback((result, players) => {
-    // NEUE VALIDATION
-    if (!result || !result.statistics || !Array.isArray(players) || players.length === 0) {
-      console.warn('Invalid data for fairness calculation')
-      return {
-        overallScore: 0,
-        avgUniquePartners: '0.0',
-        avgUniqueOpponents: '0.0',
-        maxPartnerRepeats: 0,
-        maxOpponentRepeats: 0,
-        gameBalance: '0.0',
-        partnerScore: 0,
-        opponentScore: 0,
-        repeatScore: 0,
-        balanceScore: 0
-     }
-  }, [])
-
-    const playerCount = players.length
-    // REST DER FUNKTION BLEIBT GLEICH...
-    
-    // Durchschnittliche verschiedene Partner pro Spieler
-    const avgUniquePartners = players.reduce((sum, player, idx) => {
-      const partners = Object.values(result.statistics.partnerMatrix[idx] || {})
-        .filter(count => count > 0).length
-      return sum + partners
-    }, 0) / playerCount
-    
-    // Durchschnittliche verschiedene Gegner pro Spieler
-    const avgUniqueOpponents = players.reduce((sum, player, idx) => {
-      const opponents = Object.values(result.statistics.opponentMatrix[idx] || {})
-        .filter(count => count > 0).length
-      return sum + opponents
-    }, 0) / playerCount
-    
-    // Maximale Partner-Wiederholungen
-    const maxPartnerRepeats = Math.max(...Object.values(result.statistics.partnerMatrix)
-      .map(row => Math.max(...Object.values(row))))
-    
-    // Maximale Gegner-Wiederholungen
-    const maxOpponentRepeats = Math.max(...Object.values(result.statistics.opponentMatrix)
-      .map(row => Math.max(...Object.values(row))))
-    
-    // Gleichmäßigkeit der Spiele (Standardabweichung)
-    const avgGames = result.statistics.gamesPlayed.reduce((a, b) => a + b, 0) / playerCount
-    const gameDeviation = Math.sqrt(
-      result.statistics.gamesPlayed.reduce((sum, games) => 
-        sum + Math.pow(games - avgGames, 2), 0) / playerCount
-    )
-    
-    // Gesamt-Fairness-Score (0-100)
-    const partnerScore = Math.min(100, (avgUniquePartners / (playerCount - 1)) * 100)
-    const opponentScore = Math.min(100, (avgUniqueOpponents / (playerCount - 1)) * 100)
-    const repeatScore = Math.max(0, 100 - (maxPartnerRepeats - 1) * 20)
-    const balanceScore = Math.max(0, 100 - gameDeviation * 10)
-    
-    const overallScore = Math.round(
-      (partnerScore * 0.3 + opponentScore * 0.3 + repeatScore * 0.25 + balanceScore * 0.15)
-    )
-    
-    return {
-      overallScore,
-      avgUniquePartners: avgUniquePartners.toFixed(1),
-      avgUniqueOpponents: avgUniqueOpponents.toFixed(1),
-      maxPartnerRepeats,
-      maxOpponentRepeats,
-      gameBalance: gameDeviation.toFixed(2),
-      partnerScore: Math.round(partnerScore),
-      opponentScore: Math.round(opponentScore),
-      repeatScore: Math.round(repeatScore),
-      balanceScore: Math.round(balanceScore)
-    }
-  }
+  }, [hasEnoughPlayers, safeEvent, t, calculateFairnessMetrics])
 
   // Memoized schedule selection
   const handleSelectSchedule = useCallback((index) => {
