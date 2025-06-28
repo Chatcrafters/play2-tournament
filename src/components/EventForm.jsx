@@ -145,6 +145,22 @@ const templates = {
     }))
   }
 
+  // Hilfsfunktion für numerische Inputs
+const handleNumericInput = (fieldName, value, min = 1, max = 100, defaultValue = 1) => {
+  // Erlaube leeren String während der Eingabe
+  if (value === '') {
+    updateFormData({ [fieldName]: '' });
+    return;
+  }
+  
+  // Erlaube nur Zahlen
+  if (!/^\d*$/.test(value)) return;
+  
+  const numValue = parseInt(value);
+  if (!isNaN(numValue) && numValue >= 0 && numValue <= max) {
+    updateFormData({ [fieldName]: numValue });
+  }
+};
     // Apply template
   const applyTemplate = (templateKey) => {
     const template = templates[templateKey]
@@ -652,13 +668,21 @@ const descriptions = {
                         </Tooltip>
                       </label>
                       <input
-                        type="number"
-                        value={formData.courts || 2}
-                        onChange={(e) => updateFormData({ courts: parseInt(e.target.value) || 1 })}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
-                        min="1"
-                        max="10"
-                      />
+  type="number"
+  value={formData.courts === '' ? '' : (formData.courts || 2)}
+  onChange={(e) => handleNumericInput('courts', e.target.value, 1, 10, 2)}
+  onBlur={(e) => {
+    if (e.target.value === '' || parseInt(e.target.value) < 1) {
+      updateFormData({ courts: 2 });
+    }
+  }}
+  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
+  min="1"
+  max="10"
+  placeholder="2"
+  inputMode="numeric"
+  pattern="[0-9]*"
+/>
                     </div>
                   </div>
                   
@@ -745,13 +769,21 @@ const descriptions = {
                         step="5"
                       />
                       <input
-                        type="number"
-                        value={formData.roundDuration || 15}
-                        onChange={(e) => updateFormData({ roundDuration: parseInt(e.target.value) || 15 })}
-                        className="w-20 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 text-center font-bold"
-                        min="5"
-                        max="60"
-                      />
+  type="number"
+  value={formData.roundDuration === '' ? '' : (formData.roundDuration || 15)}
+  onChange={(e) => handleNumericInput('roundDuration', e.target.value, 5, 60, 15)}
+  onBlur={(e) => {
+    if (e.target.value === '' || parseInt(e.target.value) < 5) {
+      updateFormData({ roundDuration: 15 });
+    }
+  }}
+  className="w-20 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 text-center font-bold"
+  min="5"
+  max="60"
+  placeholder="15"
+  inputMode="numeric"
+  pattern="[0-9]*"
+/>
                       <span>{t('form.min')}</span>
                     </div>
                   </div>
@@ -1035,17 +1067,25 @@ const descriptions = {
                         step="2"
                       />
                       <input
-                        type="number"
-                        value={formData.maxPlayers || liveCalculations.recommendedPlayers}
-                        onChange={(e) => updateFormData({ maxPlayers: parseInt(e.target.value) || 16 })}
-                        className={`
-                          w-20 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 text-center font-bold text-lg
-                          ${formData.maxPlayers > liveCalculations.maxPossiblePlayers ? 'border-red-500 bg-red-50' : ''}
-                        `}
-                        min="4"
-                        max="100"
-                        step="2"
-                      />
+  type="number"
+  value={formData.maxPlayers === '' ? '' : (formData.maxPlayers || liveCalculations.recommendedPlayers)}
+  onChange={(e) => handleNumericInput('maxPlayers', e.target.value, 4, 100, 16)}
+  onBlur={(e) => {
+    if (e.target.value === '' || parseInt(e.target.value) < 4) {
+      updateFormData({ maxPlayers: liveCalculations.recommendedPlayers || 16 });
+    }
+  }}
+  className={`
+    w-20 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 text-center font-bold text-lg
+    ${formData.maxPlayers > liveCalculations.maxPossiblePlayers ? 'border-red-500 bg-red-50' : ''}
+  `}
+  min="4"
+  max="100"
+  step="2"
+  placeholder="16"
+  inputMode="numeric"
+  pattern="[0-9]*"
+/>
                       <span>{t('player.players')}</span>
                     </div>
                     

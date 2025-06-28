@@ -298,6 +298,11 @@ function AppContent() {
     }
   }
 
+  const handleSelectEvent = (event) => {
+    console.log('App.jsx - handleSelectEvent called with:', event);
+    setSelectedEvent(event);
+  };
+
   const handleEditEvent = (event) => {
     setEditingEvent(event)
     setShowEventForm(true)
@@ -308,7 +313,7 @@ function AppContent() {
       const updatedPlayers = [...(selectedEvent.players || [])]
       const maxPlayers = selectedEvent.maxPlayers || 16
       const remainingSlots = maxPlayers - updatedPlayers.length
-      
+        
       // Nur so viele Spieler hinzufügen, wie noch Plätze frei sind
       let addedCount = 0
       
@@ -504,8 +509,8 @@ function AppContent() {
                                   <p className="text-sm font-medium">{userProfile?.name || 'Usuario'}</p>
                                   <p className="text-xs text-gray-500">{user.email}</p>
                                   <p className="text-xs text-gray-500 mt-1">
-  {userProfile?.role === 'tournament_director' ? `🎾 ${t('userMenu.tournamentDirector')}` : `👤 ${t('userMenu.player')}`}
-</p>
+                                    {userProfile?.role === 'tournament_director' ? `🎾 ${t('userMenu.tournamentDirector')}` : `👤 ${t('userMenu.player')}`}
+                                  </p>
                                 </div>
                                 
                                 <div className="p-1">
@@ -551,20 +556,20 @@ function AppContent() {
                       </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                      {/* Event List */}
-                      <div className="lg:col-span-1">
+                    <div className="main-content-grid lg:grid lg:grid-cols-3 lg:gap-8">
+                      {/* Event List Section */}
+                      <div className="event-list-section lg:col-span-1">
                         <EventList 
                           events={events}
                           selectedEvent={selectedEvent}
-                          onSelectEvent={setSelectedEvent}
+                          onSelectEvent={handleSelectEvent}
                           onDeleteEvent={handleDeleteEvent}
                           canManageEvents={userProfile?.role === 'tournament_director'}
                         />
                       </div>
 
-                      {/* Event Details / Form */}
-                      <div className="lg:col-span-2">
+                      {/* Event Details Section */}
+                      <div className="event-details-section lg:col-span-2">
                         {showEventForm ? (
                           <EventForm
                             editingEvent={editingEvent}
@@ -579,32 +584,46 @@ function AppContent() {
                           />
                         ) : selectedEvent ? (
                           <>
-                            <EventDetail 
-                              event={selectedEvent}
-                              onEdit={handleEditEvent}
-                              onUpdateEvent={handleUpdateEvent}
-                              onStartTournament={handleStartTournament}
-                              canManageEvent={userProfile?.role === 'tournament_director'}
-                            />
-                            
-                            {selectedEvent.status !== 'completed' && userProfile?.role === 'tournament_director' && (
-                              <PlayerManagement 
+                            <div className="space-y-6">
+                              {/* Event Detail Component */}
+                              <EventDetail
                                 event={selectedEvent}
+                                onEdit={handleEditEvent}
                                 onUpdateEvent={handleUpdateEvent}
-                                onOpenPlayerDatabase={() => setShowPlayerDatabase(true)}
+                                onStartTournament={handleStartTournament}
+                                canManageEvent={userProfile?.role === 'tournament_director'}
                               />
-                            )}
-                            
-                            {selectedEvent.results && Object.keys(selectedEvent.results).length > 0 && (
-                              <ResultsDisplay 
-                                results={selectedEvent.results} 
-                                players={selectedEvent.players || []}
-                              />
-                            )}
+                              
+                              {/* Player Management - only for tournament directors and non-completed events */}
+                              {selectedEvent.status !== 'completed' && userProfile?.role === 'tournament_director' && (
+                                <PlayerManagement
+                                  event={selectedEvent}
+                                  onUpdateEvent={handleUpdateEvent}
+                                  onOpenPlayerDatabase={() => setShowPlayerDatabase(true)}
+                                />
+                              )}
+                              
+                              {/* Results Display - only if results exist */}
+                              {selectedEvent.results && Object.keys(selectedEvent.results).length > 0 && (
+                                <ResultsDisplay
+                                  results={selectedEvent.results}
+                                  players={selectedEvent.players || []}
+                                />
+                              )}
+                            </div>
                           </>
                         ) : (
                           <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-                            <p className="text-lg">{t('app.noEventsSelected')}</p>
+                            <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3a4 4 0 118 0v4m-4 12a4 4 0 110-8 4 4 0 010 8z" />
+                            </svg>
+                            <p className="text-lg mb-2">{t('app.noEventsSelected')}</p>
+                            <p className="text-sm text-gray-400">
+                              {userProfile?.role === 'tournament_director' 
+                                ? t('app.selectEventOrCreate')
+                                : t('app.selectEventToView')
+                              }
+                            </p>
                           </div>
                         )}
                       </div>

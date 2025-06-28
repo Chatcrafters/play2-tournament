@@ -179,6 +179,8 @@ textarea:focus {
 .event-card {
   transition: all 0.2s ease;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .event-card:hover {
@@ -263,59 +265,6 @@ textarea:focus {
   }
 }
 
-/* Mobile Responsive */
-@media (max-width: 640px) {
-  .mobile-full {
-    width: 100%;
-  }
-  
-  .mobile-stack {
-    flex-direction: column;
-  }
-  
-  .mobile-hide {
-    display: none;
-  }
-}
-
-@media (max-width: 768px) {
-  .container {
-    padding: 0 0.5rem;
-  }
-}
-
-/* Tablet Responsive */
-@media (min-width: 641px) and (max-width: 1024px) {
-  .tablet-half {
-    width: 50%;
-  }
-}
-
-/* Custom Animations */
-.fade-enter {
-  opacity: 0;
-}
-
-.fade-enter-active {
-  opacity: 1;
-  transition: opacity 300ms ease-in;
-}
-
-.fade-exit {
-  opacity: 1;
-}
-
-.fade-exit-active {
-  opacity: 0;
-  transition: opacity 300ms ease-out;
-}
-
-/* Tournament Timer */
-.timer-display {
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.05em;
-}
-
 /* Success Animation */
 .success-checkmark {
   animation: scaleIn 0.3s ease;
@@ -368,5 +317,241 @@ textarea:focus {
   }
   100% {
     background-position: -200% 0;
+  }
+}
+
+/* ========================================= */
+/* MOBILE LAYOUT FIXES - KRITISCH!          */
+/* ========================================= */
+
+/* Prevent horizontal scroll on all devices */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+
+/* iOS Safe Area Support */
+.min-h-screen {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Fix for iOS Touch Events */
+.touch-target {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* MOBILE LAYOUT: Stack vertically on screens <= 1024px */
+@media screen and (max-width: 1024px) {
+  /* Main Content Layout */
+  .main-content-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+    width: 100% !important;
+  }
+  
+  /* Event List Section */
+  .event-list-section {
+    width: 100% !important;
+    order: 1 !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Event Details Section */
+  .event-details-section {
+    width: 100% !important;
+    order: 2 !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Override any grid classes */
+  .lg\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .lg\:col-span-1,
+  .lg\:col-span-2 {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-column: 1 !important;
+  }
+  
+  /* Container adjustments */
+  .max-w-7xl {
+    max-width: 100% !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Grid gap adjustments */
+  .gap-8 {
+    gap: 1rem !important;
+  }
+}
+
+/* TABLET RESPONSIVE (641px - 1024px) */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .main-content-grid {
+    gap: 2rem !important;
+  }
+  
+  .container {
+    padding: 0 1.5rem !important;
+  }
+}
+
+/* MOBILE RESPONSIVE (max-width: 640px) */
+@media (max-width: 640px) {
+  .mobile-full {
+    width: 100%;
+  }
+  
+  .mobile-stack {
+    flex-direction: column;
+  }
+  
+  .mobile-hide {
+    display: none;
+  }
+  
+  /* Container für sehr kleine Bildschirme */
+  .container {
+    padding: 0 0.75rem !important;
+  }
+  
+  .max-w-7xl {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  
+  /* Reduziere Header Padding */
+  header .max-w-7xl {
+    padding: 0 1rem !important;
+  }
+}
+
+/* iOS PWA Viewport Fix */
+@supports (-webkit-touch-callout: none) {
+  .min-h-screen {
+    min-height: -webkit-fill-available;
+  }
+  
+  /* Fix for iOS rubber band scrolling */
+  .fixed {
+    position: -webkit-sticky;
+    position: sticky;
+  }
+  
+  /* Ensure clickable elements work on iOS */
+  div[role="button"],
+  button,
+  a {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Prevent iOS font size adjustment */
+@media screen and (max-device-width: 480px) {
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  /* Ensure inputs don't zoom on iOS */
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="date"],
+  input[type="time"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* iOS Notch Support */
+@supports (padding: max(0px)) {
+  .container {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  
+  header {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+}
+
+/* Custom Animations */
+.fade-enter {
+  opacity: 0;
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity 300ms ease-in;
+}
+
+.fade-exit {
+  opacity: 1;
+}
+
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+}
+
+/* Tournament Timer */
+.timer-display {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+/* Additional Mobile Optimizations */
+@media (max-width: 1024px) {
+  /* Ensure no content is cut off */
+  .overflow-hidden {
+    overflow: visible !important;
+  }
+  
+  /* Make sure all cards are touchable */
+  .hover\:bg-gray-100:hover,
+  .hover\:bg-gray-50:hover {
+    background-color: transparent !important;
+  }
+  
+  .hover\:bg-gray-100:active,
+  .hover\:bg-gray-50:active {
+    background-color: #f3f4f6 !important;
+  }
+}
+
+/* Force visibility for debugging - Remove in production */
+.debug-visibility {
+  min-height: 200px !important;
+  background-color: #fee2e2 !important;
+  border: 2px solid #dc2626 !important;
+  margin: 0.5rem 0 !important;
+}
+
+/* Make sure everything is visible and accessible */
+@media (max-width: 1024px) {
+  /* Ensure sections are properly spaced */
+  .event-list-section,
+  .event-details-section {
+    min-height: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  /* Remove any transforms that might hide content */
+  .lg\:transform,
+  .lg\:translate-x-0 {
+    transform: none !important;
   }
 }

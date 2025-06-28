@@ -192,6 +192,54 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
     setScheduleOptions([])
   }
 
+  // Berechne Tabellen-Standings
+  const calculateStandings = () => {
+    const playerStats = {}
+    
+    // Initialisiere alle Spieler
+    safeEvent.players.forEach(player => {
+      playerStats[player.id] = {
+        ...player,
+        points: 0,
+        gamesWon: 0,
+        gamesPlayed: 0
+      }
+    })
+    
+    // Verarbeite alle Ergebnisse aus dem Event
+    if (safeEvent.results) {
+      Object.entries(safeEvent.results).forEach(([matchKey, matchData]) => {
+        if (matchData && matchData.result) {
+          const { team1, team2, result } = matchData
+          
+          // Update Team 1
+          team1?.forEach(player => {
+            if (player?.id && playerStats[player.id]) {
+              playerStats[player.id].gamesPlayed++
+              playerStats[player.id].gamesWon += result.team1Score || 0
+              playerStats[player.id].points += result.team1Points || 0
+            }
+          })
+          
+          // Update Team 2
+          team2?.forEach(player => {
+            if (player?.id && playerStats[player.id]) {
+              playerStats[player.id].gamesPlayed++
+              playerStats[player.id].gamesWon += result.team2Score || 0
+              playerStats[player.id].points += result.team2Points || 0
+            }
+          })
+        }
+      })
+    }
+    
+    // Sortiere nach Punkten, dann nach gewonnenen Spielen
+    return Object.values(playerStats).sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points
+      return b.gamesWon - a.gamesWon
+    })
+  }
+
   // Fairness-Score Farbe
   const getFairnessColor = (score) => {
     if (score >= 80) return 'text-green-600 bg-green-50'
@@ -400,6 +448,67 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
           </div>
         )}
       </div>
+
+      {/* Live-Tabelle mit Ausblenden-Option */}
+      {hasSchedule && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold">{t('results.standings')}</h3>
+            {canManageEvent && (
+              <button
+                onClick={() => {
+                  const updatedEvent = {
+                    ...safeEvent,
+                    showLiveTable: !safeEvent.showLiveTable
+                  }
+                  onUpdateEvent(updatedEvent)
+                }}
+                className="flex items-center gap-2 px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+              >
+                {safeEvent.showLiveTable !== false ? '👁️ ' + t('table.hide') : '👁️‍🗨️ ' + t('table.show')}
+              </button>
+            )}
+          </div>
+
+          {/* Tabelle nur anzeigen wenn showLiveTable nicht false ist */}
+          {safeEvent.showLiveTable !== false ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-3">{t('results.rank')}</th>
+                    <th className="text-left py-2 px-3">{t('results.player')}</th>
+                    <th className="text-center py-2 px-3">{t('results.points')}</th>
+                    <th className="text-center py-2 px-3">{t('results.gamesWon')}</th>
+                    <th className="text-center py-2 px-3">{t('results.matches')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {calculateStandings().map((player, idx) => (
+                    <tr key={player.id} className={`border-b ${
+                      idx === 0 ? 'bg-yellow-50' : 
+                      idx === 1 ? 'bg-gray-100' : 
+                      idx === 2 ? 'bg-orange-50' : ''
+                    }`}>
+                      <td className="py-2 px-3 font-semibold">
+                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
+                      </td>
+                      <td className="py-2 px-3">{player.name}</td>
+                      <td className="text-center py-2 px-3 font-bold">{player.points || 0}</td>
+                      <td className="text-center py-2 px-3">{player.gamesWon || 0}</td>
+                      <td className="text-center py-2 px-3">{player.gamesPlayed || 0}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>{t('table.hiddenByDirector')}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Modal für Spielplan-Optionen */}
       {showScheduleOptions && (

@@ -1,8 +1,18 @@
 import { Calendar, Clock, Users, MapPin } from 'lucide-react'
 import { useTranslation } from './LanguageSelector'
+import { useRef } from 'react'
 
-export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent }) => {
+export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent, canManageEvents }) => {
   const { t } = useTranslation()
+  const touchStartTime = useRef(0)
+  const touchStartY = useRef(0)
+  
+  // Debug: Props prüfen
+  console.log('EventList props:', { 
+    eventsCount: events?.length, 
+    hasOnSelectEvent: !!onSelectEvent,
+    hasOnDeleteEvent: !!onDeleteEvent 
+  });
   
   const getEventStatus = (event) => {
     if (event.status === 'completed') return t('event.status.completed')
@@ -76,6 +86,52 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent 
     return new Date(b.date) - new Date(a.date)
   })
 
+  // Event Selection Handler
+  const handleEventClick = (event) => {
+    console.log('handleEventClick called with:', event.name || event.id);
+    console.log('Full event object:', event);
+    if (onSelectEvent && typeof onSelectEvent === 'function') {
+      onSelectEvent(event);
+    } else {
+      console.error('onSelectEvent is not a function or not provided');
+    }
+  };
+
+  // iOS-optimierter Touch Handler
+  const handleTouchStart = (e) => {
+    touchStartTime.current = Date.now();
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e, event) => {
+    const touchEndTime = Date.now();
+    const touchDuration = touchEndTime - touchStartTime.current;
+    const touchEndY = e.changedTouches[0].clientY;
+    const touchDistance = Math.abs(touchEndY - touchStartY.current);
+    
+    // Nur als Tap werten wenn wenig Bewegung (ignoriere Zeit)
+    if (touchDistance < 10) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleEventClick(event);
+    }
+  };
+
+  // Delete Handler
+  const handleDeleteClick = (e, eventId) => {
+    console.log('handleDeleteClick called for:', eventId);
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (window.confirm(t('messages.confirmDelete'))) {
+      if (onDeleteEvent && typeof onDeleteEvent === 'function') {
+        onDeleteEvent(eventId);
+      } else {
+        console.error('onDeleteEvent is not a function or not provided');
+      }
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-bold mb-4">{t('event.myEvents')}</h2>
@@ -93,12 +149,36 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent 
             return (
               <div
                 key={event.id}
-                onClick={() => onSelectEvent(event)}
-                className={`p-4 rounded-lg cursor-pointer transition-all ${
+                onTouchStart={handleTouchStart}
+                onTouchEnd={(e) => handleTouchEnd(e, event)}
+                onClick={(e) => {
+                  // Nur für Desktop/Non-Touch
+                  if (!('ontouchstart' in window)) {
+                    handleEventClick(event);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    handleEventClick(event);
+                  }
+                }}
+                className={`p-4 rounded-lg transition-all select-none ${
                   isSelected 
                     ? 'bg-blue-50 border-2 border-blue-500' 
                     : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
                 }`}
+                style={{ 
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  WebkitTouchCallout: 'none',
+                  msUserSelect: 'none',
+                  MozUserSelect: 'none'
+                }}
               >
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-semibold text-lg">{event.title || event.name || 'Unbenanntes Event'}</h3>
@@ -152,17 +232,18 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent 
                     )}
                   </div>
                   
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (window.confirm(t('messages.confirmDelete'))) {
-                        onDeleteEvent(event.id)
-                      }
-                    }}
-                    className="text-red-500 hover:text-red-700 text-sm"
-                  >
-                    {t('navigation.delete')}
-                  </button>
+                  {canManageEvents && (
+                    <button
+                      onClick={(e) => handleDeleteClick(e, event.id)}
+                      onTouchEnd={(e) => {
+                        e.stopPropagation();
+                      }}
+                      className="text-red-500 hover:text-red-700 text-sm px-3 py-1 -mr-2 rounded hover:bg-red-50 active:bg-red-100 transition-colors"
+                      style={{ touchAction: 'manipulation' }}
+                    >
+                      {t('navigation.delete')}
+                    </button>
+                  )}
                 </div>
               </div>
             )
