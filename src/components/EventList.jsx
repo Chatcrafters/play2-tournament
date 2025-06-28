@@ -1,4 +1,4 @@
-import { Calendar, Clock, Users, MapPin } from 'lucide-react'
+﻿import { Calendar, Clock, Users, MapPin } from 'lucide-react'
 import { useTranslation } from './LanguageSelector'
 import { useRef } from 'react'
 
@@ -7,7 +7,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
   const touchStartTime = useRef(0)
   const touchStartY = useRef(0)
   
-  // Debug: Props prüfen
+  // Debug: Props prÃ¼fen
   console.log('EventList props:', { 
     eventsCount: events?.length, 
     hasOnSelectEvent: !!onSelectEvent,
@@ -47,7 +47,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
       return t('event.status.unknown') || 'Unbekannt'
     }
     
-    // Datum auf Mitternacht setzen für korrekten Vergleich
+    // Datum auf Mitternacht setzen fÃ¼r korrekten Vergleich
     const eventDateMidnight = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate())
     
     console.log('Event:', event.name, {
@@ -65,13 +65,13 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
       // Event war an einem vergangenen Tag
       return t('event.status.past')
     } else if (daysDifference === 0) {
-      // Event ist heute - prüfe zusätzlich die Endzeit
+      // Event ist heute - prÃ¼fe zusÃ¤tzlich die Endzeit
       if (event.endTime || event.end_time) {
         try {
           const endTime = event.endTime || event.end_time
           const [endHour, endMinute] = endTime.split(':').map(Number)
           
-          // Event-Ende-DateTime für heute
+          // Event-Ende-DateTime fÃ¼r heute
           const eventEndDateTime = new Date()
           eventEndDateTime.setHours(endHour, endMinute, 0, 0)
           
@@ -108,7 +108,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
       'En curso': 'text-green-600',
       'Hoy': 'text-blue-600', 
       'Pasado': 'text-red-600',
-      'Próximo': 'text-gray-700',
+      'PrÃ³ximo': 'text-gray-700',
       'Desconocido': 'text-gray-400',
       
       // Englisch (Fallback)
@@ -193,9 +193,9 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
         date = new Date(dateString)
       }
       
-      // Prüfe ob Datum gültig ist
+      // PrÃ¼fe ob Datum gÃ¼ltig ist
       if (isNaN(date.getTime())) {
-        console.warn('Ungültiges Datum:', dateString)
+        console.warn('UngÃ¼ltiges Datum:', dateString)
         return dateString // Fallback: Original-String anzeigen
       }
       
@@ -208,7 +208,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
       })
     } catch (error) {
       console.error('Fehler beim Formatieren des Datums:', error, dateString)
-      return dateString || 'Ungültiges Datum'
+      return dateString || 'UngÃ¼ltiges Datum'
     }
   }
 
@@ -234,7 +234,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
                 onTouchStart={handleTouchStart}
                 onTouchEnd={(e) => handleTouchEnd(e, event)}
                 onClick={(e) => {
-                  // Nur für Desktop/Non-Touch
+                  // Nur fÃ¼r Desktop/Non-Touch
                   if (!('ontouchstart' in window)) {
                     handleEventClick(event);
                   }
@@ -323,8 +323,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
                       className="text-red-500 hover:text-red-700 text-sm px-3 py-1 -mr-2 rounded hover:bg-red-50 active:bg-red-100 transition-colors"
                       style={{ touchAction: 'manipulation' }}
                     >
-                      {t('navigation.delete')}
-                    </span>
+                      {t('navigation.delete')}</button>
                   )}
                 </div>
               </div>
@@ -335,3 +334,4 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
     </div>
   )
 }
+

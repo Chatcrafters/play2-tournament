@@ -117,7 +117,9 @@
       updating: 'Event wird aktualisiert...',
       updated: 'Event erfolgreich aktualisiert',
       deleting: 'Event wird gelöscht...',
-      deleted: 'Event erfolgreich gelöscht'
+      deleted: 'Event erfolgreich gelöscht',
+      registrationDeadline: 'Anmeldeschluss',
+      noTime: 'Keine Zeit angegeben'
     },
     
     // Results
@@ -138,7 +140,13 @@
       allResults: 'Alle Ergebnisse',
       gamesPlayed: 'Gespielt',
       partners: 'Partner',
-      opponents: 'Gegner'
+      opponents: 'Gegner',
+      tournamentResults: 'Turnier-Ergebnisse',
+      position: 'Platz',
+      games: 'Spiele',
+      won: 'Gewonnen',
+      sets: 'Sets',
+      diff: 'Diff'
     },
     
     // Table
@@ -701,9 +709,10 @@
       updating: 'Actualizando evento...',
       updated: 'Evento actualizado exitosamente',
       deleting: 'Eliminando evento...',
-      deleted: 'Evento eliminado exitosamente'
-    },
-    
+      deleted: 'Evento eliminado exitosamente',
+      registrationDeadline: 'Fecha límite de inscripción',
+      noTime: 'Hora no especificada'
+    },    
     // Results
     results: {
       standings: 'Clasificación',
@@ -722,7 +731,13 @@
       allResults: 'Todos los resultados',
       gamesPlayed: 'Jugados',
       partners: 'Compañeros',
-      opponents: 'Oponentes'
+      opponents: 'Oponentes',
+      tournamentResults: 'Resultados del torneo',
+      position: 'Posición',
+      games: 'Juegos',
+      won: 'Ganados',
+      sets: 'Sets',
+      diff: 'Diff'
     },
     
     // Table
