@@ -6,12 +6,22 @@ import { generateAmericanoSchedule } from '../utils/americanoAlgorithm'
 import { useState } from 'react'
 
 export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, canManageEvent = false }) => {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation() // language hinzugefügt!
   const [showScheduleOptions, setShowScheduleOptions] = useState(false)
   const [scheduleOptions, setScheduleOptions] = useState([])
   const [selectedScheduleIndex, setSelectedScheduleIndex] = useState(null)
   
   if (!event) return null
+
+  // Locale-Map für korrekte Sprachformatierung
+  const getLocale = (lang) => {
+    const localeMap = {
+      'de': 'de-DE',
+      'es': 'es-ES', 
+      'en': 'en-US'
+    }
+    return localeMap[lang] || 'de-DE'
+  }
 
   // Sichere Defaults für alle event properties
   const safeEvent = {
@@ -58,13 +68,14 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
 
   const { startTime, endTime } = getTimeInfo();
 
-  // Formatiere Anmeldeschluss
+  // Formatiere Anmeldeschluss - LOCALE-AWARE!
   const formatRegistrationDeadline = (deadline) => {
-    if (!deadline) return t('form.notSpecified') || 'Nicht angegeben'
+    if (!deadline) return t('form.notSpecified')
     
     try {
       const date = new Date(deadline)
-      return date.toLocaleDateString() + ', ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      return date.toLocaleDateString(getLocale(language)) + ', ' + 
+             date.toLocaleTimeString(getLocale(language), { hour: '2-digit', minute: '2-digit' })
     } catch (error) {
       return deadline
     }
@@ -305,7 +316,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
               <Calendar className="w-4 h-4 text-gray-500" />
               <div>
                 <p className="text-sm text-gray-500">{t('event.date')}</p>
-                <p className="font-medium">{eventDate.toLocaleDateString('de-DE', { 
+                <p className="font-medium">{eventDate.toLocaleDateString(getLocale(language), { 
                   weekday: 'long', 
                   year: 'numeric', 
                   month: 'long', 
