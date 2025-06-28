@@ -35,7 +35,8 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
     price: event.price || event.entryFee || 0,
     name: event.name || event.title || '',
     description: event.description || event.eventInfo || '',
-    date: event.date || new Date().toISOString().split('T')[0]
+    date: event.date || new Date().toISOString().split('T')[0],
+    registrationDeadline: event.registrationDeadline || event.registration_deadline
   }
 
   // Status-Prüfungen
@@ -56,6 +57,18 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
   };
 
   const { startTime, endTime } = getTimeInfo();
+
+  // Formatiere Anmeldeschluss
+  const formatRegistrationDeadline = (deadline) => {
+    if (!deadline) return t('form.notSpecified') || 'Nicht angegeben'
+    
+    try {
+      const date = new Date(deadline)
+      return date.toLocaleDateString() + ', ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    } catch (error) {
+      return deadline
+    }
+  }
 
   // Spielplan generieren mit 3 Varianten
   const handleGenerateSchedule = () => {
@@ -255,6 +268,21 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
           <div>
             <h2 className="text-2xl font-bold mb-2">{safeEvent.title || safeEvent.name || t('event.unnamed')}</h2>
             <p className="text-gray-600">{safeEvent.description}</p>
+            
+            {/* Event-Kopfinfo mit Übersetzungen */}
+            {(safeEvent.price || safeEvent.registrationDeadline || safeEvent.minGamesPerPlayer) && (
+              <div className="mt-3 text-sm text-gray-600">
+                {safeEvent.price && (
+                  <span>{t('event.participationFee')}: {safeEvent.price}€ </span>
+                )}
+                {safeEvent.registrationDeadline && (
+                  <span>{t('event.registrationDeadline')}: {formatRegistrationDeadline(safeEvent.registrationDeadline)} </span>
+                )}
+                {safeEvent.minGamesPerPlayer && (
+                  <span>{t('form.minGamesPerPlayer')}: {safeEvent.minGamesPerPlayer}</span>
+                )}
+              </div>
+            )}
           </div>
           
           <div className="flex gap-2">
@@ -294,7 +322,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                   {startTime && endTime ? (
                     `${startTime} - ${endTime}`
                   ) : (
-                    t('event.noTime') || 'Keine Zeit angegeben'
+                    t('event.noTime')
                   )}
                 </p>
               </div>
@@ -449,11 +477,11 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
         )}
       </div>
 
-      {/* Live-Tabelle mit Ausblenden-Option */}
+      {/* Live-Tabelle mit korrekten Übersetzungen */}
       {hasSchedule && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold">{t('results.standings')}</h3>
+            <h3 className="text-xl font-semibold">{t('results.tournamentResults')}</h3>
             {canManageEvent && (
               <button
                 onClick={() => {
@@ -476,11 +504,13 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 px-3">{t('results.rank')}</th>
+                    <th className="text-left py-2 px-3">{t('results.position')}</th>
                     <th className="text-left py-2 px-3">{t('results.player')}</th>
                     <th className="text-center py-2 px-3">{t('results.points')}</th>
-                    <th className="text-center py-2 px-3">{t('results.gamesWon')}</th>
-                    <th className="text-center py-2 px-3">{t('results.matches')}</th>
+                    <th className="text-center py-2 px-3">{t('results.games')}</th>
+                    <th className="text-center py-2 px-3">{t('results.won')}</th>
+                    <th className="text-center py-2 px-3">{t('results.sets')}</th>
+                    <th className="text-center py-2 px-3">{t('results.diff')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -495,8 +525,10 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                       </td>
                       <td className="py-2 px-3">{player.name}</td>
                       <td className="text-center py-2 px-3 font-bold">{player.points || 0}</td>
-                      <td className="text-center py-2 px-3">{player.gamesWon || 0}</td>
                       <td className="text-center py-2 px-3">{player.gamesPlayed || 0}</td>
+                      <td className="text-center py-2 px-3">{player.gamesWon || 0}</td>
+                      <td className="text-center py-2 px-3">-</td>
+                      <td className="text-center py-2 px-3">-</td>
                     </tr>
                   ))}
                 </tbody>
@@ -528,7 +560,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
             </div>
             
             <p className="text-gray-600 mb-6">
-              {t('schedule.scheduleVariants') || 'Wählen Sie eine der generierten Spielplan-Varianten aus:'}
+              {t('schedule.scheduleVariants')}
             </p>
             
             <div className="flex-1 overflow-y-auto">
