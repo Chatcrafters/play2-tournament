@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Share2, Copy, CheckCircle, QrCode, ExternalLink } from 'lucide-react'
 import QRCode from 'qrcode'
 
@@ -7,7 +7,7 @@ export const EventShare = ({ event }) => {
   const [copied, setCopied] = useState(false)
   const [qrCodeUrl, setQrCodeUrl] = useState('')
   
-  // Generiere die öffentliche URL
+  // Generiere die Ã¶ffentliche URL
   const baseUrl = window.location.origin
   const eventUrl = `${baseUrl}/event/${event.id}`
   
@@ -24,7 +24,7 @@ export const EventShare = ({ event }) => {
       })
       setQrCodeUrl(url)
     } catch (err) {
-      console.error('QR Code Fehler:', err)
+      // removed console.error
     }
   }
   
@@ -44,11 +44,11 @@ export const EventShare = ({ event }) => {
       try {
         await navigator.share({
           title: event.title,
-          text: `Melde dich an für: ${event.title}`,
+          text: `Melde dich an fÃ¼r: ${event.title}`,
           url: eventUrl
         })
       } catch (err) {
-        console.log('Share cancelled:', err)
+        // removed console.log
       }
     }
   }
@@ -72,7 +72,7 @@ export const EventShare = ({ event }) => {
                 onClick={() => setShowShareDialog(false)}
                 className="text-gray-500 hover:text-gray-700"
               >
-                ✕
+                âœ•
               </button>
             </div>
             
@@ -82,7 +82,7 @@ export const EventShare = ({ event }) => {
                 <div>
                   <img src={qrCodeUrl} alt="QR Code" className="mx-auto mb-2" />
                   <p className="text-sm text-gray-600">
-                    QR-Code scannen für direkten Zugang zur Anmeldung
+                    QR-Code scannen fÃ¼r direkten Zugang zur Anmeldung
                   </p>
                 </div>
               ) : (
@@ -124,7 +124,7 @@ export const EventShare = ({ event }) => {
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50"
               >
                 <ExternalLink className="w-4 h-4" />
-                Im Browser öffnen
+                Im Browser Ã¶ffnen
               </button>
               
               {navigator.share && (
@@ -133,20 +133,20 @@ export const EventShare = ({ event }) => {
                   className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   <Share2 className="w-4 h-4" />
-                  Über System teilen
+                  Ãœber System teilen
                 </button>
               )}
               
               <button
                 onClick={() => {
                   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
-                    `Melde dich an für: ${event.title}\n${eventUrl}`
+                    `Melde dich an fÃ¼r: ${event.title}\n${eventUrl}`
                   )}`
                   window.open(whatsappUrl, '_blank')
                 }}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
               >
-                📱 Per WhatsApp teilen
+                ðŸ“± Per WhatsApp teilen
               </button>
             </div>
             
@@ -154,10 +154,10 @@ export const EventShare = ({ event }) => {
             <div className="mt-4 p-3 bg-gray-100 rounded-lg text-sm">
               <p className="font-medium">{event.title}</p>
               <p className="text-gray-600">
-                {new Date(event.date).toLocaleDateString('de-DE')} • {event.startTime} Uhr
+                {new Date(event.date).toLocaleDateString('de-DE')} â€¢ {event.startTime} Uhr
               </p>
               <p className="text-gray-600">
-                {event.players.length}/{event.maxPlayers} Plätze belegt
+                {event.players.length}/{event.maxPlayers} PlÃ¤tze belegt
               </p>
             </div>
           </div>

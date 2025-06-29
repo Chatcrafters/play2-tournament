@@ -1,4 +1,4 @@
-// WICHTIG: Diese Datei konvertiert zwischen camelCase (Frontend) und snake_case (Datenbank)
+﻿// WICHTIG: Diese Datei konvertiert zwischen camelCase (Frontend) und snake_case (Datenbank)
 // IMMER diese Funktionen verwenden bei Supabase-Operationen!
 
 /**
@@ -30,20 +30,20 @@ export const sanitizeEventData = (event) => {
   
   return {
     ...event,
-    // Arrays müssen Arrays sein, nicht null
+    // Arrays mÃ¼ssen Arrays sein, nicht null
     players: Array.isArray(event.players) ? event.players : [],
     schedule: Array.isArray(event.schedule) ? event.schedule : [],
     breaks: Array.isArray(event.breaks) ? event.breaks : [],
     dailySchedule: Array.isArray(event.dailySchedule) ? event.dailySchedule : [],
     
-    // Objects müssen Objects sein, nicht null
+    // Objects mÃ¼ssen Objects sein, nicht null
     results: event.results || {},
     
     // Bereinige Zeitfelder von Sekunden
     startTime: event.startTime ? event.startTime.split(':').slice(0, 2).join(':') : '09:00',
     endTime: event.endTime ? event.endTime.split(':').slice(0, 2).join(':') : '13:00',
     
-    // Zahlen müssen Zahlen sein
+    // Zahlen mÃ¼ssen Zahlen sein
     courts: parseInt(event.courts) || 2,
     maxPlayers: parseInt(event.maxPlayers) || 16,
     roundDuration: parseInt(event.roundDuration) || 15,
@@ -78,31 +78,31 @@ export const transformFromDB = (obj) => {
       if (processedKeys.has(camelKey)) continue;
       processedKeys.add(camelKey);
       
-      // SPEZIALBEHANDLUNG für 'sports' - direkt übernehmen ohne Transformation
+      // SPEZIALBEHANDLUNG fÃ¼r 'sports' - direkt Ã¼bernehmen ohne Transformation
       if (key === 'sports' && obj[key] !== null && typeof obj[key] === 'object') {
         transformed[camelKey] = obj[key];
         continue;
       }
       
-      // SPEZIALBEHANDLUNG für 'daily_schedule' - Array-Struktur beibehalten
+      // SPEZIALBEHANDLUNG fÃ¼r 'daily_schedule' - Array-Struktur beibehalten
       if (key === 'daily_schedule') {
         transformed[camelKey] = Array.isArray(obj[key]) ? obj[key] : [];
         continue;
       }
       
-      // SPEZIALBEHANDLUNG für Arrays die null sein könnten
+      // SPEZIALBEHANDLUNG fÃ¼r Arrays die null sein kÃ¶nnten
       if ((key === 'schedule' || key === 'players' || key === 'breaks') && obj[key] === null) {
         transformed[camelKey] = [];
         continue;
       }
       
-      // Spezielle Behandlung für verschachtelte Objekte und Arrays
+      // Spezielle Behandlung fÃ¼r verschachtelte Objekte und Arrays
       if (obj[key] !== null && typeof obj[key] === 'object') {
         if (Array.isArray(obj[key])) {
-          // Arrays direkt übernehmen
+          // Arrays direkt Ã¼bernehmen
           transformed[camelKey] = obj[key];
         } else if (obj[key] instanceof Date) {
-          // Dates direkt übernehmen
+          // Dates direkt Ã¼bernehmen
           transformed[camelKey] = obj[key];
         } else {
           // Verschachtelte Objekte auch transformieren
@@ -114,7 +114,7 @@ export const transformFromDB = (obj) => {
     }
   }
   
-  // Nach der Transformation: Sanitize für Events
+  // Nach der Transformation: Sanitize fÃ¼r Events
   if (transformed.eventType !== undefined || transformed.players !== undefined) {
     return sanitizeEventData(transformed);
   }
@@ -134,14 +134,14 @@ export const transformToDB = (obj) => {
   
   for (const key in obj) {
     if (obj.hasOwnProperty(key)) {
-      // NEU: Filtere temporäre IDs heraus
+      // NEU: Filtere temporÃ¤re IDs heraus
       if (key === 'id' && obj[key] && typeof obj[key] === 'string' && obj[key].startsWith('temp_')) {
         continue; // Skip temporary IDs completely
       }
       
       const snakeKey = camelToSnake(key);
       
-      // SPEZIALBEHANDLUNG für leere Datums-Strings
+      // SPEZIALBEHANDLUNG fÃ¼r leere Datums-Strings
       if ((key === 'endDate' || key === 'date' || key === 'registrationDeadline' || 
            key === 'completedAt' || key === 'createdAt' || key === 'updatedAt') && 
           obj[key] === '') {
@@ -149,25 +149,25 @@ export const transformToDB = (obj) => {
         continue;
       }
       
-      // SPEZIALBEHANDLUNG für 'sports' - direkt übernehmen ohne Transformation
+      // SPEZIALBEHANDLUNG fÃ¼r 'sports' - direkt Ã¼bernehmen ohne Transformation
       if (key === 'sports' && obj[key] !== null && typeof obj[key] === 'object') {
         transformed[snakeKey] = obj[key];
         continue;
       }
       
-      // SPEZIALBEHANDLUNG für 'dailySchedule' - Array-Struktur beibehalten
+      // SPEZIALBEHANDLUNG fÃ¼r 'dailySchedule' - Array-Struktur beibehalten
       if (key === 'dailySchedule' && Array.isArray(obj[key])) {
         transformed[snakeKey] = obj[key];
         continue;
       }
       
-      // SPEZIALBEHANDLUNG für undefined Werte - zu null konvertieren
+      // SPEZIALBEHANDLUNG fÃ¼r undefined Werte - zu null konvertieren
       if (obj[key] === undefined) {
         transformed[snakeKey] = null;
         continue;
       }
       
-      // SPEZIALBEHANDLUNG für leere Arrays - als leere Arrays beibehalten, nicht null
+      // SPEZIALBEHANDLUNG fÃ¼r leere Arrays - als leere Arrays beibehalten, nicht null
       if (key === 'schedule' || key === 'players' || key === 'breaks') {
         if (Array.isArray(obj[key])) {
           transformed[snakeKey] = obj[key];
@@ -177,13 +177,13 @@ export const transformToDB = (obj) => {
         continue;
       }
       
-      // Spezielle Behandlung für verschachtelte Objekte und Arrays
+      // Spezielle Behandlung fÃ¼r verschachtelte Objekte und Arrays
       if (obj[key] !== null && typeof obj[key] === 'object') {
         if (Array.isArray(obj[key])) {
-          // Arrays direkt übernehmen
+          // Arrays direkt Ã¼bernehmen
           transformed[snakeKey] = obj[key];
         } else if (obj[key] instanceof Date) {
-          // Dates direkt übernehmen
+          // Dates direkt Ã¼bernehmen
           transformed[snakeKey] = obj[key];
         } else {
           // Verschachtelte Objekte auch transformieren
@@ -199,8 +199,8 @@ export const transformToDB = (obj) => {
 };
 
 /**
- * Bereitet Event-Daten für das Speichern in der Datenbank vor
- * Konvertiert leere Arrays zu null wenn gewünscht (für kleinere DB-Größe)
+ * Bereitet Event-Daten fÃ¼r das Speichern in der Datenbank vor
+ * Konvertiert leere Arrays zu null wenn gewÃ¼nscht (fÃ¼r kleinere DB-GrÃ¶ÃŸe)
  * @param {Object} event - Event-Objekt
  * @param {boolean} keepEmptyArrays - Ob leere Arrays beibehalten werden sollen
  * @returns {Object} Vorbereitetes Event-Objekt
@@ -237,8 +237,8 @@ export const prepareEventForDB = (event, keepEmptyArrays = true) => {
 }
 
 /**
- * Mapping-Referenz für häufig verwendete Felder
- * Frontend (camelCase) → Datenbank (snake_case)
+ * Mapping-Referenz fÃ¼r hÃ¤ufig verwendete Felder
+ * Frontend (camelCase) â†’ Datenbank (snake_case)
  */
 export const fieldMapping = {
   // Event-Felder
@@ -288,7 +288,7 @@ export const fieldMapping = {
 };
 
 /**
- * Hilfsfunktion für Batch-Transformationen
+ * Hilfsfunktion fÃ¼r Batch-Transformationen
  * @param {Array} array - Array von Objekten
  * @param {Function} transformFn - transformFromDB oder transformToDB
  * @returns {Array} Transformiertes Array
@@ -304,16 +304,16 @@ export const transformArray = (array, transformFn) => {
  * @param {Object} transformed - Transformiertes Objekt
  */
 export const debugTransformation = (original, transformed) => {
-  console.group('🔄 Datenbank-Transformation');
-  console.log('Original:', original);
-  console.log('Transformiert:', transformed);
-  console.log('Feld-Mapping:');
+  console.group('ðŸ”„ Datenbank-Transformation');
+  // removed console.log;
+  // removed console.log;
+  // removed console.log;
   for (const key in original) {
     const newKey = Object.keys(transformed).find(k => 
       transformed[k] === original[key]
     );
     if (newKey && newKey !== key) {
-      console.log(`  ${key} → ${newKey}`);
+      // removed console.log;
     }
   }
   console.groupEnd();
@@ -327,7 +327,7 @@ export const debugTransformation = (original, transformed) => {
 export const cleanEventData = (event) => {
   const cleaned = { ...event };
   
-  // Entferne temporäre oder UI-spezifische Felder
+  // Entferne temporÃ¤re oder UI-spezifische Felder
   delete cleaned.showAdvancedOptions;
   delete cleaned.flexibleTimesEnabled;
   
@@ -336,7 +336,7 @@ export const cleanEventData = (event) => {
     cleaned.date = new Date().toISOString().split('T')[0];
   }
   
-  // Konvertiere leere Strings zu null für optionale Felder
+  // Konvertiere leere Strings zu null fÃ¼r optionale Felder
   const optionalFields = ['endDate', 'phone', 'location', 'eventInfo', 'registrationDeadline'];
   optionalFields.forEach(field => {
     if (cleaned[field] === '') {
@@ -344,7 +344,7 @@ export const cleanEventData = (event) => {
     }
   });
   
-  // Stelle sicher, dass Arrays Arrays sind (niemals null für diese Felder)
+  // Stelle sicher, dass Arrays Arrays sind (niemals null fÃ¼r diese Felder)
   if (!Array.isArray(cleaned.players)) {
     cleaned.players = [];
   }
@@ -375,7 +375,7 @@ export const cleanEventData = (event) => {
     }
   });
   
-  // Setze Default-Werte für wichtige Felder
+  // Setze Default-Werte fÃ¼r wichtige Felder
   cleaned.timerState = cleaned.timerState || 'stopped';
   cleaned.currentRound = cleaned.currentRound || 0;
   cleaned.fairnessScore = cleaned.fairnessScore || 0; // NEU
@@ -397,7 +397,7 @@ export const cleanPlayerData = (player) => {
     throw new Error('Player name is required');
   }
   
-  // Setze Defaults für optionale Felder
+  // Setze Defaults fÃ¼r optionale Felder
   cleaned.gender = cleaned.gender || 'male';
   cleaned.sports = cleaned.sports || { padel: false, pickleball: false, spinxball: false };
   
@@ -425,7 +425,7 @@ export const cleanPlayerData = (player) => {
  * const eventForDB = transformToDB(cleanedEvent);
  * await supabase.from('events').insert(eventForDB);
  * 
- * // Für Arrays:
+ * // FÃ¼r Arrays:
  * const transformedEvents = transformArray(rawEvents, transformFromDB);
  * 
  * // Zum Debuggen:

@@ -14,7 +14,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
     try {
       // FIXED: Handle malformed dates like "0002-07-06"
       if (dateStr.startsWith('000') || dateStr.length < 8) {
-        console.warn('Invalid date format detected:', dateStr);
+        // removed console.warn;
         return null;
       }
       
@@ -28,7 +28,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
         
         // FIXED: Validate reasonable year range
         if (year < 2020 || year > 2030) {
-          console.warn('Invalid year detected:', year, 'in date:', dateStr);
+          // removed console.warn;
           return null;
         }
         
@@ -39,13 +39,13 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
       
       // Validate the parsed date
       if (isNaN(eventDate.getTime())) {
-        console.warn('Failed to parse date:', dateStr);
+        // removed console.warn;
         return null;
       }
       
       return eventDate;
     } catch (error) {
-      console.error('Error parsing event date:', error, dateStr);
+      // removed console.error;
       return null;
     }
   }, []);
@@ -79,7 +79,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
             return t('event.status.past');
           }
         } catch (timeError) {
-          console.warn('Error parsing end time:', timeError, event.endTime || event.end_time);
+          // removed console.warn;
         }
       }
       return t('event.status.today');
@@ -137,7 +137,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
         // Sort by date (newest first)
         return dateB.getTime() - dateA.getTime();
       } catch (error) {
-        console.warn('Error sorting events:', error);
+        // removed console.warn;
         return 0;
       }
     });
@@ -148,7 +148,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
     if (onSelectEvent && typeof onSelectEvent === 'function') {
       onSelectEvent(event);
     } else {
-      console.error('onSelectEvent is not a function or not provided');
+      // removed console.error;
     }
   }, [onSelectEvent]);
 
@@ -181,7 +181,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
       if (onDeleteEvent && typeof onDeleteEvent === 'function') {
         onDeleteEvent(eventId);
       } else {
-        console.error('onDeleteEvent is not a function or not provided');
+        // removed console.error;
       }
     }
   }, [onDeleteEvent, t]);
@@ -192,7 +192,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
     
     const eventDate = parseEventDate(dateString);
     if (!eventDate) {
-      console.warn('Invalid date for formatting:', dateString);
+      // removed console.warn;
       return dateString; // Fallback: show original string
     }
     
@@ -204,7 +204,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
         day: 'numeric'
       });
     } catch (error) {
-      console.error('Error formatting date:', error, dateString);
+      // removed console.error;
       return dateString || 'Invalid Date';
     }
   }, [parseEventDate, t]);
@@ -334,3 +334,4 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
     </div>
   );
 };
+

@@ -1,11 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
+﻿import { createClient } from '@supabase/supabase-js'
 
 // Diese Werte kommen aus der .env.local Datei
 const supabaseUrl = 'https://ycwavingkihnepinrxlx.supabase.co'
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inljd2F2aW5na2lobmVwaW5yeGx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0MTMwOTUsImV4cCI6MjA2Mzk4OTA5NX0.FkUmAxmCOz9-jw_6VZkmmHmmMQTxjN2Gha3xxFjz120'
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Supabase URL und Anon Key müssen in .env definiert sein')
+  throw new Error('Supabase URL und Anon Key mÃ¼ssen in .env definiert sein')
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
@@ -38,7 +38,7 @@ export const dbOperations = {
       }
     })
     
-    console.log('Creating event with data:', dbData)
+    // removed console.log
     
     const { data, error } = await supabase
       .from('events')
@@ -47,7 +47,7 @@ export const dbOperations = {
       .single()
     
     if (error) {
-      console.error('Create event error:', error)
+      // removed console.error
       throw error
     }
     
@@ -56,7 +56,7 @@ export const dbOperations = {
 
   async updateEvent(id, updates) {
     try {
-      console.log('Updating event:', id, updates)
+      // removed console.log
       
       // Direkt verwenden, keine Transformation
       const dbUpdates = {
@@ -75,7 +75,7 @@ export const dbOperations = {
         dbUpdates.results = {}
       }
       
-      console.log('DB updates:', dbUpdates)
+      // removed console.log
       
       const { data, error } = await supabase
         .from('events')
@@ -85,14 +85,14 @@ export const dbOperations = {
         .single()
       
       if (error) {
-        console.error('Supabase update error:', error)
+        // removed console.error
         throw error
       }
       
-      console.log('Update successful:', data)
+      // removed console.log
       return data
     } catch (error) {
-      console.error('Update event error:', error)
+      // removed console.error
       throw error
     }
   },
@@ -150,7 +150,7 @@ export const dbOperations = {
       
       return data
     } catch (error) {
-      console.error('Get event error:', error)
+      // removed console.error
       throw error
     }
   },
@@ -280,7 +280,7 @@ export const dbOperations = {
         const result = await dbOperations.updateEvent(update.id, update.data)
         results.push({ success: true, id: update.id, data: result })
       } catch (error) {
-        console.error(`Error updating event ${update.id}:`, error)
+        // removed console.error
         results.push({ success: false, id: update.id, error: error.message })
       }
     }
@@ -300,17 +300,17 @@ export const dbOperations = {
       
       if (error) throw error
       
-      console.group('🔍 Event Debug Info')
-      console.log('Raw DB data:', rawData)
-      console.log('Schedule type:', typeof rawData.schedule)
-      console.log('Schedule value:', rawData.schedule)
-      console.log('Schedule is null?', rawData.schedule === null)
-      console.log('Schedule is array?', Array.isArray(rawData.schedule))
+      console.group('ðŸ” Event Debug Info')
+      // removed console.log
+      // removed console.log
+      // removed console.log
+      // removed console.log
+      // removed console.log)
       console.groupEnd()
       
       return rawData
     } catch (error) {
-      console.error('Debug error:', error)
+      // removed console.error
       throw error
     }
   }
@@ -420,7 +420,7 @@ export const realtimeHelpers = {
           filter: `id=eq.${eventId}`
         },
         (payload) => {
-          console.log('Realtime update:', payload)
+          // removed console.log
           callback(payload.new)
         }
       )

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { formatTimeRange } from '../utils/timeFormat'
 
@@ -8,7 +8,7 @@ export function PublicHomePage({ onLogin }) {
   const [filterSport, setFilterSport] = useState('all')
   const [selectedEvent, setSelectedEvent] = useState(null)
 
-  // Lade öffentliche Events
+  // Lade Ã¶ffentliche Events
   useEffect(() => {
     loadPublicEvents()
   }, [])
@@ -25,7 +25,7 @@ export function PublicHomePage({ onLogin }) {
       if (error) throw error
       setEvents(data || [])
     } catch (error) {
-      console.error('Error loading public events:', error)
+      // removed console.error
     } finally {
       setLoading(false)
     }
@@ -37,10 +37,10 @@ export function PublicHomePage({ onLogin }) {
 
   const getSportEmoji = (sport) => {
     switch(sport) {
-      case 'padel': return '🎾'
-      case 'pickleball': return '🏓'
-      case 'spinxball': return '🔄'
-      default: return '🏸'
+      case 'padel': return 'ðŸŽ¾'
+      case 'pickleball': return 'ðŸ“'
+      case 'spinxball': return 'ðŸ”„'
+      default: return 'ðŸ¸'
     }
   }
 
@@ -65,7 +65,7 @@ export function PublicHomePage({ onLogin }) {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Play2</h1>
-                <p className="text-xs text-gray-500">Turnierplattform für Padel, Pickleball & SpinXball</p>
+                <p className="text-xs text-gray-500">Turnierplattform fÃ¼r Padel, Pickleball & SpinXball</p>
               </div>
             </div>
             
@@ -85,10 +85,10 @@ export function PublicHomePage({ onLogin }) {
       <section className="relative z-10 bg-white bg-opacity-90 backdrop-blur-sm py-16">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Finde dein nächstes Turnier
+            Finde dein nÃ¤chstes Turnier
           </h2>
           <p className="text-xl text-gray-600 mb-8">
-            Entdecke Padel-, Pickleball- und SpinXball-Turniere in deiner Nähe
+            Entdecke Padel-, Pickleball- und SpinXball-Turniere in deiner NÃ¤he
           </p>
           
           {/* Sport Filter */}
@@ -111,7 +111,7 @@ export function PublicHomePage({ onLogin }) {
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              🎾 Padel
+              ðŸŽ¾ Padel
             </button>
             <button
               onClick={() => setFilterSport('pickleball')}
@@ -121,7 +121,7 @@ export function PublicHomePage({ onLogin }) {
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              🏓 Pickleball
+              ðŸ“ Pickleball
             </button>
             <button
               onClick={() => setFilterSport('spinxball')}
@@ -131,7 +131,7 @@ export function PublicHomePage({ onLogin }) {
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              🔄 SpinXball
+              ðŸ”„ SpinXball
             </button>
           </div>
         </div>
@@ -147,15 +147,15 @@ export function PublicHomePage({ onLogin }) {
         ) : filteredEvents.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <span className="text-4xl">📅</span>
+              <span className="text-4xl">ðŸ“…</span>
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
               Keine Turniere gefunden
             </h3>
             <p className="text-gray-600">
               {filterSport !== 'all' 
-                ? `Keine ${filterSport} Turniere verfügbar.`
-                : 'Momentan sind keine öffentlichen Turniere verfügbar.'}
+                ? `Keine ${filterSport} Turniere verfÃ¼gbar.`
+                : 'Momentan sind keine Ã¶ffentlichen Turniere verfÃ¼gbar.'}
             </p>
           </div>
         ) : (
@@ -189,7 +189,7 @@ export function PublicHomePage({ onLogin }) {
                     
                     <div className="space-y-2 text-gray-600 mb-4">
                       <p className="flex items-center gap-2">
-                        <span>📅</span>
+                        <span>ðŸ“…</span>
                         <span>{eventDate.toLocaleDateString('de-DE', { 
                           weekday: 'long', 
                           year: 'numeric', 
@@ -198,17 +198,17 @@ export function PublicHomePage({ onLogin }) {
                         })}</span>
                       </p>
                       <p className="flex items-center gap-2">
-                        <span>🕐</span>
+                        <span>ðŸ•</span>
                         <span>{formatTimeRange(event.start_time, event.end_time)}</span>
                       </p>
                       <p className="flex items-center gap-2">
-                        <span>📍</span>
+                        <span>ðŸ“</span>
                         <span>{event.location || 'Ort wird noch bekannt gegeben'}</span>
                       </p>
                       {event.entry_fee > 0 && (
                         <p className="flex items-center gap-2">
-                          <span>💰</span>
-                          <span>{event.entry_fee}€ Startgebühr</span>
+                          <span>ðŸ’°</span>
+                          <span>{event.entry_fee}â‚¬ StartgebÃ¼hr</span>
                         </p>
                       )}
                     </div>
@@ -256,7 +256,7 @@ export function PublicHomePage({ onLogin }) {
       <footer className="mt-16 py-8 border-t border-gray-200 bg-white relative z-10">
         <div className="max-w-7xl mx-auto px-4 text-center text-gray-600">
           <p className="text-sm">
-            © 2025 Play2 - play2.club | Tournament Management Platform
+            Â© 2025 Play2 - play2.club | Tournament Management Platform
           </p>
         </div>
       </footer>
@@ -264,32 +264,32 @@ export function PublicHomePage({ onLogin }) {
   )
 }
 
-// Temporäre EventDetailModal Komponente (bis separate Datei erstellt wird)
+// TemporÃ¤re EventDetailModal Komponente (bis separate Datei erstellt wird)
 function EventDetailModal({ event, onClose }) {
   const eventDate = new Date(event.date)
   const spotsLeft = event.max_players - (event.players?.length || 0)
   
-  // Debug Info - Temporär als globale Variable für Debugging
+  // Debug Info - TemporÃ¤r als globale Variable fÃ¼r Debugging
   window.debugEvent = event
   
-  console.log('Event Data:', event)
-  console.log('Schedule:', event.schedule)
-  console.log('Players:', event.players)
-  console.log('Results:', event.results)
+  // removed console.log
+  // removed console.log
+  // removed console.log
+  // removed console.log
   
   // Detaillierte Debug Info
   if (event.schedule && event.schedule.length > 0) {
-    console.log('First Match Structure:', JSON.stringify(event.schedule[0], null, 2))
+    // removed console.log)
     // Check for results in matches
     const firstMatchWithResult = event.schedule.find(round => 
       round.matches?.find(match => match.result || match.score)
     )
     if (firstMatchWithResult) {
-      console.log('Match with result:', firstMatchWithResult)
+      // removed console.log
     }
   }
   if (event.players && event.players.length > 0) {
-    console.log('First Player Structure:', JSON.stringify(event.players[0], null, 2))
+    // removed console.log)
   }
   
   // Gruppiere Spielplan nach Runden
@@ -357,16 +357,16 @@ function EventDetailModal({ event, onClose }) {
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 text-2xl"
           >
-            ✕
+            âœ•
           </button>
         </div>
         
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-100px)]">
           <div className="space-y-3 mb-6">
-            <p>📅 {eventDate.toLocaleDateString('de-DE')}</p>
-            <p>🕐 {formatTimeRange(event.start_time, event.end_time)}</p>
-            <p>📍 {event.location}</p>
-            <p>👥 {event.players?.length || 0}/{event.max_players} Spieler</p>
+            <p>ðŸ“… {eventDate.toLocaleDateString('de-DE')}</p>
+            <p>ðŸ• {formatTimeRange(event.start_time, event.end_time)}</p>
+            <p>ðŸ“ {event.location}</p>
+            <p>ðŸ‘¥ {event.players?.length || 0}/{event.max_players} Spieler</p>
           </div>
           
           {event.event_info && (
@@ -501,7 +501,7 @@ function EventDetailModal({ event, onClose }) {
             className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
             onClick={() => alert('Anmeldung kommt bald!')}
           >
-            Für dieses Turnier anmelden
+            FÃ¼r dieses Turnier anmelden
           </button>
         </div>
       </div>

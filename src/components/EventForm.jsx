@@ -157,7 +157,7 @@ const calculateFairnessScore = (playerCount, courts, rounds, roundDuration) => {
     }
     
   } catch (error) {
-    console.error('Fairness calculation error:', error)
+    // removed console.error
     
     // FIXED: Robuster Fallback bei Fehlern
     return {
@@ -207,7 +207,7 @@ const generateRecommendations = (fairnessScore, playerCount, courts, rounds) => 
     return recommendations
     
   } catch (error) {
-    console.error('Recommendations error:', error)
+    // removed console.error
     return ['🔧 Konfiguration prüfen']
   }
 }
@@ -591,11 +591,11 @@ const [isSubmitting, setIsSubmitting] = useState(false)
   }
   
   if (isSubmitting) {
-    console.log('⚠️ Already submitting, ignoring duplicate click')
+    // removed console.log
     return
   }
   
-  console.log('🔥 handleSubmit started for event:', formData.name)
+  // removed console.log
   setIsSubmitting(true)
   
   try {
@@ -662,12 +662,12 @@ const [isSubmitting, setIsSubmitting] = useState(false)
     
     delete submitData.entryFee
     
-    console.log('📤 Calling onSubmit for:', submitData.name)
+    // removed console.log
     await onSubmit(submitData)
-    console.log('✅ onSubmit completed successfully')
+    // removed console.log
     
   } catch (error) {
-    console.error('❌ Event submission failed:', error)
+    // removed console.error
     alert('Fehler beim Erstellen des Events. Bitte versuchen Sie es erneut.')
   } finally {
     setIsSubmitting(false)
@@ -1802,3 +1802,4 @@ const [isSubmitting, setIsSubmitting] = useState(false)
     </div>
   )
 }
+

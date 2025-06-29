@@ -1,4 +1,4 @@
-// Berechnet die Gesamtspielzeit in Minuten
+﻿// Berechnet die Gesamtspielzeit in Minuten
 export const calculateTotalMinutes = (formData) => {
   if (!formData.startTime || !formData.endTime) return 0
   
@@ -84,6 +84,6 @@ export const playSound = () => {
       oscillator2.stop(audioContext.currentTime + 0.5)
     }, 600)
   } catch (error) {
-    console.error('Error playing sound:', error)
+    // removed console.error
   }
 }

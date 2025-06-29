@@ -54,7 +54,7 @@ export const EventRegistration = () => {
         setFormData(prev => ({ ...prev, skillLevel: 3 }))
       }
     } catch (error) {
-      console.error('Fehler beim Laden des Events:', error)
+      // removed console.error
       setError(t('eventRegistration.eventNotFound'))
     } finally {
       setIsLoading(false)
@@ -144,7 +144,7 @@ export const EventRegistration = () => {
       }, 5000)
 
     } catch (error) {
-      console.error('Fehler bei der Anmeldung:', error)
+      // removed console.error
       alert(t('eventRegistration.registrationError'))
     } finally {
       setIsSubmitting(false)
@@ -443,3 +443,4 @@ export const EventRegistration = () => {
     </div>
   )
 }
+

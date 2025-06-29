@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+﻿import { supabase } from '../lib/supabase'
 
 const playerService = {
   // Alle Spieler des Benutzers abrufen
@@ -16,12 +16,12 @@ const playerService = {
       if (error) throw error
       return data || []
     } catch (error) {
-      console.error('Fehler beim Abrufen der Spieler:', error)
+      // removed console.error
       return []
     }
   },
 
-  // Spieler suchen (für Autocomplete)
+  // Spieler suchen (fÃ¼r Autocomplete)
   async searchPlayers(searchTerm) {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -38,7 +38,7 @@ const playerService = {
       if (error) throw error
       return data || []
     } catch (error) {
-      console.error('Fehler bei der Spielersuche:', error)
+      // removed console.error
       return []
     }
   },
@@ -66,7 +66,7 @@ const playerService = {
       if (error) throw error
       return data
     } catch (error) {
-      console.error('Fehler beim Erstellen des Spielers:', error)
+      // removed console.error
       throw error
     }
   },
@@ -87,12 +87,12 @@ const playerService = {
       if (error) throw error
       return data
     } catch (error) {
-      console.error('Fehler beim Aktualisieren des Spielers:', error)
+      // removed console.error
       throw error
     }
   },
 
-  // Spieler löschen
+  // Spieler lÃ¶schen
   async deletePlayer(playerId) {
     try {
       const { error } = await supabase
@@ -103,12 +103,12 @@ const playerService = {
       if (error) throw error
       return true
     } catch (error) {
-      console.error('Fehler beim Löschen des Spielers:', error)
+      // removed console.error
       throw error
     }
   },
 
-  // Spieler zu Event hinzufügen (Teilnahme registrieren)
+  // Spieler zu Event hinzufÃ¼gen (Teilnahme registrieren)
   async addPlayerToEvent(playerId, eventId, skillLevel) {
     try {
       const { data, error } = await supabase
@@ -130,12 +130,12 @@ const playerService = {
 
       return data
     } catch (error) {
-      console.error('Fehler beim Hinzufügen zum Event:', error)
+      // removed console.error
       throw error
     }
   },
 
-  // Spieler-Statistiken für ein Event aktualisieren
+  // Spieler-Statistiken fÃ¼r ein Event aktualisieren
   async updatePlayerStats(playerId, eventId, stats) {
     try {
       const { data, error } = await supabase
@@ -153,7 +153,7 @@ const playerService = {
       if (error) throw error
       return data
     } catch (error) {
-      console.error('Fehler beim Aktualisieren der Statistiken:', error)
+      // removed console.error
       throw error
     }
   },
@@ -178,7 +178,7 @@ const playerService = {
       if (error) throw error
       return data || []
     } catch (error) {
-      console.error('Fehler beim Abrufen der Historie:', error)
+      // removed console.error
       return []
     }
   },
@@ -207,12 +207,12 @@ const playerService = {
       if (error) throw error
       return data
     } catch (error) {
-      console.error('Fehler beim Importieren der Spieler:', error)
+      // removed console.error
       throw error
     }
   },
 
-  // Prüfen ob Spieler bereits existiert
+  // PrÃ¼fen ob Spieler bereits existiert
   async checkPlayerExists(name) {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -228,7 +228,7 @@ const playerService = {
       if (error && error.code !== 'PGRST116') throw error
       return data
     } catch (error) {
-      console.error('Fehler beim Prüfen des Spielers:', error)
+      // removed console.error
       return null
     }
   }

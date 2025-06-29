@@ -4,7 +4,7 @@ import { generateAmericanoSchedule } from '../utils/tournaments'
 import { useTranslation } from './LanguageSelector'
 import { interpolate } from '../utils/translations'
 
-console.log('EventDetailView loaded - Version 2.0');
+// removed console.log;
 
 // Komplette EventDetailView mit Fairness-Anzeige, Inline-Ergebniseingabe und Tabellen-Optionen
 export function EventDetailView({ 
@@ -185,7 +185,7 @@ export function EventDetailView({
           statistics: result.statistics
         })
       } catch (error) {
-        console.error('Fehler beim Generieren der Spielplan-Variante:', i, error)
+        // removed console.error
       }
     }
     
@@ -400,7 +400,7 @@ export function EventDetailView({
       // Update team 1
       team1?.forEach(player => {
         if (!player?.id || !playerStats[player.id]) {
-          console.warn('Missing player in team1:', player)
+          // removed console.warn
           return
         }
         
@@ -412,7 +412,7 @@ export function EventDetailView({
       // Update team 2
       team2?.forEach(player => {
         if (!player?.id || !playerStats[player.id]) {
-          console.warn('Missing player in team2:', player)
+          // removed console.warn
           return
         }
         
@@ -1196,3 +1196,4 @@ export function EventDetailView({
     </div>
   )
 }
+

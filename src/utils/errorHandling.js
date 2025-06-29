@@ -1,4 +1,4 @@
-// src/utils/errorHandling.js
+﻿// src/utils/errorHandling.js
 import { supabase } from '../lib/supabase'
 
 // Error Types
@@ -54,14 +54,14 @@ export const getErrorMessage = (error, t) => {
     case ERROR_TYPES.NETWORK:
       return {
         title: t('errors.network.title') || 'Verbindungsfehler',
-        message: t('errors.network.message') || 'Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+        message: t('errors.network.message') || 'Bitte prÃ¼fen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
         action: t('errors.network.action') || 'Erneut versuchen'
       }
     
     case ERROR_TYPES.AUTH:
       return {
         title: t('errors.auth.title') || 'Anmeldung fehlgeschlagen',
-        message: t('errors.auth.message') || 'Ihre Anmeldedaten sind ungültig oder abgelaufen.',
+        message: t('errors.auth.message') || 'Ihre Anmeldedaten sind ungÃ¼ltig oder abgelaufen.',
         action: t('errors.auth.action') || 'Erneut anmelden'
       }
     
@@ -75,7 +75,7 @@ export const getErrorMessage = (error, t) => {
     case ERROR_TYPES.VALIDATION:
       return {
         title: t('errors.validation.title') || 'Eingabefehler',
-        message: error.message || (t('errors.validation.message') || 'Bitte überprüfen Sie Ihre Eingaben.'),
+        message: error.message || (t('errors.validation.message') || 'Bitte Ã¼berprÃ¼fen Sie Ihre Eingaben.'),
         action: t('errors.validation.action') || 'Korrigieren'
       }
     
@@ -146,7 +146,7 @@ export const withErrorHandling = async (operation, toast, t, options = {}) => {
       toast.removeToast(loadingToastId)
     }
     
-    console.error('Operation failed:', error)
+    // removed console.error
     
     // Show error toast if enabled
     if (showErrorToast && toast) {
@@ -199,7 +199,7 @@ export const createNetworkStatusHandler = (toast, t) => {
 
 // Supabase Error Helper
 export const handleSupabaseError = (error, operation = 'operation', toast, t) => {
-  console.error(`Supabase ${operation} error:`, error)
+  // removed console.error
   
   if (!toast || !t) {
     return false
@@ -237,7 +237,7 @@ export const validateField = (value, rules = {}, fieldName = 'Field') => {
   
   // Email validation
   if (rules.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(stringValue)) {
-    errors.push(`${fieldName} muss eine gültige E-Mail-Adresse sein`)
+    errors.push(`${fieldName} muss eine gÃ¼ltige E-Mail-Adresse sein`)
   }
   
   // Number validation
@@ -257,7 +257,7 @@ export const validateField = (value, rules = {}, fieldName = 'Field') => {
   
   // Custom pattern validation
   if (rules.pattern && !rules.pattern.test(stringValue)) {
-    errors.push(rules.patternMessage || `${fieldName} hat ein ungültiges Format`)
+    errors.push(rules.patternMessage || `${fieldName} hat ein ungÃ¼ltiges Format`)
   }
   
   return errors

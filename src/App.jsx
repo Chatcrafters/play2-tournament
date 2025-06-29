@@ -50,7 +50,7 @@ const isValidEventDate = (dateStr) => {
   ]
   
   if (corruptedPatterns.some(pattern => pattern.test(cleanDate))) {
-    console.warn('âŒ Korruptes Datumsformat:', cleanDate)
+    // removed console.warn
     return false
   }
   
@@ -71,7 +71,7 @@ const isValidEventDate = (dateStr) => {
     
     // Realistische Jahresgrenzen fÃ¼r Events
     if (year < 2020 || year > 2035) {
-      console.warn('âŒ Jahr auÃŸerhalb des gÃ¼ltigen Bereichs:', year)
+      // removed console.warn
       return false
     }
     
@@ -84,14 +84,14 @@ const isValidEventDate = (dateStr) => {
     const inputBase = cleanDate.includes('T') ? cleanDate.split('T')[0] : cleanDate.substring(0, 10)
     
     if (Math.abs(new Date(reformatted).getTime() - new Date(inputBase).getTime()) > 24 * 60 * 60 * 1000) {
-      console.warn('âŒ Datum-Konsistenz fehlgeschlagen:', inputBase, 'â†’', reformatted)
+      // removed console.warn
       return false
     }
     
     return true
     
   } catch (parseError) {
-    console.warn('âŒ Datum-Parse-Fehler:', parseError.message)
+    // removed console.warn
     return false
   }
 }
@@ -101,7 +101,7 @@ const isValidEventDate = (dateStr) => {
  */
 const cleanEventData = (rawEvent) => {
   if (!rawEvent || typeof rawEvent !== 'object') {
-    console.warn('âš ï¸ UngÃ¼ltiges Event-Objekt:', rawEvent)
+    // removed console.warn
     return rawEvent
   }
   
@@ -113,7 +113,7 @@ const cleanEventData = (rawEvent) => {
   // DATUM-BEREINIGUNG
   if (cleaned.date) {
     if (!isValidEventDate(cleaned.date)) {
-      console.warn('ðŸ”§ Repariere Event-Datum:', cleaned.date, 'â†’', today)
+      // removed console.warn
       cleaned.date = today
     }
   } else {
@@ -364,7 +364,7 @@ function AppContent() {
     )
 
     if (!result.success) {
-      console.warn('Initial auth check failed:', result.error)
+      // removed console.warn
     }
   }
 
@@ -422,7 +422,7 @@ function AppContent() {
    */
   const loadEvents = async () => {
     setIsLoading(true)
-    console.log('ðŸ”„ Lade Events von Supabase...')
+    // removed console.log
     
     const result = await withErrorHandling(
       async () => {
@@ -433,7 +433,7 @@ function AppContent() {
         
         if (error) throw error
         
-        console.log(`ðŸ“¥ ${data?.length || 0} rohe Events erhalten`)
+        // removed console.log
         
         // Verarbeite Events: Transform â†’ Clean â†’ Filter â†’ Deduplicate â†’ Sort
         let processedEvents = (data || [])
@@ -441,10 +441,10 @@ function AppContent() {
             try {
               const transformed = transformFromDB(rawEvent)
               const cleaned = cleanEventData(transformed)
-              console.log(`âœ… Event ${index + 1} verarbeitet: ${cleaned.name}`)
+              // removed console.log
               return cleaned
             } catch (error) {
-              console.warn(`âŒ Event ${index + 1} Fehler:`, error.message)
+              // removed console.warn
               return null
             }
           })
@@ -454,7 +454,7 @@ function AppContent() {
             }
             
             if (!isValidEventDate(event.date)) {
-              console.warn('âŒ Event nach Bereinigung noch ungÃ¼ltig:', event.name)
+              // removed console.warn
               return false
             }
             
@@ -473,7 +473,7 @@ function AppContent() {
           return new Date(a.date) - new Date(b.date)
         })
         
-        console.log(`âœ… Events verarbeitet: ${data?.length || 0} â†’ ${processedEvents.length}`)
+        // removed console.log
         
         setEvents(processedEvents)
         
@@ -481,7 +481,7 @@ function AppContent() {
         try {
           localStorage.setItem('events', JSON.stringify(processedEvents))
         } catch (storageError) {
-          console.warn('âš ï¸ LocalStorage-Speicherung fehlgeschlagen:', storageError)
+          // removed console.warn
         }
         
         return processedEvents
@@ -496,7 +496,7 @@ function AppContent() {
     )
 
     if (!result.success) {
-      console.warn('âŒ Supabase-Ladung fehlgeschlagen, verwende localStorage...')
+      // removed console.warn
       loadFromLocalStorage()
       
       toast.showWarning(
@@ -512,17 +512,17 @@ function AppContent() {
    * LocalStorage Laden mit gleicher Bereinigungslogik
    */
   const loadFromLocalStorage = () => {
-    console.log('ðŸ’¾ Lade Events aus localStorage...')
+    // removed console.log
     
     try {
       const savedEvents = localStorage.getItem('events')
       if (!savedEvents) {
-        console.log('ðŸ“­ Keine Events in localStorage')
+        // removed console.log
         return false
       }
       
       const parsedEvents = JSON.parse(savedEvents)
-      console.log(`ðŸ“¥ ${parsedEvents.length} Events aus localStorage`)
+      // removed console.log
       
       // Gleiche Bereinigungslogik wie bei Supabase
       let cleanedEvents = parsedEvents
@@ -530,7 +530,7 @@ function AppContent() {
           try {
             return cleanEventData(event)
           } catch (error) {
-            console.warn(`âŒ localStorage Event ${index + 1} Fehler:`, error.message)
+            // removed console.warn
             return null
           }
         })
@@ -540,7 +540,7 @@ function AppContent() {
           }
           
           if (!isValidEventDate(event.date)) {
-            console.warn('âŒ localStorage Event ungÃ¼ltiges Datum:', event.name)
+            // removed console.warn
             return false
           }
           
@@ -550,7 +550,7 @@ function AppContent() {
       // Deduplizierung
       cleanedEvents = deduplicateEvents(cleanedEvents)
       
-      console.log(`âœ… LocalStorage Events bereinigt: ${parsedEvents.length} â†’ ${cleanedEvents.length}`)
+      // removed console.log
       
       setEvents(cleanedEvents)
       
@@ -558,13 +558,13 @@ function AppContent() {
       try {
         localStorage.setItem('events', JSON.stringify(cleanedEvents))
       } catch (error) {
-        console.warn('âš ï¸ Fehler beim ZurÃ¼ckspeichern:', error)
+        // removed console.warn
       }
       
       return true
       
     } catch (error) {
-      console.error('âŒ localStorage Fehler:', error)
+      // removed console.error
       toast.showError(t('errors.localStorage') || 'Lokale Daten konnten nicht geladen werden.')
       return false
     }
@@ -579,7 +579,7 @@ function AppContent() {
       localStorage.setItem('events', JSON.stringify(updatedEvents))
       setEvents(updatedEvents)
     } catch (error) {
-      console.error('localStorage save failed:', error)
+      // removed console.error
       toast.showError(t('errors.localStorageSave') || 'Lokale Speicherung fehlgeschlagen.')
     }
     
@@ -748,7 +748,7 @@ function AppContent() {
 
   const handleSelectEvent = useCallback((event) => {
     if (!event || !event.id) {
-      console.warn('Invalid event selected:', event)
+      // removed console.warn
       return
     }
     setSelectedEvent(event)
@@ -865,7 +865,7 @@ function AppContent() {
       toast.showSuccess(t('tournament.started') || 'Turnier gestartet!')
       
     } catch (error) {
-      console.error('Tournament generation failed:', error)
+      // removed console.error
       toast.showError(`Turnier-Generierung fehlgeschlagen: ${error.message}`)
     }
   }, [toast, t])
@@ -1143,4 +1143,5 @@ function App() {
 }
 
 export default App
+
 

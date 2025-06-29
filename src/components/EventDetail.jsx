@@ -30,7 +30,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
     // Validate date
     let validDate = event.date
     if (event.date && (event.date.startsWith('000') || event.date.length < 8)) {
-      console.warn('Invalid date detected in event:', event.date)
+      // removed console.warn
       validDate = new Date().toISOString().split('T')[0]
     }
     
@@ -76,7 +76,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
         isEventPast = eventDate < new Date() && safeEvent.status !== 'completed'
       }
     } catch (error) {
-      console.warn('Invalid event date:', safeEvent.date)
+      // removed console.warn
     }
     
     return {
@@ -113,7 +113,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
       return date.toLocaleDateString(getLocale(language)) + ', ' + 
              date.toLocaleTimeString(getLocale(language), { hour: '2-digit', minute: '2-digit' })
     } catch (error) {
-      console.warn('Error formatting registration deadline:', error)
+      // removed console.warn
       return deadline
     }
   }, [t, getLocale, language])
@@ -121,7 +121,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
   // Memoized fairness metrics calculation
   const calculateFairnessMetrics = useCallback((result, players) => {
     if (!result || !result.statistics || !Array.isArray(players) || players.length === 0) {
-      console.warn('Invalid data for fairness calculation')
+      // removed console.warn
       return {
         overallScore: 0,
         avgUniquePartners: '0.0',
@@ -241,7 +241,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
           regenerateCount: i
         })
       } catch (error) {
-        console.error('Error generating variant', i, error)
+        // removed console.error
       }
     }
     
@@ -257,7 +257,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
   // Memoized schedule selection
   const handleSelectSchedule = useCallback((index) => {
     if (!scheduleOptions[index] || !safeEvent) {
-      console.error('Invalid schedule option or event')
+      // removed console.error
       return
     }
     
@@ -777,3 +777,4 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
     </>
   )
 }
+

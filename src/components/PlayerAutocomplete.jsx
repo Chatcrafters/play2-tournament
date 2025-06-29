@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import playerService from '../services/playerService'
 import excelExportService from '../services/excelExportService'
 // import './PlayerDatabase.css'  <- auskommentiert
@@ -53,12 +53,12 @@ const PlayerDatabase = ({ onClose, onSelectPlayer }) => {
   }
 
   const handleDeletePlayer = async (playerId) => {
-    if (window.confirm('Spieler wirklich löschen?')) {
+    if (window.confirm('Spieler wirklich lÃ¶schen?')) {
       try {
         await playerService.deletePlayer(playerId)
         loadPlayers()
       } catch (error) {
-        alert('Fehler beim Löschen: ' + error.message)
+        alert('Fehler beim LÃ¶schen: ' + error.message)
       }
     }
   }
@@ -84,7 +84,7 @@ const PlayerDatabase = ({ onClose, onSelectPlayer }) => {
       loadPlayers()
     } catch (error) {
       alert('Fehler beim Import: ' + error.message)
-      console.error('Import error:', error)
+      // removed console.error
     }
     
     // Reset file input
@@ -113,7 +113,7 @@ const PlayerDatabase = ({ onClose, onSelectPlayer }) => {
       <div className="modal-content">
         <div className="modal-header">
           <h2>Spieler-Datenbank</h2>
-          <button onClick={onClose} className="close-btn">×</button>
+          <button onClick={onClose} className="close-btn">Ã—</button>
         </div>
 
         <div className="player-controls">
@@ -135,10 +135,10 @@ const PlayerDatabase = ({ onClose, onSelectPlayer }) => {
             className="btn btn-secondary"
             disabled={players.length === 0}
           >
-            📊 Export Excel
+            ðŸ“Š Export Excel
           </button>
           <label className="btn btn-secondary cursor-pointer">
-            📥 Import Excel
+            ðŸ“¥ Import Excel
             <input
               type="file"
               accept=".xlsx,.xls"
@@ -185,7 +185,7 @@ const PlayerDatabase = ({ onClose, onSelectPlayer }) => {
                   value={newPlayer.skill_level}
                   onChange={(e) => setNewPlayer({...newPlayer, skill_level: parseInt(e.target.value)})}
                 >
-                  <option value="1">1 - Anfänger</option>
+                  <option value="1">1 - AnfÃ¤nger</option>
                   <option value="2">2 - Fortgeschritten</option>
                   <option value="3">3 - Gut</option>
                   <option value="4">4 - Sehr gut</option>
@@ -235,7 +235,7 @@ const PlayerDatabase = ({ onClose, onSelectPlayer }) => {
                 <textarea
                   value={newPlayer.notes}
                   onChange={(e) => setNewPlayer({...newPlayer, notes: e.target.value})}
-                  placeholder="Zusätzliche Informationen..."
+                  placeholder="ZusÃ¤tzliche Informationen..."
                   rows="3"
                 />
               </div>
@@ -288,8 +288,8 @@ const PlayerDatabase = ({ onClose, onSelectPlayer }) => {
                         .join(', ')}
                     </td>
                     <td>
-                      {player.email && <div className="contact-info">📧 {player.email}</div>}
-                      {player.phone && <div className="contact-info">📱 {player.phone}</div>}
+                      {player.email && <div className="contact-info">ðŸ“§ {player.email}</div>}
+                      {player.phone && <div className="contact-info">ðŸ“± {player.phone}</div>}
                     </td>
                     <td>
                       {onSelectPlayer && (
@@ -297,20 +297,20 @@ const PlayerDatabase = ({ onClose, onSelectPlayer }) => {
                           onClick={() => onSelectPlayer(player)}
                           className="btn btn-sm btn-primary"
                         >
-                          Auswählen
+                          AuswÃ¤hlen
                         </button>
                       )}
                       <button 
                         onClick={() => handleEditPlayer(player)}
                         className="btn btn-sm btn-secondary"
                       >
-                        ✏️
+                        âœï¸
                       </button>
                       <button 
                         onClick={() => handleDeletePlayer(player.id)}
                         className="btn btn-sm btn-danger"
                       >
-                        🗑️
+                        ðŸ—‘ï¸
                       </button>
                     </td>
                   </tr>

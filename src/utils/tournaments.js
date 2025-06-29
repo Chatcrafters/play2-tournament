@@ -1,6 +1,6 @@
-// COMPLETE REWRITE - tournaments.js
+﻿// COMPLETE REWRITE - tournaments.js
 // src/utils/tournaments.js
-// Einheitlicher Turnier-Algorithmus für alle Formate mit korrekter Matrix-Struktur
+// Einheitlicher Turnier-Algorithmus fÃ¼r alle Formate mit korrekter Matrix-Struktur
 
 /**
  * Hauptfunktion: Generiert Turniere basierend auf Format
@@ -52,8 +52,8 @@ function generateAmericanoTournament(config) {
     options = {}
   } = config
 
-  console.log('=== AMERICANO TOURNAMENT GENERATOR (REWRITE) ===')
-  console.log(`Spieler: ${players.length}, Courts: ${courts}, MaxRounds: ${maxRounds}`)
+  // removed console.log ===')
+  // removed console.log
 
   // Berechne optimale Rundenzahl falls nicht angegeben
   const totalMinutes = calculateTotalMinutes(startTime, endTime, breaks)
@@ -65,34 +65,34 @@ function generateAmericanoTournament(config) {
   const playersPerMatch = 4
   const matchesPerRound = Math.min(courts, Math.floor(players.length / playersPerMatch))
 
-  // Seed-System für verschiedene Varianten
+  // Seed-System fÃ¼r verschiedene Varianten
   const seed = (options.regenerateCount || 0) % 4
   const randomGen = createSeededRandom(seed + players.length)
 
   // Generiere Runden
   for (let roundNum = 0; roundNum < actualRounds; roundNum++) {
-    console.log(`\n--- Generiere Runde ${roundNum + 1} ---`)
+    // removed console.log
     
     const roundMatches = []
     const usedPlayers = new Set()
     
-    // Sortiere verfügbare Spieler nach Priorität
+    // Sortiere verfÃ¼gbare Spieler nach PrioritÃ¤t
     const availablePlayers = [...players].sort((a, b) => {
-      // 1. Primär: Weniger Spiele gespielt
+      // 1. PrimÃ¤r: Weniger Spiele gespielt
       const gamesDiff = stats.gamesPlayed[a.id] - stats.gamesPlayed[b.id]
       if (gamesDiff !== 0) return gamesDiff
       
-      // 2. Sekundär: Länger pausiert
+      // 2. SekundÃ¤r: LÃ¤nger pausiert
       const restDiff = (roundNum - stats.lastRestRound[b.id]) - (roundNum - stats.lastRestRound[a.id])
       if (restDiff !== 0) return restDiff
       
-      // 3. Tertiär: Weniger verschiedene Partner
+      // 3. TertiÃ¤r: Weniger verschiedene Partner
       const uniquePartnersA = Object.values(stats.partnerCount[a.id]).filter(c => c > 0).length
       const uniquePartnersB = Object.values(stats.partnerCount[b.id]).filter(c => c > 0).length
       return uniquePartnersA - uniquePartnersB
     })
 
-    // Generiere Matches für diese Runde
+    // Generiere Matches fÃ¼r diese Runde
     for (let court = 1; court <= matchesPerRound && availablePlayers.length >= 4; court++) {
       const match = findOptimalAmericanoMatch(
         availablePlayers.filter(p => !usedPlayers.has(p.id)),
@@ -141,18 +141,18 @@ function generateAmericanoTournament(config) {
   // FIXED: Korrekte finale Statistiken mit EventDetail.jsx-kompatibler Struktur
   const finalStats = calculateAmericanoFinalStats(players, stats)
   
-  // FIXED: Legacy-kompatible Rückgabe-Struktur
+  // FIXED: Legacy-kompatible RÃ¼ckgabe-Struktur
   return {
     format: 'americano',
     schedule,
     statistics: {
-      // Legacy-kompatible Matrix-Struktur für EventDetail.jsx
+      // Legacy-kompatible Matrix-Struktur fÃ¼r EventDetail.jsx
       partnerMatrix: stats.partnerMatrix,
       opponentMatrix: stats.opponentMatrix,
       gamesPlayed: players.map(p => stats.gamesPlayed[p.id] || 0),
       // Neue erweiterte Statistiken
       ...finalStats,
-      // Zusätzliche Legacy-Felder
+      // ZusÃ¤tzliche Legacy-Felder
       maxGames: finalStats.summary?.maxGames || 0,
       minGames: finalStats.summary?.minGames || 0,
       seed: seed,
@@ -183,7 +183,7 @@ function initializePlayerStats(players) {
     lastOpponentRound: {},
     partnerCount: {},
     opponentCount: {},
-    // FIXED: Legacy-kompatible Matrix-Struktur für EventDetail.jsx
+    // FIXED: Legacy-kompatible Matrix-Struktur fÃ¼r EventDetail.jsx
     partnerMatrix: {},
     opponentMatrix: {}
   }
@@ -250,7 +250,7 @@ function updateAmericanoStats(match, stats, courtNum, roundNum, allPlayers) {
     stats.partnerCount[p1.id][p2.id]++
     stats.lastPartnerRound[p1.id][p2.id] = roundNum
     
-    // FIXED: Update legacy matrix structure für EventDetail.jsx Kompatibilität
+    // FIXED: Update legacy matrix structure fÃ¼r EventDetail.jsx KompatibilitÃ¤t
     if (p1Idx >= 0 && p2Idx >= 0) {
       stats.partnerMatrix[p1Idx][p2Idx] = (stats.partnerMatrix[p1Idx][p2Idx] || 0) + 1
     }
@@ -276,13 +276,13 @@ function updateAmericanoStats(match, stats, courtNum, roundNum, allPlayers) {
     }
   }
 
-  // Apply updates für Partnerships
+  // Apply updates fÃ¼r Partnerships
   updatePartnership(match.team1[0], match.team1[1])
   updatePartnership(match.team1[1], match.team1[0])
   updatePartnership(match.team2[0], match.team2[1])
   updatePartnership(match.team2[1], match.team2[0])
 
-  // Apply updates für alle Gegner-Kombinationen
+  // Apply updates fÃ¼r alle Gegner-Kombinationen
   match.team1.forEach(p1 => {
     match.team2.forEach(p2 => {
       updateOpposition(p1, p2)
@@ -320,7 +320,7 @@ function findOptimalAmericanoMatch(availablePlayers, stats, courtNum, roundNum, 
 
   // Teste Kandidaten-Kombinationen
   for (const fourPlayers of candidates) {
-    // Teste alle möglichen Team-Aufteilungen
+    // Teste alle mÃ¶glichen Team-Aufteilungen
     const teamConfigs = [
       [[fourPlayers[0], fourPlayers[1]], [fourPlayers[2], fourPlayers[3]]],
       [[fourPlayers[0], fourPlayers[2]], [fourPlayers[1], fourPlayers[3]]],
@@ -353,11 +353,11 @@ function calculateAmericanoMatchScore(team1, team2, stats, courtNum, roundNum, r
     const roundDistance = roundNum - lastPartnerRound
 
     if (partnerCount === 0) {
-      return 300 // Sehr großer Bonus für neue Partner
+      return 300 // Sehr groÃŸer Bonus fÃ¼r neue Partner
     } else {
       let partnerScore = 0
-      partnerScore += Math.min(roundDistance, 15) * 20 // Bonus für Distanz
-      partnerScore -= partnerCount * 80 // Hohe Strafe für häufige Wiederholungen
+      partnerScore += Math.min(roundDistance, 15) * 20 // Bonus fÃ¼r Distanz
+      partnerScore -= partnerCount * 80 // Hohe Strafe fÃ¼r hÃ¤ufige Wiederholungen
       return partnerScore
     }
   }
@@ -372,11 +372,11 @@ function calculateAmericanoMatchScore(team1, team2, stats, courtNum, roundNum, r
     const roundDistance = roundNum - lastOpponentRound
 
     if (opponentCount === 0) {
-      return 150 // Großer Bonus für neue Gegner
+      return 150 // GroÃŸer Bonus fÃ¼r neue Gegner
     } else {
       let opponentScore = 0
-      opponentScore += Math.min(roundDistance, 10) * 15 // Bonus für Distanz
-      opponentScore -= opponentCount * 40 // Strafe für häufige Wiederholungen
+      opponentScore += Math.min(roundDistance, 10) * 15 // Bonus fÃ¼r Distanz
+      opponentScore -= opponentCount * 40 // Strafe fÃ¼r hÃ¤ufige Wiederholungen
       return opponentScore
     }
   }
@@ -402,7 +402,7 @@ function calculateAmericanoMatchScore(team1, team2, stats, courtNum, roundNum, r
   })
   score += restBonuses.reduce((a, b) => a + b, 0)
 
-  // 5. Random-Variabilität (gering)
+  // 5. Random-VariabilitÃ¤t (gering)
   score += randomGen.next() * 15
 
   return score
@@ -448,7 +448,7 @@ function calculateAmericanoFinalStats(players, stats) {
 }
 
 /**
- * Andere Turnier-Formate (vereinfacht für Funktionalität)
+ * Andere Turnier-Formate (vereinfacht fÃ¼r FunktionalitÃ¤t)
  */
 function generateRoundRobinTournament(config) {
   return {
@@ -492,7 +492,7 @@ function validateTournamentConfig(config) {
   }
   
   if (format === 'americano' && players.length < 4) {
-    throw new Error('Americano benötigt mindestens 4 Spieler')
+    throw new Error('Americano benÃ¶tigt mindestens 4 Spieler')
   }
 }
 
@@ -542,10 +542,10 @@ function addMinutesToTime(timeStr, minutes) {
 }
 
 /**
- * LEGACY SUPPORT - Für Backward Compatibility mit EventDetail.jsx
+ * LEGACY SUPPORT - FÃ¼r Backward Compatibility mit EventDetail.jsx
  */
 export function generateAmericanoSchedule(players, courts, rounds, options = {}) {
-  console.log('🔄 Legacy generateAmericanoSchedule called - REWRITE VERSION')
+  // removed console.log
   
   try {
     const result = generateTournament({
@@ -559,7 +559,7 @@ export function generateAmericanoSchedule(players, courts, rounds, options = {})
       options
     })
     
-    // FIXED: Legacy-kompatible Rückgabe-Struktur für EventDetail.jsx
+    // FIXED: Legacy-kompatible RÃ¼ckgabe-Struktur fÃ¼r EventDetail.jsx
     return {
       schedule: result.schedule,
       statistics: {
@@ -573,9 +573,9 @@ export function generateAmericanoSchedule(players, courts, rounds, options = {})
       }
     }
   } catch (error) {
-    console.error('❌ Legacy generateAmericanoSchedule failed (REWRITE):', error)
+    // removed console.error:', error)
     
-    // FIXED: Robust fallback für Legacy-Kompatibilität
+    // FIXED: Robust fallback fÃ¼r Legacy-KompatibilitÃ¤t
     return {
       schedule: [],
       statistics: {

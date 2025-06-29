@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { generateAmericanoSchedule, canRegenerateSchedule, getRegenerateMessage } from '../utils/tournaments'
 
 export const ScheduleGenerator = ({ event, onUpdateEvent, onScheduleGenerated }) => {
@@ -9,7 +9,7 @@ export const ScheduleGenerator = ({ event, onUpdateEvent, onScheduleGenerated })
     setIsGenerating(true)
     
     try {
-      // Für Americano den neuen Algorithmus verwenden
+      // FÃ¼r Americano den neuen Algorithmus verwenden
       if (event.eventType === 'americano') {
         const { schedule, statistics } = generateAmericanoSchedule(
           event.players,
@@ -47,16 +47,16 @@ export const ScheduleGenerator = ({ event, onUpdateEvent, onScheduleGenerated })
         await onUpdateEvent(updatedEvent)
         onScheduleGenerated(formattedSchedule)
         
-        // Erhöhe Regenerate Counter
+        // ErhÃ¶he Regenerate Counter
         setRegenerateCount(prev => prev + 1)
         
       } else {
-        // Für andere Event-Typen: bestehende Logik
-        // ... (existing code für liga, tournament, etc.)
+        // FÃ¼r andere Event-Typen: bestehende Logik
+        // ... (existing code fÃ¼r liga, tournament, etc.)
       }
       
     } catch (error) {
-      console.error('Fehler beim Generieren des Spielplans:', error)
+      // removed console.error
       alert('Fehler beim Erstellen des Spielplans')
     } finally {
       setIsGenerating(false)
@@ -108,7 +108,7 @@ export const ScheduleGenerator = ({ event, onUpdateEvent, onScheduleGenerated })
         <div className="space-y-4">
           <div className="bg-green-50 p-4 rounded-lg">
             <p className="text-green-800">
-              ✓ Spielplan wurde erstellt
+              âœ“ Spielplan wurde erstellt
               {event.eventType === 'americano' && event.regenerateCount !== undefined && (
                 <span className="text-sm text-gray-600 ml-2">
                   (Variante {(event.regenerateCount % 4) + 1}/4)

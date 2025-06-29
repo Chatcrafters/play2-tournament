@@ -1,4 +1,4 @@
-// src/components/TimerSystem.jsx
+﻿// src/components/TimerSystem.jsx
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 export const TimerSystem = ({ event, schedule, onRoundChange, onTimerStateChange }) => {
@@ -43,7 +43,7 @@ export const TimerSystem = ({ event, schedule, onRoundChange, onTimerStateChange
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + 0.5)
     } catch (error) {
-      console.log('Audio playback failed:', error)
+      // removed console.log
     }
   }, [])
   
@@ -248,7 +248,7 @@ export const TimerSystem = ({ event, schedule, onRoundChange, onTimerStateChange
               onClick={resetTimer}
               className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium"
             >
-              Zurücksetzen
+              ZurÃ¼cksetzen
             </button>
           </>
         )}
@@ -258,7 +258,7 @@ export const TimerSystem = ({ event, schedule, onRoundChange, onTimerStateChange
           disabled={currentRound === 0}
           className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-medium"
         >
-          ← Vorherige
+          â† Vorherige
         </button>
         
         <button
@@ -266,15 +266,16 @@ export const TimerSystem = ({ event, schedule, onRoundChange, onTimerStateChange
           disabled={isLastRound}
           className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-medium"
         >
-          Nächste →
+          NÃ¤chste â†’
         </button>
       </div>
       
       {/* Timer settings info */}
       <div className="mt-4 text-sm text-gray-600 text-center">
         Rundendauer: {event.roundDuration} Minuten
-        {event.breaks && event.breaks.length > 0 && ' • Pausen konfiguriert'}
+        {event.breaks && event.breaks.length > 0 && ' â€¢ Pausen konfiguriert'}
       </div>
     </div>
   )
 }
+

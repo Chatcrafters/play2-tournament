@@ -99,7 +99,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
       const data = await dbOperations.getPlayers()
       setPlayers(data || [])
     } catch (error) {
-      console.error('Fehler beim Laden der Spieler:', error)
+      // removed console.error
       alert(t('database.errorLoading'))
     } finally {
       setIsLoading(false)
@@ -119,11 +119,11 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
         const sheet = workbook.Sheets[sheetName]
         const data = utils.sheet_to_json(sheet)
 
-        console.log('Excel Daten gelesen:', data) // Debug-Log
+        // removed console.log // Debug-Log
 
         const playersToImport = data.map(row => {
           // Debug jeden Row
-          console.log('Verarbeite Row:', row)
+          // removed console.log
           
           const player = {
             name: row['Name'] || row['name'] || '',
@@ -146,11 +146,11 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
             duprId: row['DUPR ID'] || row['duprId'] || ''
           }
           
-          console.log('Erstellter Spieler:', player)
+          // removed console.log
           return player
         }).filter(p => p.name && (p.sports.padel || p.sports.pickleball || p.sports.spinxball))
 
-        console.log('Gefilterte Spieler zum Import:', playersToImport)
+        // removed console.log
 
         if (playersToImport.length === 0) {
           alert(t('database.noValidPlayers'))
@@ -171,25 +171,25 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
           try {
             // PrÃ¼fe auf Duplikate
             if (existingNames.has(player.name.toLowerCase().trim())) {
-              console.log(`Ãœberspringe ${player.name} - bereits vorhanden`)
+              // removed console.log
               skipCount++
               continue
             }
             
-            console.log('Importiere Spieler:', player.name)
+            // removed console.log
             const result = await dbOperations.createPlayer(player)
-            console.log('Import Ergebnis:', result)
+            // removed console.log
             if (result) {
               successCount++
               // FÃ¼ge zur Liste hinzu fÃ¼r weitere Duplikat-Checks
               existingNames.add(player.name.toLowerCase().trim())
             } else {
               errorCount++
-              console.error(`Fehler beim Import von ${player.name}: Kein Ergebnis`)
+              // removed console.error
             }
           } catch (error) {
             errorCount++
-            console.error(`Fehler beim Import von ${player.name}:`, error)
+            // removed console.error
           }
         }
 
@@ -198,11 +198,11 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
         if (skipCount > 0) message += `\nâ­ï¸ ${skipCount} ${t('database.skipped')}`
         if (errorCount > 0) message += `\nâŒ ${errorCount} ${t('database.errors')}`
         
-        console.log(message)
+        // removed console.log
         alert(message)
         await loadPlayers()
       } catch (error) {
-        console.error('Excel Import Fehler:', error)
+        // removed console.error
         alert(t('database.errorReadingExcel'))
       }
     }
@@ -279,7 +279,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
         duprId: ''
       })
     } catch (error) {
-      console.error('Fehler beim Speichern:', error)
+      // removed console.error
       alert(t('database.errorSaving'))
     }
   }
@@ -318,7 +318,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
       await dbOperations.deletePlayer(playerId)
       await loadPlayers()
     } catch (error) {
-      console.error('Fehler beim LÃ¶schen:', error)
+      // removed console.error
       alert(t('navigation.delete'))
     }
   }
@@ -643,9 +643,9 @@ WICHTIGE HINWEISE:
                     try {
                       await dbOperations.deletePlayer(sorted[i].id)
                       deletedCount++
-                      console.log(`GelÃ¶scht: ${sorted[i].name} (ID: ${sorted[i].id})`)
+                      // removed console.log`)
                     } catch (error) {
-                      console.error(`Fehler beim LÃ¶schen von ${sorted[i].name}:`, error)
+                      // removed console.error
                     }
                   }
                 }
@@ -654,7 +654,7 @@ WICHTIGE HINWEISE:
                 await loadPlayers()
                 
               } catch (error) {
-                console.error('Fehler beim Bereinigen:', error)
+                // removed console.error
                 alert(`âŒ ${t('database.errorCleaning')}`)
               } finally {
                 setIsLoading(false)
@@ -1118,3 +1118,4 @@ WICHTIGE HINWEISE:
 }
 
 export default PlayerDatabase
+

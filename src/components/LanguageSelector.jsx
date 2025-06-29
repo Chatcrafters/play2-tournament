@@ -23,7 +23,7 @@ export const LanguageProvider = ({ children }) => {
     const keyStr = String(key || '')
     
     if (!keyStr) {
-      console.warn('Empty translation key provided')
+      // removed console.warn
       return ''
     }
     
@@ -41,7 +41,7 @@ export const LanguageProvider = ({ children }) => {
             if (fallback && typeof fallback === 'object' && fk in fallback) {
               fallback = fallback[fk]
             } else {
-              console.warn(`Translation key not found: ${keyStr}`)
+              // removed console.warn
               return keyStr
             }
           }
@@ -51,7 +51,7 @@ export const LanguageProvider = ({ children }) => {
       
       return typeof value === 'string' ? value : keyStr
     } catch (error) {
-      console.error('Translation error for key:', keyStr, error)
+      // removed console.error
       return keyStr
     }
   }
@@ -131,3 +131,4 @@ export const LanguageSelector = () => {
     </div>
   )
 }
+
