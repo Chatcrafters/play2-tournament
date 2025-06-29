@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+﻿import { useState, useEffect, useCallback } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { EventList } from './components/EventList'
 import { EventForm } from './components/EventForm'
@@ -11,82 +11,292 @@ import { AmericanoTournament } from './components/AmericanoTournament'
 import Auth from './components/Auth'
 import { supabase } from './lib/supabase'
 import { LanguageProvider, LanguageSelector, useTranslation } from './components/LanguageSelector'
-import { transformToDB, transformFromDB, cleanEventData } from './utils/dbHelpers'
+import { transformToDB, transformFromDB } from './utils/dbHelpers'
 import { ToastProvider, useToast, ErrorBoundary } from './components/Toast'
-import { withErrorHandling, createNetworkStatusHandler, handleSupabaseError, validateForm } from './utils/errorHandling'
-// GEÄNDERT: Neuer einheitlicher Import für Turnier-Algorithmen
-import { generateTournament, generateAmericanoSchedule } from './utils/tournaments'
+import { withErrorHandling, createNetworkStatusHandler } from './utils/errorHandling'
+import { generateTournament } from './utils/tournaments'
 import './App.css'
 
-// FIXED: Deduplizierungs-Hilfsfunktion
-const deduplicateEvents = (events) => {
-  const seen = new Map()
-  
-  return events.filter(event => {
-    // Erstelle eindeutigen Schlüssel basierend auf Name, Datum und wichtigen Eigenschaften
-    const key = `${event.name}-${event.date}-${event.startTime}-${event.location || ''}`
-    
-    if (seen.has(key)) {
-      // Behalte das mit neuerer updated_at oder das mit einer echten ID
-      const existing = seen.get(key)
-      const current = event
-      
-      // Bevorzuge Events mit echten IDs über temp IDs
-      if (existing.id.startsWith('temp_') && !current.id.startsWith('temp_')) {
-        seen.set(key, current)
-        return true
-      }
-      
-      // Bevorzuge zuletzt aktualisierte Events
-      const existingTime = new Date(existing.updated_at || 0).getTime()
-      const currentTime = new Date(current.updated_at || 0).getTime()
-      
-      if (currentTime > existingTime) {
-        seen.set(key, current)
-        return true
-      }
-      
-      return false // Überspringe Duplikat
-    }
-    
-    seen.set(key, event)
-    return true
-  })
-}
+/**
+ * ================================================================================
+ * ROBUSTE DATUMS-VALIDIERUNG UND EVENT-VERWALTUNG
+ * ================================================================================
+ * Behandelt fehlerhafte Daten wie "0002-07-06" automatisch
+ */
 
-// FIXED: Erweiterte Datumsvalidierung
+/**
+ * Erweiterte Datums-Validierung fÃ¼r Events
+ */
 const isValidEventDate = (dateStr) => {
-  if (!dateStr || typeof dateStr !== 'string') return false
+  if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') {
+    return false
+  }
   
-  // Prüfe auf fehlerhafte Daten wie "0002-07-06"
-  if (dateStr.startsWith('000') || dateStr.length < 8) {
-    console.warn('Ungültiges Datumsformat erkannt:', dateStr)
+  const cleanDate = dateStr.trim()
+  
+  // Erkenne fehlerhafte Datumsmuster
+  const corruptedPatterns = [
+    /^000[0-9]/,                 // 0001-XX-XX, 0002-XX-XX, etc.
+    /^0{1,3}-/,                  // FÃ¼hrende Nullen: 0-, 00-, 000-
+    /^[1-9]\d{0,2}-/,           // Zu kurze Jahre: 1-, 12-, 123-
+    /^[0-9]{5,}-/,              // Zu lange Jahre: 12345-
+    /undefined|null|NaN|invalid/i, // Textuelle Fehler
+    /[^\d\-T:\.Z]/,             // UngÃ¼ltige Zeichen
+    /--+/,                      // Mehrfache Bindestriche
+    /^-|-$/,                    // Beginnt/endet mit Bindestrich
+    /^\d+-\d+-$/,               // UnvollstÃ¤ndiges Datum
+    /^\d{4}-\d{1}-\d/,          // Einstelliger Monat
+    /^\d{4}-\d{2}-\d{1}$/       // Einstelliger Tag
+  ]
+  
+  if (corruptedPatterns.some(pattern => pattern.test(cleanDate))) {
+    console.warn('âŒ Korruptes Datumsformat:', cleanDate)
+    return false
+  }
+  
+  if (cleanDate.length < 8 || cleanDate.length > 25) {
     return false
   }
   
   try {
-    const date = new Date(dateStr)
-    if (isNaN(date.getTime())) return false
+    const parsedDate = new Date(cleanDate)
     
-    const year = date.getFullYear()
-    const month = date.getMonth()
-    const day = date.getDate()
+    if (isNaN(parsedDate.getTime())) {
+      return false
+    }
     
-    // Strengere Validierung
-    if (year < 2020 || year > 2035) return false
-    if (month < 0 || month > 11) return false
-    if (day < 1 || day > 31) return false
+    const year = parsedDate.getFullYear()
+    const month = parsedDate.getMonth() + 1
+    const day = parsedDate.getDate()
+    
+    // Realistische Jahresgrenzen fÃ¼r Events
+    if (year < 2020 || year > 2035) {
+      console.warn('âŒ Jahr auÃŸerhalb des gÃ¼ltigen Bereichs:', year)
+      return false
+    }
+    
+    if (month < 1 || month > 12 || day < 1 || day > 31) {
+      return false
+    }
+    
+    // Konsistenz-PrÃ¼fung
+    const reformatted = parsedDate.toISOString().split('T')[0]
+    const inputBase = cleanDate.includes('T') ? cleanDate.split('T')[0] : cleanDate.substring(0, 10)
+    
+    if (Math.abs(new Date(reformatted).getTime() - new Date(inputBase).getTime()) > 24 * 60 * 60 * 1000) {
+      console.warn('âŒ Datum-Konsistenz fehlgeschlagen:', inputBase, 'â†’', reformatted)
+      return false
+    }
     
     return true
-  } catch (error) {
-    console.warn('Datums-Parsing-Fehler:', error, dateStr)
+    
+  } catch (parseError) {
+    console.warn('âŒ Datum-Parse-Fehler:', parseError.message)
     return false
   }
 }
 
-// Hauptinhalt der App als separate Komponente für useTranslation Hook
+/**
+ * Intelligente Event-Daten-Bereinigung
+ */
+const cleanEventData = (rawEvent) => {
+  if (!rawEvent || typeof rawEvent !== 'object') {
+    console.warn('âš ï¸ UngÃ¼ltiges Event-Objekt:', rawEvent)
+    return rawEvent
+  }
+  
+  const cleaned = { ...rawEvent }
+  const now = new Date()
+  const today = now.toISOString().split('T')[0]
+  const currentTimestamp = now.toISOString()
+  
+  // DATUM-BEREINIGUNG
+  if (cleaned.date) {
+    if (!isValidEventDate(cleaned.date)) {
+      console.warn('ðŸ”§ Repariere Event-Datum:', cleaned.date, 'â†’', today)
+      cleaned.date = today
+    }
+  } else {
+    cleaned.date = today
+  }
+  
+  // Bereinige End-Datum
+  if (cleaned.endDate && !isValidEventDate(cleaned.endDate)) {
+    delete cleaned.endDate
+  }
+  
+  // TIMESTAMP-FELDER
+  const timestampFields = ['created_at', 'updated_at', 'completed_at', 'started_at']
+  timestampFields.forEach(field => {
+    if (cleaned[field]) {
+      try {
+        const timestamp = new Date(cleaned[field])
+        if (isNaN(timestamp.getTime()) || timestamp.getFullYear() < 2020 || timestamp.getFullYear() > 2035) {
+          cleaned[field] = currentTimestamp
+        }
+      } catch (error) {
+        cleaned[field] = currentTimestamp
+      }
+    }
+  })
+  
+  // TEXT-FELDER
+  if (!cleaned.name || typeof cleaned.name !== 'string' || cleaned.name.trim() === '') {
+    cleaned.name = `Event ${Date.now()}`
+  } else {
+    cleaned.name = cleaned.name.trim()
+  }
+  
+  // ID-BEREINIGUNG
+  if (!cleaned.id || cleaned.id === 'undefined' || cleaned.id === 'null' || typeof cleaned.id !== 'string') {
+    cleaned.id = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  }
+  
+  // NUMERISCHE FELDER
+  if (cleaned.courts) {
+    const courts = parseInt(cleaned.courts)
+    if (isNaN(courts) || courts < 1 || courts > 20) {
+      cleaned.courts = 1
+    }
+  }
+  
+  if (cleaned.maxPlayers) {
+    const maxPlayers = parseInt(cleaned.maxPlayers)
+    if (isNaN(maxPlayers) || maxPlayers < 4 || maxPlayers > 100) {
+      cleaned.maxPlayers = 16
+    }
+  }
+  
+  // STATUS
+  const validStatuses = ['upcoming', 'active', 'completed', 'cancelled']
+  if (!cleaned.status || !validStatuses.includes(cleaned.status)) {
+    cleaned.status = 'upcoming'
+  }
+  
+  // ZEIT-FELDER
+  const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
+  if (cleaned.startTime && !timePattern.test(cleaned.startTime)) {
+    cleaned.startTime = '09:00'
+  }
+  
+  if (cleaned.endTime && !timePattern.test(cleaned.endTime)) {
+    cleaned.endTime = '18:00'
+  }
+  
+  return cleaned
+}
+
+/**
+ * Event-Deduplizierung mit Konflikt-AuflÃ¶sung
+ */
+const deduplicateEvents = (eventList) => {
+  if (!Array.isArray(eventList)) {
+    return []
+  }
+  
+  const uniqueEvents = new Map()
+  const processedEvents = []
+  
+  for (const event of eventList) {
+    if (!event || typeof event !== 'object') {
+      continue
+    }
+    
+    const cleanedEvent = cleanEventData(event)
+    
+    const identityKey = [
+      (cleanedEvent.name || 'unnamed').toLowerCase().trim(),
+      cleanedEvent.date || 'no-date',
+      cleanedEvent.startTime || 'no-time',
+      (cleanedEvent.location || 'no-location').toLowerCase().trim()
+    ].join('::')
+    
+    if (uniqueEvents.has(identityKey)) {
+      const existingEvent = uniqueEvents.get(identityKey)
+      
+      // Bevorzuge Events mit echten IDs
+      const existingHasRealId = existingEvent.id && !existingEvent.id.toString().startsWith('temp_')
+      const newHasRealId = cleanedEvent.id && !cleanedEvent.id.toString().startsWith('temp_')
+      
+      if (newHasRealId && !existingHasRealId) {
+        uniqueEvents.set(identityKey, cleanedEvent)
+        const existingIndex = processedEvents.findIndex(e => e.id === existingEvent.id)
+        if (existingIndex !== -1) {
+          processedEvents[existingIndex] = cleanedEvent
+        }
+      } else if (!newHasRealId && existingHasRealId) {
+        // Behalte das bestehende
+      } else {
+        // Bevorzuge neueres updated_at
+        const existingTime = new Date(existingEvent.updated_at || 0).getTime()
+        const newTime = new Date(cleanedEvent.updated_at || 0).getTime()
+        
+        if (newTime > existingTime) {
+          uniqueEvents.set(identityKey, cleanedEvent)
+          const existingIndex = processedEvents.findIndex(e => e.id === existingEvent.id)
+          if (existingIndex !== -1) {
+            processedEvents[existingIndex] = cleanedEvent
+          }
+        }
+      }
+    } else {
+      uniqueEvents.set(identityKey, cleanedEvent)
+      processedEvents.push(cleanedEvent)
+    }
+  }
+  
+  return processedEvents
+}
+
+/**
+ * Event-Validierung vor dem Speichern
+ */
+const validateEventForSave = (event) => {
+  const errors = []
+  
+  if (!event || typeof event !== 'object') {
+    return { isValid: false, errors: ['Event-Objekt ist ungÃ¼ltig'] }
+  }
+  
+  if (!event.name || event.name.trim() === '') {
+    errors.push('Event-Name ist erforderlich')
+  }
+  
+  if (!event.date || !isValidEventDate(event.date)) {
+    errors.push('GÃ¼ltiges Datum ist erforderlich')
+  }
+  
+  if (!event.startTime || !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(event.startTime)) {
+    errors.push('GÃ¼ltige Startzeit ist erforderlich')
+  }
+  
+  if (!event.endTime || !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(event.endTime)) {
+    errors.push('GÃ¼ltige Endzeit ist erforderlich')
+  }
+  
+  if (!event.sport || !['padel', 'pickleball', 'spinxball', 'tennis'].includes(event.sport.toLowerCase())) {
+    errors.push('GÃ¼ltige Sportart ist erforderlich')
+  }
+  
+  const courts = parseInt(event.courts)
+  if (isNaN(courts) || courts < 1 || courts > 20) {
+    errors.push('Courts: 1-20 erlaubt')
+  }
+  
+  const maxPlayers = parseInt(event.maxPlayers)
+  if (isNaN(maxPlayers) || maxPlayers < 4 || maxPlayers > 100) {
+    errors.push('Spieler: 4-100 erlaubt')
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors: errors
+  }
+}
+
+// Hauptinhalt der App
 function AppContent() {
-  const { t } = useTranslation()
+  const t = useTranslation()?.t || ((key) => key)
   const toast = useToast()
   
   const [events, setEvents] = useState([])
@@ -147,7 +357,7 @@ function AppContent() {
       toast,
       t,
       {
-        showErrorToast: false, // Don't show error for initial auth check
+        showErrorToast: false,
         retries: 2,
         retryDelay: 1000
       }
@@ -176,7 +386,7 @@ function AppContent() {
       t,
       {
         loadingMessage: t('app.loadingProfile') || 'Profil wird geladen...',
-        successMessage: null, // Don't show success for profile loading
+        successMessage: null,
         retries: 2
       }
     )
@@ -207,9 +417,12 @@ function AppContent() {
     return result.success
   }
 
-  // FIXED: Enhanced loadEvents with deduplication and better validation
+  /**
+   * Verbesserte loadEvents Funktion
+   */
   const loadEvents = async () => {
     setIsLoading(true)
+    console.log('ðŸ”„ Lade Events von Supabase...')
     
     const result = await withErrorHandling(
       async () => {
@@ -220,47 +433,58 @@ function AppContent() {
         
         if (error) throw error
         
-        // Transform and validate events
-        let transformedEvents = (data || [])
-          .map(event => transformFromDB(event))
+        console.log(`ðŸ“¥ ${data?.length || 0} rohe Events erhalten`)
+        
+        // Verarbeite Events: Transform â†’ Clean â†’ Filter â†’ Deduplicate â†’ Sort
+        let processedEvents = (data || [])
+          .map((rawEvent, index) => {
+            try {
+              const transformed = transformFromDB(rawEvent)
+              const cleaned = cleanEventData(transformed)
+              console.log(`âœ… Event ${index + 1} verarbeitet: ${cleaned.name}`)
+              return cleaned
+            } catch (error) {
+              console.warn(`âŒ Event ${index + 1} Fehler:`, error.message)
+              return null
+            }
+          })
           .filter(event => {
-            // Filter out events with invalid dates
+            if (!event || !event.id || !event.name) {
+              return false
+            }
+            
             if (!isValidEventDate(event.date)) {
-              console.warn('Filtering out event with invalid date:', event.name, event.date)
+              console.warn('âŒ Event nach Bereinigung noch ungÃ¼ltig:', event.name)
               return false
             }
-            // Filter out events without required fields
-            if (!event.id || !event.name) {
-              console.warn('Filtering out incomplete event:', event)
-              return false
-            }
+            
             return true
           })
         
-        // FIXED: Deduplicate events
-        transformedEvents = deduplicateEvents(transformedEvents)
+        // Deduplizierung
+        processedEvents = deduplicateEvents(processedEvents)
         
-        // FIXED: Sort by status and date to show active events first
-        transformedEvents.sort((a, b) => {
-          // First by status priority
-          const statusPriority = { 'active': 0, 'upcoming': 1, 'completed': 2 }
-          const statusDiff = (statusPriority[a.status] || 1) - (statusPriority[b.status] || 1)
-          if (statusDiff !== 0) return statusDiff
+        // Sortierung
+        processedEvents.sort((a, b) => {
+          const statusPriority = { 'active': 0, 'upcoming': 1, 'completed': 2, 'cancelled': 3 }
+          const statusDiff = (statusPriority[a.status] || 2) - (statusPriority[b.status] || 2)
           
-          // Then by date
+          if (statusDiff !== 0) return statusDiff
           return new Date(a.date) - new Date(b.date)
         })
         
-        setEvents(transformedEvents)
+        console.log(`âœ… Events verarbeitet: ${data?.length || 0} â†’ ${processedEvents.length}`)
         
-        // Save to localStorage as backup
+        setEvents(processedEvents)
+        
+        // Sichere in localStorage
         try {
-          localStorage.setItem('events', JSON.stringify(transformedEvents))
+          localStorage.setItem('events', JSON.stringify(processedEvents))
         } catch (storageError) {
-          console.warn('Failed to save to localStorage:', storageError)
+          console.warn('âš ï¸ LocalStorage-Speicherung fehlgeschlagen:', storageError)
         }
         
-        return transformedEvents
+        return processedEvents
       },
       toast,
       t,
@@ -272,11 +496,11 @@ function AppContent() {
     )
 
     if (!result.success) {
-      // Fallback to localStorage with deduplication
+      console.warn('âŒ Supabase-Ladung fehlgeschlagen, verwende localStorage...')
       loadFromLocalStorage()
       
       toast.showWarning(
-        t('app.offlineMode') || 'Offline-Modus: Events werden aus dem lokalen Speicher geladen.',
+        t('app.offlineMode') || 'Offline-Modus: Events aus lokalem Speicher.',
         6000
       )
     }
@@ -284,39 +508,73 @@ function AppContent() {
     setIsLoading(false)
   }
 
-  // FIXED: Enhanced localStorage loading with deduplication
+  /**
+   * LocalStorage Laden mit gleicher Bereinigungslogik
+   */
   const loadFromLocalStorage = () => {
+    console.log('ðŸ’¾ Lade Events aus localStorage...')
+    
     try {
       const savedEvents = localStorage.getItem('events')
-      if (savedEvents) {
-        const parsedEvents = JSON.parse(savedEvents)
-        
-        // Filter out invalid events and deduplicate
-        let validEvents = parsedEvents.filter(event => {
-          if (!event || !event.id) return false
-          if (!isValidEventDate(event.date)) {
-            console.warn('Filtering out localStorage event with invalid date:', event.name, event.date)
+      if (!savedEvents) {
+        console.log('ðŸ“­ Keine Events in localStorage')
+        return false
+      }
+      
+      const parsedEvents = JSON.parse(savedEvents)
+      console.log(`ðŸ“¥ ${parsedEvents.length} Events aus localStorage`)
+      
+      // Gleiche Bereinigungslogik wie bei Supabase
+      let cleanedEvents = parsedEvents
+        .map((event, index) => {
+          try {
+            return cleanEventData(event)
+          } catch (error) {
+            console.warn(`âŒ localStorage Event ${index + 1} Fehler:`, error.message)
+            return null
+          }
+        })
+        .filter(event => {
+          if (!event || !event.id || !event.name) {
             return false
           }
+          
+          if (!isValidEventDate(event.date)) {
+            console.warn('âŒ localStorage Event ungÃ¼ltiges Datum:', event.name)
+            return false
+          }
+          
           return true
         })
-        
-        // FIXED: Apply deduplication to localStorage events too
-        validEvents = deduplicateEvents(validEvents)
-        
-        setEvents(validEvents)
-        return true
+      
+      // Deduplizierung
+      cleanedEvents = deduplicateEvents(cleanedEvents)
+      
+      console.log(`âœ… LocalStorage Events bereinigt: ${parsedEvents.length} â†’ ${cleanedEvents.length}`)
+      
+      setEvents(cleanedEvents)
+      
+      // Sichere bereinigte Daten zurÃ¼ck
+      try {
+        localStorage.setItem('events', JSON.stringify(cleanedEvents))
+      } catch (error) {
+        console.warn('âš ï¸ Fehler beim ZurÃ¼ckspeichern:', error)
       }
+      
+      return true
+      
     } catch (error) {
-      console.error('Error loading from localStorage:', error)
+      console.error('âŒ localStorage Fehler:', error)
       toast.showError(t('errors.localStorage') || 'Lokale Daten konnten nicht geladen werden.')
+      return false
     }
-    return false
   }
 
-  // Save events to both Supabase and localStorage
+  /**
+   * Verbesserte saveEvents Funktion
+   */
   const saveEvents = async (updatedEvents, eventToSave = null) => {
-    // Immediately save locally for better UX
+    // Sofort lokal speichern
     try {
       localStorage.setItem('events', JSON.stringify(updatedEvents))
       setEvents(updatedEvents)
@@ -325,40 +583,29 @@ function AppContent() {
       toast.showError(t('errors.localStorageSave') || 'Lokale Speicherung fehlgeschlagen.')
     }
     
-    // If no specific event given, don't save to Supabase
     if (!eventToSave) return { success: true }
     
-    // Validation before saving
-    const validationRules = {
-      name: { required: true, minLength: 3, maxLength: 100 },
-      date: { required: true },
-      startTime: { required: true },
-      endTime: { required: true },
-      sport: { required: true },
-      courts: { required: true, number: true, min: 1, max: 10 }
-    }
-    
-    const validation = validateForm(eventToSave, validationRules)
+    // Validierung mit neuer Funktion
+    const validation = validateEventForSave(eventToSave)
     if (!validation.isValid) {
-      const firstError = Object.values(validation.errors)[0][0]
+      const firstError = validation.errors[0]
       toast.showError(`Validierungsfehler: ${firstError}`)
       return { success: false, error: 'Validation failed' }
     }
 
-    // Additional date validation
+    // ZusÃ¤tzliche Datums-Validierung
     if (!isValidEventDate(eventToSave.date)) {
-      toast.showError('Ungültiges Datum. Bitte wählen Sie ein Datum zwischen 2020 und 2030.')
+      toast.showError('UngÃ¼ltiges Datum. Bitte wÃ¤hlen Sie ein Datum zwischen 2020 und 2030.')
       return { success: false, error: 'Invalid date' }
     }
 
     return await withErrorHandling(
       async () => {
-        // Clean and transform event for database
         const cleanedEvent = cleanEventData(eventToSave)
         const dbEvent = transformToDB(cleanedEvent)
         
         if (eventToSave.id.startsWith('temp_')) {
-          // New event - INSERT
+          // Neues Event - INSERT
           const insertData = {
             ...dbEvent,
             created_at: new Date().toISOString(),
@@ -369,7 +616,6 @@ function AppContent() {
             status: dbEvent.status || 'upcoming'
           }
           
-          // Remove temp ID and null/undefined values
           delete insertData.id
           Object.keys(insertData).forEach(key => {
             if (insertData[key] === undefined || insertData[key] === null) {
@@ -385,7 +631,7 @@ function AppContent() {
           
           if (error) throw error
           
-          // Update temp ID with real Supabase ID
+          // Update temp ID mit echter Supabase ID
           const index = updatedEvents.findIndex(e => e.id === eventToSave.id)
           if (index !== -1) {
             updatedEvents[index] = { ...updatedEvents[index], id: data.id, created_by: data.created_by }
@@ -395,7 +641,7 @@ function AppContent() {
           
           return data
         } else {
-          // Existing event - UPDATE
+          // Bestehendes Event - UPDATE
           const updateData = {
             ...dbEvent,
             updated_at: new Date().toISOString()
@@ -463,14 +709,12 @@ function AppContent() {
   }
 
   const handleDeleteEvent = async (eventId) => {
-    // Show confirmation dialog
-    if (!window.confirm(t('messages.confirmDelete') || 'Wirklich löschen?')) {
+    if (!window.confirm(t('messages.confirmDelete') || 'Wirklich lÃ¶schen?')) {
       return
     }
     
     const result = await withErrorHandling(
       async () => {
-        // Delete from local state
         const updatedEvents = events.filter(event => event.id !== eventId)
         setEvents(updatedEvents)
         localStorage.setItem('events', JSON.stringify(updatedEvents))
@@ -479,7 +723,6 @@ function AppContent() {
           setSelectedEvent(null)
         }
         
-        // Try to delete from Supabase (only if not temp)
         if (!eventId.startsWith('temp_')) {
           const { error } = await supabase
             .from('events')
@@ -494,8 +737,8 @@ function AppContent() {
       toast,
       t,
       {
-        loadingMessage: t('event.deleting') || 'Event wird gelöscht...',
-        successMessage: t('event.deleted') || 'Event erfolgreich gelöscht',
+        loadingMessage: t('event.deleting') || 'Event wird gelÃ¶scht...',
+        successMessage: t('event.deleted') || 'Event erfolgreich gelÃ¶scht',
         retries: 1
       }
     )
@@ -503,7 +746,6 @@ function AppContent() {
     return result.success
   }
 
-  // OPTIMIZED: Memoized and robust event selection
   const handleSelectEvent = useCallback((event) => {
     if (!event || !event.id) {
       console.warn('Invalid event selected:', event)
@@ -517,7 +759,6 @@ function AppContent() {
     setShowEventForm(true)
   }, [])
 
-  // OPTIMIZED: Enhanced player selection with better validation
   const handleSelectPlayersFromDatabase = useCallback(async (selectedPlayers) => {
     if (!selectedEvent || !Array.isArray(selectedPlayers)) return
 
@@ -553,7 +794,6 @@ function AppContent() {
                 pickleball: dbPlayer.pickleballSkill || 3,
                 spinxball: dbPlayer.spinxballSkill || 3
               },
-              // Add contact data safely
               ...(dbPlayer.email && { email: dbPlayer.email }),
               ...(dbPlayer.phone && { phone: dbPlayer.phone }),
               ...(dbPlayer.birthday && { birthday: dbPlayer.birthday }),
@@ -567,7 +807,7 @@ function AppContent() {
         }
         
         if (newPlayers.length === 0) {
-          throw new Error('Keine neuen Spieler hinzugefügt. Alle ausgewählten Spieler sind bereits angemeldet.')
+          throw new Error('Keine neuen Spieler hinzugefÃ¼gt. Alle ausgewÃ¤hlten Spieler sind bereits angemeldet.')
         }
         
         const updatedEvent = {
@@ -582,26 +822,23 @@ function AppContent() {
       toast,
       t,
       {
-        loadingMessage: t('player.adding') || 'Spieler werden hinzugefügt...',
+        loadingMessage: t('player.adding') || 'Spieler werden hinzugefÃ¼gt...',
         successMessage: null
       }
     )
 
     if (result.success && result.data > 0) {
-      toast.showSuccess(`${result.data} Spieler erfolgreich hinzugefügt`)
+      toast.showSuccess(`${result.data} Spieler erfolgreich hinzugefÃ¼gt`)
     }
   }, [selectedEvent, handleUpdateEvent, toast, t])
 
-  // GEÄNDERT: Verwende den neuen einheitlichen Turnier-Generator
   const handleStartTournament = useCallback((event) => {
-    // Validation before start
     if (!event.players || event.players.length < 4) {
-      toast.showError(t('tournament.needMorePlayers') || 'Mindestens 4 Spieler benötigt')
+      toast.showError(t('tournament.needMorePlayers') || 'Mindestens 4 Spieler benÃ¶tigt')
       return
     }
     
     try {
-      // Generiere Turnier mit dem neuen System
       const tournamentConfig = {
         format: event.eventType || 'americano',
         players: event.players,
@@ -617,7 +854,6 @@ function AppContent() {
       
       const tournament = generateTournament(tournamentConfig)
       
-      // Erweitere Event mit Turnier-Daten
       const enhancedEvent = {
         ...event,
         tournament,
@@ -649,7 +885,6 @@ function AppContent() {
     }
   }, [runningTournament, handleUpdateEvent, toast, t])
 
-  // Utility functions (memoized where beneficial)
   const calculateTotalMinutes = useCallback((start, end, breaks = []) => {
     const startStr = String(start || '00:00')
     const endStr = String(end || '00:00')
@@ -699,21 +934,6 @@ function AppContent() {
     return Math.max(playersNeeded, Math.min(64, maxPlayers))
   }, [])
 
-  // FIXED: Hilfsfunktion für Event-Status
-  const getEventStatus = (event) => {
-    if (!event) return 'upcoming'
-    
-    if (event.status === 'completed' || event.results) return 'completed'
-    if (event.tournament || event.schedule) return 'active'
-    
-    const now = new Date()
-    const eventDate = new Date(event.date)
-    const eventStart = new Date(`${event.date} ${event.startTime}`)
-    
-    if (eventStart <= now) return 'active'
-    return 'upcoming'
-  }
-
   // Show auth screen if not logged in
   if (!user) {
     return <Auth />
@@ -736,7 +956,6 @@ function AppContent() {
             
             {!runningTournament && (
               <>
-                {/* Header */}
                 <header className="bg-white shadow-sm border-b">
                   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex items-center justify-between">
@@ -752,7 +971,6 @@ function AppContent() {
                       <div className="flex items-center gap-4">
                         <LanguageSelector />
                         
-                        {/* User Menu */}
                         <div className="relative">
                           <button
                             onClick={() => setShowUserMenu(!showUserMenu)}
@@ -778,7 +996,7 @@ function AppContent() {
                                   <p className="text-sm font-medium">{userProfile?.name || 'Usuario'}</p>
                                   <p className="text-xs text-gray-500">{user.email}</p>
                                   <p className="text-xs text-gray-500 mt-1">
-                                    {userProfile?.role === 'tournament_director' ? `🎾 ${t('userMenu.tournamentDirector')}` : `👤 ${t('userMenu.player')}`}
+                                    {userProfile?.role === 'tournament_director' ? `ðŸŽ¾ ${t('userMenu.tournamentDirector')}` : `ðŸ‘¤ ${t('userMenu.player')}`}
                                   </p>
                                 </div>
                                 
@@ -814,7 +1032,6 @@ function AppContent() {
                   </div>
                 </header>
 
-                {/* Main Content */}
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                   {isLoading ? (
                     <div className="flex justify-center items-center h-64">
@@ -825,7 +1042,6 @@ function AppContent() {
                     </div>
                   ) : (
                     <div className="main-content-grid lg:grid lg:grid-cols-3 lg:gap-8">
-                      {/* Event List Section */}
                       <div className="event-list-section lg:col-span-1">
                         <EventList 
                           events={events}
@@ -836,7 +1052,6 @@ function AppContent() {
                         />
                       </div>
 
-                      {/* Event Details Section */}
                       <div className="event-details-section lg:col-span-2">
                         {showEventForm ? (
                           <EventForm
@@ -896,7 +1111,6 @@ function AppContent() {
                   )}
                 </div>
 
-                {/* Player Database Modal */}
                 {showPlayerDatabase && (
                   <PlayerDatabase
                     isOpen={showPlayerDatabase}
@@ -915,7 +1129,7 @@ function AppContent() {
   )
 }
 
-// Haupt-App-Komponente mit Error Boundary und Toast Provider
+// Haupt-App-Komponente
 function App() {
   return (
     <ErrorBoundary>
