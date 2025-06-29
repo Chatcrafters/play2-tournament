@@ -18,18 +18,68 @@ import { withErrorHandling, createNetworkStatusHandler, handleSupabaseError, val
 import { generateTournament, generateAmericanoSchedule } from './utils/tournaments'
 import './App.css'
 
-// Date validation utility
+// FIXED: Deduplizierungs-Hilfsfunktion
+const deduplicateEvents = (events) => {
+  const seen = new Map()
+  
+  return events.filter(event => {
+    // Erstelle eindeutigen Schlüssel basierend auf Name, Datum und wichtigen Eigenschaften
+    const key = `${event.name}-${event.date}-${event.startTime}-${event.location || ''}`
+    
+    if (seen.has(key)) {
+      // Behalte das mit neuerer updated_at oder das mit einer echten ID
+      const existing = seen.get(key)
+      const current = event
+      
+      // Bevorzuge Events mit echten IDs über temp IDs
+      if (existing.id.startsWith('temp_') && !current.id.startsWith('temp_')) {
+        seen.set(key, current)
+        return true
+      }
+      
+      // Bevorzuge zuletzt aktualisierte Events
+      const existingTime = new Date(existing.updated_at || 0).getTime()
+      const currentTime = new Date(current.updated_at || 0).getTime()
+      
+      if (currentTime > existingTime) {
+        seen.set(key, current)
+        return true
+      }
+      
+      return false // Überspringe Duplikat
+    }
+    
+    seen.set(key, event)
+    return true
+  })
+}
+
+// FIXED: Erweiterte Datumsvalidierung
 const isValidEventDate = (dateStr) => {
   if (!dateStr || typeof dateStr !== 'string') return false
-  if (dateStr.startsWith('000') || dateStr.length < 8) return false
+  
+  // Prüfe auf fehlerhafte Daten wie "0002-07-06"
+  if (dateStr.startsWith('000') || dateStr.length < 8) {
+    console.warn('Ungültiges Datumsformat erkannt:', dateStr)
+    return false
+  }
   
   try {
     const date = new Date(dateStr)
     if (isNaN(date.getTime())) return false
     
     const year = date.getFullYear()
-    return year >= 2020 && year <= 2030
-  } catch {
+    const month = date.getMonth()
+    const day = date.getDate()
+    
+    // Strengere Validierung
+    if (year < 2020 || year > 2035) return false
+    if (month < 0 || month > 11) return false
+    if (day < 1 || day > 31) return false
+    
+    return true
+  } catch (error) {
+    console.warn('Datums-Parsing-Fehler:', error, dateStr)
     return false
   }
 }
@@ -157,7 +207,7 @@ function AppContent() {
     return result.success
   }
 
-  // OPTIMIZED: Enhanced loadEvents with proper date validation
+  // FIXED: Enhanced loadEvents with deduplication and better validation
   const loadEvents = async () => {
     setIsLoading(true)
     
@@ -171,7 +221,7 @@ function AppContent() {
         if (error) throw error
         
         // Transform and validate events
-        const transformedEvents = (data || [])
+        let transformedEvents = (data || [])
           .map(event => transformFromDB(event))
           .filter(event => {
             // Filter out events with invalid dates
@@ -186,6 +236,20 @@ function AppContent() {
             }
             return true
           })
+        
+        // FIXED: Deduplicate events
+        transformedEvents = deduplicateEvents(transformedEvents)
+        
+        // FIXED: Sort by status and date to show active events first
+        transformedEvents.sort((a, b) => {
+          // First by status priority
+          const statusPriority = { 'active': 0, 'upcoming': 1, 'completed': 2 }
+          const statusDiff = (statusPriority[a.status] || 1) - (statusPriority[b.status] || 1)
+          if (statusDiff !== 0) return statusDiff
+          
+          // Then by date
+          return new Date(a.date) - new Date(b.date)
+        })
         
         setEvents(transformedEvents)
         
@@ -208,7 +272,7 @@ function AppContent() {
     )
 
     if (!result.success) {
-      // Fallback to localStorage
+      // Fallback to localStorage with deduplication
       loadFromLocalStorage()
       
       toast.showWarning(
@@ -220,15 +284,15 @@ function AppContent() {
     setIsLoading(false)
   }
 
-  // OPTIMIZED: Enhanced localStorage loading with validation
+  // FIXED: Enhanced localStorage loading with deduplication
   const loadFromLocalStorage = () => {
     try {
       const savedEvents = localStorage.getItem('events')
       if (savedEvents) {
         const parsedEvents = JSON.parse(savedEvents)
         
-        // Filter out invalid events
-        const validEvents = parsedEvents.filter(event => {
+        // Filter out invalid events and deduplicate
+        let validEvents = parsedEvents.filter(event => {
           if (!event || !event.id) return false
           if (!isValidEventDate(event.date)) {
             console.warn('Filtering out localStorage event with invalid date:', event.name, event.date)
@@ -236,6 +300,9 @@ function AppContent() {
           }
           return true
         })
+        
+        // FIXED: Apply deduplication to localStorage events too
+        validEvents = deduplicateEvents(validEvents)
         
         setEvents(validEvents)
         return true
@@ -631,6 +698,21 @@ function AppContent() {
 
     return Math.max(playersNeeded, Math.min(64, maxPlayers))
   }, [])
+
+  // FIXED: Hilfsfunktion für Event-Status
+  const getEventStatus = (event) => {
+    if (!event) return 'upcoming'
+    
+    if (event.status === 'completed' || event.results) return 'completed'
+    if (event.tournament || event.schedule) return 'active'
+    
+    const now = new Date()
+    const eventDate = new Date(event.date)
+    const eventStart = new Date(`${event.date} ${event.startTime}`)
+    
+    if (eventStart <= now) return 'active'
+    return 'upcoming'
+  }
 
   // Show auth screen if not logged in
   if (!user) {

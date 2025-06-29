@@ -1,7 +1,6 @@
-// FIXED VERSION - tournaments.js
-
+// COMPLETE REWRITE - tournaments.js
 // src/utils/tournaments.js
-// Einheitlicher Turnier-Algorithmus für alle Formate
+// Einheitlicher Turnier-Algorithmus für alle Formate mit korrekter Matrix-Struktur
 
 /**
  * Hauptfunktion: Generiert Turniere basierend auf Format
@@ -39,7 +38,7 @@ export function generateTournament(config) {
 }
 
 /**
- * AMERICANO TURNIER - FIXED VERSION mit korrekter Statistics-Struktur
+ * AMERICANO TURNIER - COMPLETE REWRITE mit korrekter Matrix-Struktur
  */
 function generateAmericanoTournament(config) {
   const {
@@ -53,7 +52,7 @@ function generateAmericanoTournament(config) {
     options = {}
   } = config
 
-  console.log('=== AMERICANO TOURNAMENT GENERATOR ===')
+  console.log('=== AMERICANO TOURNAMENT GENERATOR (REWRITE) ===')
   console.log(`Spieler: ${players.length}, Courts: ${courts}, MaxRounds: ${maxRounds}`)
 
   // Berechne optimale Rundenzahl falls nicht angegeben
@@ -111,8 +110,8 @@ function generateAmericanoTournament(config) {
           players: [...match.team1, ...match.team2].map(p => p.id)
         })
 
-        // Update Statistiken
-        updateAmericanoStats(match, stats, court, roundNum)
+        // FIXED: Update Statistiken mit korrekter Player-Array-Referenz
+        updateAmericanoStats(match, stats, court, roundNum, players)
 
         // Markiere Spieler als verwendet
         match.team1.forEach(p => usedPlayers.add(p.id))
@@ -139,20 +138,25 @@ function generateAmericanoTournament(config) {
     })
   }
 
-  // FIXED: Korrekte finale Statistiken mit legacy-kompatibler Struktur
+  // FIXED: Korrekte finale Statistiken mit EventDetail.jsx-kompatibler Struktur
   const finalStats = calculateAmericanoFinalStats(players, stats)
   
-  // FIXED: Legacy-kompatible Rückgabe-Struktur für EventDetail.jsx
+  // FIXED: Legacy-kompatible Rückgabe-Struktur
   return {
     format: 'americano',
     schedule,
     statistics: {
-      // Legacy-kompatible Matrix-Struktur
-      partnerMatrix: stats.partnerMatrix || {},
-      opponentMatrix: stats.opponentMatrix || {},
+      // Legacy-kompatible Matrix-Struktur für EventDetail.jsx
+      partnerMatrix: stats.partnerMatrix,
+      opponentMatrix: stats.opponentMatrix,
       gamesPlayed: players.map(p => stats.gamesPlayed[p.id] || 0),
       // Neue erweiterte Statistiken
-      ...finalStats
+      ...finalStats,
+      // Zusätzliche Legacy-Felder
+      maxGames: finalStats.summary?.maxGames || 0,
+      minGames: finalStats.summary?.minGames || 0,
+      seed: seed,
+      regenerateCount: options.regenerateCount || 0
     },
     summary: {
       totalRounds: actualRounds,
@@ -165,7 +169,129 @@ function generateAmericanoTournament(config) {
 }
 
 /**
- * FIXED: Verbesserte Hilfsfunktionen mit korrekter Matrix-Struktur
+ * FIXED: Korrekte Statistik-Initialisierung mit Matrix-Struktur
+ */
+function initializePlayerStats(players) {
+  const stats = {
+    gamesPlayed: {},
+    partners: {},
+    opponents: {},
+    timesRested: {},
+    lastRestRound: {},
+    courtHistory: {},
+    lastPartnerRound: {},
+    lastOpponentRound: {},
+    partnerCount: {},
+    opponentCount: {},
+    // FIXED: Legacy-kompatible Matrix-Struktur für EventDetail.jsx
+    partnerMatrix: {},
+    opponentMatrix: {}
+  }
+
+  players.forEach((p, pIdx) => {
+    stats.gamesPlayed[p.id] = 0
+    stats.partners[p.id] = {}
+    stats.opponents[p.id] = {}
+    stats.timesRested[p.id] = 0
+    stats.lastRestRound[p.id] = -10
+    stats.courtHistory[p.id] = []
+    stats.lastPartnerRound[p.id] = {}
+    stats.lastOpponentRound[p.id] = {}
+    stats.partnerCount[p.id] = {}
+    stats.opponentCount[p.id] = {}
+    
+    // FIXED: Legacy Matrix-Struktur mit korrekten Indices initialisieren
+    stats.partnerMatrix[pIdx] = {}
+    stats.opponentMatrix[pIdx] = {}
+
+    players.forEach((p2, p2Idx) => {
+      if (p.id !== p2.id) {
+        stats.partners[p.id][p2.id] = 0
+        stats.opponents[p.id][p2.id] = 0
+        stats.lastPartnerRound[p.id][p2.id] = -100
+        stats.lastOpponentRound[p.id][p2.id] = -100
+        stats.partnerCount[p.id][p2.id] = 0
+        stats.opponentCount[p.id][p2.id] = 0
+      }
+      
+      // FIXED: Legacy Matrix mit Index-basiertem Zugriff
+      stats.partnerMatrix[pIdx][p2Idx] = 0
+      stats.opponentMatrix[pIdx][p2Idx] = 0
+    })
+  })
+
+  return stats
+}
+
+/**
+ * FIXED: Statistik-Updates mit korrekter Legacy-Matrix
+ */
+function updateAmericanoStats(match, stats, courtNum, roundNum, allPlayers) {
+  const allMatchPlayers = [...match.team1, ...match.team2]
+
+  // Update games and court history
+  allMatchPlayers.forEach(p => {
+    stats.gamesPlayed[p.id]++
+    stats.courtHistory[p.id].push(courtNum)
+  })
+
+  // FIXED: Korrekte Player-Index-Lookup-Funktion
+  const getPlayerIndex = (playerId) => {
+    return allPlayers.findIndex(p => p.id === playerId)
+  }
+
+  // Update partnerships with correct indices
+  const updatePartnership = (p1, p2) => {
+    const p1Idx = getPlayerIndex(p1.id)
+    const p2Idx = getPlayerIndex(p2.id)
+    
+    // Update neue Struktur
+    stats.partners[p1.id][p2.id]++
+    stats.partnerCount[p1.id][p2.id]++
+    stats.lastPartnerRound[p1.id][p2.id] = roundNum
+    
+    // FIXED: Update legacy matrix structure für EventDetail.jsx Kompatibilität
+    if (p1Idx >= 0 && p2Idx >= 0) {
+      stats.partnerMatrix[p1Idx][p2Idx] = (stats.partnerMatrix[p1Idx][p2Idx] || 0) + 1
+    }
+  }
+
+  // Update opponents with correct indices  
+  const updateOpposition = (p1, p2) => {
+    const p1Idx = getPlayerIndex(p1.id)
+    const p2Idx = getPlayerIndex(p2.id)
+    
+    // Update neue Struktur
+    stats.opponents[p1.id][p2.id]++
+    stats.opponents[p2.id][p1.id]++
+    stats.opponentCount[p1.id][p2.id]++
+    stats.opponentCount[p2.id][p1.id]++
+    stats.lastOpponentRound[p1.id][p2.id] = roundNum
+    stats.lastOpponentRound[p2.id][p1.id] = roundNum
+    
+    // FIXED: Update legacy matrix structure
+    if (p1Idx >= 0 && p2Idx >= 0) {
+      stats.opponentMatrix[p1Idx][p2Idx] = (stats.opponentMatrix[p1Idx][p2Idx] || 0) + 1
+      stats.opponentMatrix[p2Idx][p1Idx] = (stats.opponentMatrix[p2Idx][p1Idx] || 0) + 1
+    }
+  }
+
+  // Apply updates für Partnerships
+  updatePartnership(match.team1[0], match.team1[1])
+  updatePartnership(match.team1[1], match.team1[0])
+  updatePartnership(match.team2[0], match.team2[1])
+  updatePartnership(match.team2[1], match.team2[0])
+
+  // Apply updates für alle Gegner-Kombinationen
+  match.team1.forEach(p1 => {
+    match.team2.forEach(p2 => {
+      updateOpposition(p1, p2)
+    })
+  })
+}
+
+/**
+ * FIXED: Verbesserte Match-Finding-Algorithmus
  */
 function findOptimalAmericanoMatch(availablePlayers, stats, courtNum, roundNum, randomGen) {
   if (availablePlayers.length < 4) return null
@@ -174,7 +300,7 @@ function findOptimalAmericanoMatch(availablePlayers, stats, courtNum, roundNum, 
   let bestScore = -Infinity
 
   // Einfache aber funktionale Implementierung
-  const searchDepth = Math.min(50, Math.max(10, availablePlayers.length))
+  const searchDepth = Math.min(100, Math.max(20, availablePlayers.length * 2))
   const candidates = []
 
   // Generiere Kandidaten (4er-Gruppen)
@@ -215,23 +341,23 @@ function findOptimalAmericanoMatch(availablePlayers, stats, courtNum, roundNum, 
 }
 
 /**
- * FIXED: Vereinfachtes aber funktionales Scoring
+ * FIXED: Verbessertes Scoring-System
  */
 function calculateAmericanoMatchScore(team1, team2, stats, courtNum, roundNum, randomGen) {
   let score = 0
 
-  // 1. Partner-Bewertung
+  // 1. Partner-Bewertung (sehr wichtig)
   const evaluatePartnership = (p1, p2) => {
     const partnerCount = stats.partnerCount[p1.id][p2.id] || 0
     const lastPartnerRound = stats.lastPartnerRound[p1.id][p2.id] || -100
     const roundDistance = roundNum - lastPartnerRound
 
     if (partnerCount === 0) {
-      return 200 // Großer Bonus für neue Partner
+      return 300 // Sehr großer Bonus für neue Partner
     } else {
       let partnerScore = 0
-      partnerScore += Math.min(roundDistance, 10) * 15 // Bonus für Distanz
-      partnerScore -= partnerCount * 50 // Strafe für häufige Wiederholungen
+      partnerScore += Math.min(roundDistance, 15) * 20 // Bonus für Distanz
+      partnerScore -= partnerCount * 80 // Hohe Strafe für häufige Wiederholungen
       return partnerScore
     }
   }
@@ -239,18 +365,18 @@ function calculateAmericanoMatchScore(team1, team2, stats, courtNum, roundNum, r
   score += evaluatePartnership(team1[0], team1[1])
   score += evaluatePartnership(team2[0], team2[1])
 
-  // 2. Gegner-Bewertung
+  // 2. Gegner-Bewertung (wichtig)
   const evaluateOpposition = (p1, p2) => {
     const opponentCount = stats.opponentCount[p1.id][p2.id] || 0
     const lastOpponentRound = stats.lastOpponentRound[p1.id][p2.id] || -100
     const roundDistance = roundNum - lastOpponentRound
 
     if (opponentCount === 0) {
-      return 100 // Bonus für neue Gegner
+      return 150 // Großer Bonus für neue Gegner
     } else {
       let opponentScore = 0
-      opponentScore += Math.min(roundDistance, 8) * 10 // Bonus für Distanz
-      opponentScore -= opponentCount * 30 // Strafe für häufige Wiederholungen
+      opponentScore += Math.min(roundDistance, 10) * 15 // Bonus für Distanz
+      opponentScore -= opponentCount * 40 // Strafe für häufige Wiederholungen
       return opponentScore
     }
   }
@@ -262,135 +388,24 @@ function calculateAmericanoMatchScore(team1, team2, stats, courtNum, roundNum, r
     })
   })
 
-  // 3. Spielbalance
+  // 3. Spielbalance (wichtig)
   const allPlayers = [...team1, ...team2]
   const gamesCounts = allPlayers.map(p => stats.gamesPlayed[p.id] || 0)
   const avgGames = gamesCounts.reduce((a, b) => a + b, 0) / 4
   const gamesVariance = gamesCounts.reduce((sum, games) => sum + Math.pow(games - avgGames, 2), 0) / 4
-  score -= gamesVariance * 20
+  score -= gamesVariance * 30
 
-  // 4. Random-Variabilität
-  score += randomGen.next() * 10
+  // 4. Pausendauer-Bonus
+  const restBonuses = allPlayers.map(p => {
+    const lastRest = stats.lastRestRound[p.id] || -10
+    return Math.min(roundNum - lastRest, 5) * 10
+  })
+  score += restBonuses.reduce((a, b) => a + b, 0)
+
+  // 5. Random-Variabilität (gering)
+  score += randomGen.next() * 15
 
   return score
-}
-
-/**
- * FIXED: Korrekte Statistik-Initialisierung
- */
-function initializePlayerStats(players) {
-  const stats = {
-    gamesPlayed: {},
-    partners: {},
-    opponents: {},
-    timesRested: {},
-    lastRestRound: {},
-    courtHistory: {},
-    lastPartnerRound: {},
-    lastOpponentRound: {},
-    partnerCount: {},
-    opponentCount: {},
-    // FIXED: Legacy-kompatible Matrix-Struktur
-    partnerMatrix: {},
-    opponentMatrix: {}
-  }
-
-  players.forEach((p, pIdx) => {
-    stats.gamesPlayed[p.id] = 0
-    stats.partners[p.id] = {}
-    stats.opponents[p.id] = {}
-    stats.timesRested[p.id] = 0
-    stats.lastRestRound[p.id] = -10
-    stats.courtHistory[p.id] = []
-    stats.lastPartnerRound[p.id] = {}
-    stats.lastOpponentRound[p.id] = {}
-    stats.partnerCount[p.id] = {}
-    stats.opponentCount[p.id] = {}
-    
-    // FIXED: Legacy Matrix-Struktur initialisieren
-    stats.partnerMatrix[pIdx] = {}
-    stats.opponentMatrix[pIdx] = {}
-
-    players.forEach((p2, p2Idx) => {
-      if (p.id !== p2.id) {
-        stats.partners[p.id][p2.id] = 0
-        stats.opponents[p.id][p2.id] = 0
-        stats.lastPartnerRound[p.id][p2.id] = -100
-        stats.lastOpponentRound[p.id][p2.id] = -100
-        stats.partnerCount[p.id][p2.id] = 0
-        stats.opponentCount[p.id][p2.id] = 0
-        
-        // FIXED: Legacy Matrix mit Index-basiertem Zugriff
-        stats.partnerMatrix[pIdx][p2Idx] = 0
-        stats.opponentMatrix[pIdx][p2Idx] = 0
-      }
-    })
-  })
-
-  return stats
-}
-
-/**
- * FIXED: Statistik-Updates mit Legacy-Matrix
- */
-function updateAmericanoStats(match, stats, courtNum, roundNum) {
-  const allPlayers = [...match.team1, ...match.team2]
-
-  // Update Spiele und Court-Historie
-  allPlayers.forEach(p => {
-    stats.gamesPlayed[p.id]++
-    stats.courtHistory[p.id].push(courtNum)
-  })
-
-  // FIXED: Update sowohl neue als auch Legacy-Strukturen
-  const updatePartnership = (p1, p2, p1Idx, p2Idx) => {
-    stats.partners[p1.id][p2.id]++
-    stats.partnerCount[p1.id][p2.id]++
-    stats.lastPartnerRound[p1.id][p2.id] = roundNum
-    
-    // FIXED: Legacy Matrix Update
-    if (stats.partnerMatrix[p1Idx] && stats.partnerMatrix[p1Idx][p2Idx] !== undefined) {
-      stats.partnerMatrix[p1Idx][p2Idx]++
-    }
-  }
-
-  // Finde Player-Indices für Legacy Matrix
-  const getPlayerIndex = (playerId, players) => {
-    return players.findIndex(p => p.id === playerId)
-  }
-
-  const p1Idx = getPlayerIndex(match.team1[0].id, Object.values(match.team1).concat(Object.values(match.team2)))
-  const p2Idx = getPlayerIndex(match.team1[1].id, Object.values(match.team1).concat(Object.values(match.team2)))
-  const p3Idx = getPlayerIndex(match.team2[0].id, Object.values(match.team1).concat(Object.values(match.team2)))
-  const p4Idx = getPlayerIndex(match.team2[1].id, Object.values(match.team1).concat(Object.values(match.team2)))
-
-  // Update Partner
-  updatePartnership(match.team1[0], match.team1[1], p1Idx, p2Idx)
-  updatePartnership(match.team1[1], match.team1[0], p2Idx, p1Idx)
-  updatePartnership(match.team2[0], match.team2[1], p3Idx, p4Idx)
-  updatePartnership(match.team2[1], match.team2[0], p4Idx, p3Idx)
-
-  // Update Gegner
-  match.team1.forEach((p1, i) => {
-    match.team2.forEach((p2, j) => {
-      stats.opponents[p1.id][p2.id]++
-      stats.opponents[p2.id][p1.id]++
-      stats.opponentCount[p1.id][p2.id]++
-      stats.opponentCount[p2.id][p1.id]++
-      stats.lastOpponentRound[p1.id][p2.id] = roundNum
-      stats.lastOpponentRound[p2.id][p1.id] = roundNum
-      
-      // FIXED: Legacy Matrix Update für Gegner
-      const idx1 = i === 0 ? p1Idx : p2Idx
-      const idx2 = j === 0 ? p3Idx : p4Idx
-      if (stats.opponentMatrix[idx1] && stats.opponentMatrix[idx1][idx2] !== undefined) {
-        stats.opponentMatrix[idx1][idx2]++
-      }
-      if (stats.opponentMatrix[idx2] && stats.opponentMatrix[idx2][idx1] !== undefined) {
-        stats.opponentMatrix[idx2][idx1]++
-      }
-    })
-  })
 }
 
 /**
@@ -417,15 +432,16 @@ function calculateAmericanoFinalStats(players, stats) {
   })
 
   const totalGames = playerStats.reduce((sum, p) => sum + p.games, 0)
+  const gamesCounts = playerStats.map(p => p.games)
 
   return {
     playerStats,
     summary: {
       totalPlayers: players.length,
-      avgGamesPerPlayer: players.length > 0 ? totalGames / players.length : 0,
-      avgUniquePartners: players.length > 0 ? playerStats.reduce((sum, p) => sum + p.uniquePartners, 0) / players.length : 0,
-      minGames: playerStats.length > 0 ? Math.min(...playerStats.map(p => p.games)) : 0,
-      maxGames: playerStats.length > 0 ? Math.max(...playerStats.map(p => p.games)) : 0,
+      avgGamesPerPlayer: players.length > 0 ? Math.round((totalGames / players.length) * 10) / 10 : 0,
+      avgUniquePartners: players.length > 0 ? Math.round((playerStats.reduce((sum, p) => sum + p.uniquePartners, 0) / players.length) * 10) / 10 : 0,
+      minGames: gamesCounts.length > 0 ? Math.min(...gamesCounts) : 0,
+      maxGames: gamesCounts.length > 0 ? Math.max(...gamesCounts) : 0,
       avgFairness: players.length > 0 ? Math.round(playerStats.reduce((sum, p) => sum + p.fairness, 0) / players.length) : 0
     }
   }
@@ -526,10 +542,10 @@ function addMinutesToTime(timeStr, minutes) {
 }
 
 /**
- * LEGACY SUPPORT - Für Backward Compatibility
+ * LEGACY SUPPORT - Für Backward Compatibility mit EventDetail.jsx
  */
 export function generateAmericanoSchedule(players, courts, rounds, options = {}) {
-  console.log('🔄 Legacy generateAmericanoSchedule called')
+  console.log('🔄 Legacy generateAmericanoSchedule called - REWRITE VERSION')
   
   try {
     const result = generateTournament({
@@ -543,23 +559,23 @@ export function generateAmericanoSchedule(players, courts, rounds, options = {})
       options
     })
     
-    // FIXED: Legacy-kompatible Rückgabe-Struktur
+    // FIXED: Legacy-kompatible Rückgabe-Struktur für EventDetail.jsx
     return {
       schedule: result.schedule,
       statistics: {
         partnerMatrix: result.statistics.partnerMatrix || {},
         opponentMatrix: result.statistics.opponentMatrix || {},
         gamesPlayed: result.statistics.gamesPlayed || [],
-        maxGames: result.statistics.playerStats ? Math.max(...result.statistics.playerStats.map(p => p.games)) : 0,
-        minGames: result.statistics.playerStats ? Math.min(...result.statistics.playerStats.map(p => p.games)) : 0,
-        seed: options.regenerateCount || 0,
+        maxGames: result.statistics.summary?.maxGames || 0,
+        minGames: result.statistics.summary?.minGames || 0,
+        seed: result.statistics.seed || 0,
         regenerateCount: options.regenerateCount || 0
       }
     }
   } catch (error) {
-    console.error('❌ Legacy generateAmericanoSchedule failed:', error)
+    console.error('❌ Legacy generateAmericanoSchedule failed (REWRITE):', error)
     
-    // FIXED: Fallback für Legacy-Kompatibilität
+    // FIXED: Robust fallback für Legacy-Kompatibilität
     return {
       schedule: [],
       statistics: {
