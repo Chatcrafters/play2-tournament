@@ -204,8 +204,9 @@ export const EventForm = ({
     { id: 5, name: t('form.steps.details'), icon: Check, color: 'gray' }
   ]
 
-  const [currentStep, setCurrentStep] = useState(1)
-  const [showValidationErrors, setShowValidationErrors] = useState(false)
+ const [currentStep, setCurrentStep] = useState(1)
+const [showValidationErrors, setShowValidationErrors] = useState(false)
+const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Quick Templates
   const templates = {
@@ -520,9 +521,22 @@ export const EventForm = ({
     }
   }
 
-  const handleSubmit = (e) => {
-    if (e) e.preventDefault()
-    
+ const handleSubmit = async (e) => {
+  // SOFORT preventDefault und Mehrfach-Check
+  if (e) {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+  
+  if (isSubmitting) {
+    console.log('⚠️ Already submitting, ignoring duplicate click')
+    return
+  }
+  
+  console.log('🔥 handleSubmit started for event:', formData.name)
+  setIsSubmitting(true)
+  
+  try {
     // Validate all steps
     let isValid = true
     for (let i = 1; i <= 5; i++) {
@@ -534,7 +548,10 @@ export const EventForm = ({
       }
     }
     
-    if (!isValid) return
+    if (!isValid) {
+      setIsSubmitting(false)
+      return
+    }
     
     // Fairness check before submit
     const fairnessCheck = calculateFairnessScore(
@@ -551,7 +568,10 @@ export const EventForm = ({
         `Dies kann zu unausgewogenen Spielerfahrungen führen.\n\n` +
         `Möchten Sie trotzdem fortfahren?`
       )
-      if (!proceed) return
+      if (!proceed) {
+        setIsSubmitting(false)
+        return
+      }
     }
     
     if (formData.maxPlayers > liveCalculations.maxPossiblePlayers) {
@@ -560,7 +580,10 @@ export const EventForm = ({
         t('form.recommendedMax') + ': ' + liveCalculations.maxPossiblePlayers + '\n\n' +
         t('form.proceedAnyway')
       )
-      if (!proceed) return
+      if (!proceed) {
+        setIsSubmitting(false)
+        return
+      }
     }
     
     const submitData = {
@@ -577,8 +600,17 @@ export const EventForm = ({
     
     delete submitData.entryFee
     
-    onSubmit(submitData)
+    console.log('📤 Calling onSubmit for:', submitData.name)
+    await onSubmit(submitData)
+    console.log('✅ onSubmit completed successfully')
+    
+  } catch (error) {
+    console.error('❌ Event submission failed:', error)
+    alert('Fehler beim Erstellen des Events. Bitte versuchen Sie es erneut.')
+  } finally {
+    setIsSubmitting(false)
   }
+}
 
   // Pausen-Management
   const addBreak = () => {
@@ -1678,13 +1710,29 @@ export const EventForm = ({
               </button>
             ) : (
               <button
-                type="button"
-                onClick={handleSubmit}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-              >
-                <Check className="w-4 h-4" />
-                {editingEvent ? t('form.saveChanges') : t('event.create')}
-              </button>
+  type="button"
+  onClick={handleSubmit}
+  disabled={isSubmitting}
+  className={`
+    px-6 py-2 rounded-lg flex items-center gap-2
+    ${isSubmitting 
+      ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+      : 'bg-green-600 text-white hover:bg-green-700'
+    }
+  `}
+>
+  {isSubmitting ? (
+    <>
+      <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
+      {editingEvent ? 'Speichere...' : 'Erstelle Event...'}
+    </>
+  ) : (
+    <>
+      <Check className="w-4 h-4" />
+      {editingEvent ? t('form.saveChanges') : t('event.create')}
+    </>
+  )}
+</button>
             )}
           </div>
         </div>
