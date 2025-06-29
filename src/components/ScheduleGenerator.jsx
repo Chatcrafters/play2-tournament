@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { generateAmericanoSchedule, canRegenerateSchedule, getRegenerateMessage } from '../utils/americanoAlgorithm'
+import { generateAmericanoSchedule, canRegenerateSchedule, getRegenerateMessage } from '../utils/tournaments'
 
 export const ScheduleGenerator = ({ event, onUpdateEvent, onScheduleGenerated }) => {
   const [regenerateCount, setRegenerateCount] = useState(0)

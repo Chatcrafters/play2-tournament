@@ -1,6 +1,6 @@
 import { EventShare } from './EventShare'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { generateAmericanoSchedule } from '../utils/americanoAlgorithm'
+import { generateAmericanoSchedule } from '../utils/tournaments'
 import { useTranslation } from './LanguageSelector'
 import { interpolate } from '../utils/translations'
 

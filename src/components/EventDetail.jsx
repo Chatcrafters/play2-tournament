@@ -2,7 +2,7 @@ import { Calendar, Clock, MapPin, Trophy, Users, Edit, Play, BarChart3, RefreshC
 import { EventShare } from './EventShare'
 import { useTranslation } from './LanguageSelector'
 import { interpolate } from '../utils/translations'
-import { generateAmericanoSchedule } from '../utils/americanoAlgorithm'
+import { generateAmericanoSchedule } from '../utils/tournaments'
 import { useState, useMemo, useCallback } from 'react'
 
 export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, canManageEvent = false }) => {
