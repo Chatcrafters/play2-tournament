@@ -14,6 +14,7 @@
       offlineMode: 'Offline-Modus: Events werden aus dem lokalen Speicher geladen',
       saving: 'Speichere...',
       saved: 'Erfolgreich gespeichert'
+      backToEventOverview: 'Zurück zur Veranstaltungsübersicht'  // ← NEUE ZEILE
     },
     
     // Navigation
@@ -273,6 +274,8 @@
       notSpecified: 'Nicht angegeben',
       saveChanges: 'Änderungen speichern',
       proceedAnyway: 'Trotzdem fortfahren?'
+      genderMode: 'Geschlechterkategorie',  // ← NEUE ZEILE
+      mixed: 'Mixed'  // ← NEUE ZEILE
     },
     
     // Player
@@ -606,6 +609,7 @@
       offlineMode: 'Modo sin conexión: Eventos cargados desde almacenamiento local',
       saving: 'Guardando...',
       saved: 'Guardado exitosamente'
+      backToEventOverview: 'Volver al resumen del evento'  // ← NEUE ZEILE
     },
     
     // Navigation
@@ -864,6 +868,8 @@
       notSpecified: 'No especificado',
       saveChanges: 'Guardar cambios',
       proceedAnyway: '¿Proceder de todos modos?'
+      genderMode: 'Categoría de género',  // ← NEUE ZEILE
+      mixed: 'Mixto'  // ← NEUE ZEILE
     },
     
     // Player
