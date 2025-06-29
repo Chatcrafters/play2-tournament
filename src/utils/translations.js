@@ -13,8 +13,8 @@
       loadingEvents: 'Events werden geladen...',
       offlineMode: 'Offline-Modus: Events werden aus dem lokalen Speicher geladen',
       saving: 'Speichere...',
-      saved: 'Erfolgreich gespeichert'
-      backToEventOverview: 'Zurück zur Veranstaltungsübersicht'  // ← NEUE ZEILE
+      saved: 'Erfolgreich gespeichert',       // ← KOMMA HINZUFÜGEN!
+      backToEventOverview: 'Zurück zur Veranstaltungsübersicht'
     },
     
     // Navigation
