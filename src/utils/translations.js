@@ -1,5 +1,11 @@
 ﻿export const translations = {
   de: {
+  messages: {
+  messages: { eventFull: 'Evento completo' },
+  timer: { continue: 'Continuar' },
+  results: { hide: 'Ocultar', resultEntered: 'Resultado ingresado' }, eventFull: 'Veranstaltung ausgebucht' },
+  timer: { continue: 'Fortsetzen' },
+  results: { hide: 'Ausblenden', resultEntered: 'Ergebnis eingegeben' },
     // App
     app: {
       title: 'Play2 Tournament',
@@ -400,6 +406,9 @@
     
     // Messages
     messages: {
+  messages: { eventFull: 'Evento completo' },
+  timer: { continue: 'Continuar' },
+  results: { hide: 'Ocultar', resultEntered: 'Resultado ingresado' },
       confirmDelete: 'Möchten Sie dieses Event wirklich löschen?',
       minPlayersForSchedule: 'Mindestens 4 Spieler erforderlich für Spielplan-Generierung',
       tournamentComplete: 'Turnier abgeschlossen!',
@@ -462,6 +471,9 @@
     
     // Event Types
     eventTypes: {
+  messages: { eventFull: 'Evento completo' },
+  timer: { continue: 'Continuar' },
+  results: { hide: 'Ocultar', resultEntered: 'Resultado ingresado' },
       americano: 'Americano',
       roundRobin: 'Jeder gegen Jeden',
       swiss: 'Schweizer System',
@@ -595,6 +607,9 @@
   
   // SPANISH
   es: {
+  messages: { eventFull: 'Evento completo' },
+  timer: { continue: 'Continuar' },
+  results: { hide: 'Ocultar', resultEntered: 'Resultado ingresado' },
     // App
     app: {
       title: 'Play2 Tournament',
@@ -994,6 +1009,9 @@
     
     // Messages
     messages: {
+  messages: { eventFull: 'Evento completo' },
+  timer: { continue: 'Continuar' },
+  results: { hide: 'Ocultar', resultEntered: 'Resultado ingresado' },
       confirmDelete: '¿Estás seguro de que quieres eliminar este evento?',
       minPlayersForSchedule: 'Se requieren al menos 4 jugadores para generar el calendario',
       tournamentComplete: '¡Torneo completado!',
@@ -1056,6 +1074,9 @@
     
     // Event Types
     eventTypes: {
+  messages: { eventFull: 'Evento completo' },
+  timer: { continue: 'Continuar' },
+  results: { hide: 'Ocultar', resultEntered: 'Resultado ingresado' },
       americano: 'Americano',
       roundRobin: 'Todos contra todos',
       swiss: 'Sistema suizo',
