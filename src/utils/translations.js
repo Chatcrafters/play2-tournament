@@ -623,7 +623,7 @@ export const translations = {
       loadingEvents: 'Cargando eventos...',
       offlineMode: 'Modo sin conexión: Eventos cargados desde almacenamiento local',
       saving: 'Guardando...',
-      saved: 'Guardado exitosamente'
+      saved: 'Guardado exitosamente',
       backToEventOverview: 'Volver al resumen del evento'  // ? NEUE ZEILE
     },
     
