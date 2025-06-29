@@ -1,6 +1,189 @@
 ﻿import { useState, useEffect } from 'react'
-import { Calendar, Clock, Users, Settings, Info, Check, AlertCircle, ChevronRight, ChevronLeft, Coffee, Plus, X, Trophy, Zap, Heart } from 'lucide-react'
+import { Calendar, Clock, Users, Settings, Info, Check, AlertCircle, ChevronRight, ChevronLeft, Coffee, Plus, X, Trophy, Zap, Heart, Target, Star, TrendingUp } from 'lucide-react'
 import { useTranslation } from './LanguageSelector'
+
+// ============ FAIRNESS CALCULATION SYSTEM ============
+
+const calculateFairnessScore = (playerCount, courts, rounds, roundDuration) => {
+  if (playerCount < 4) return { 
+    score: 0, 
+    status: 'invalid', 
+    message: 'Mindestens 4 Spieler erforderlich',
+    color: 'red',
+    icon: '❌'
+  }
+  
+  const matchesPerRound = Math.min(courts, Math.floor(playerCount / 4))
+  const playersPerRound = matchesPerRound * 4
+  const restingPlayersPerRound = Math.max(0, playerCount - playersPerRound)
+  
+  // Fairness-Faktoren berechnen
+  const gameBalance = calculateGameBalanceFactor(playerCount, playersPerRound, rounds)
+  const partnerVariety = calculatePartnerVarietyFactor(playerCount, rounds)
+  const opponentVariety = calculateOpponentVarietyFactor(playerCount, rounds)
+  const restFairness = calculateRestFairnessFactor(playerCount, playersPerRound, rounds)
+  
+  // Gewichtete Gesamtfairness
+  const fairnessScore = Math.round(
+    gameBalance * 0.25 + 
+    partnerVariety * 0.35 + 
+    opponentVariety * 0.25 + 
+    restFairness * 0.15
+  )
+  
+  // Status bestimmen
+  let status, message, color, icon
+  if (fairnessScore >= 85) {
+    status = 'excellent'
+    message = 'Exzellente Fairness - perfekt für Americano!'
+    color = 'green'
+    icon = '🎯'
+  } else if (fairnessScore >= 75) {
+    status = 'good'
+    message = 'Gute Fairness - empfohlen für optimalen Spielspaß'
+    color = 'blue'
+    icon = '👍'
+  } else if (fairnessScore >= 60) {
+    status = 'acceptable'
+    message = 'Akzeptable Fairness - mit kleineren Kompromissen'
+    color = 'yellow'
+    icon = '⚠️'
+  } else if (fairnessScore >= 45) {
+    status = 'poor'
+    message = 'Schlechte Fairness - nicht empfohlen'
+    color = 'orange'
+    icon = '📉'
+  } else {
+    status = 'terrible'
+    message = 'Sehr schlechte Fairness - ungeeignet für Americano'
+    color = 'red'
+    icon = '❌'
+  }
+  
+  return {
+    score: fairnessScore,
+    status,
+    message,
+    color,
+    icon,
+    factors: {
+      gameBalance: Math.round(gameBalance),
+      partnerVariety: Math.round(partnerVariety),
+      opponentVariety: Math.round(opponentVariety),
+      restFairness: Math.round(restFairness)
+    },
+    restingPlayersPerRound,
+    recommendations: generateRecommendations(fairnessScore, playerCount, courts, rounds)
+  }
+}
+
+const calculateGameBalanceFactor = (playerCount, playersPerRound, rounds) => {
+  if (playerCount % playersPerRound === 0) return 100
+  
+  const restingPlayers = playerCount % playersPerRound
+  const unevennessPenalty = (restingPlayers / playersPerRound) * 40
+  const roundsSufficient = rounds >= Math.ceil(playerCount / playersPerRound) * 2
+  
+  let score = 100 - unevennessPenalty
+  if (!roundsSufficient) score -= 20
+  
+  return Math.max(30, score)
+}
+
+const calculatePartnerVarietyFactor = (playerCount, rounds) => {
+  const maxPossiblePartners = playerCount - 1
+  const avgGamesPerPlayer = (rounds * Math.floor(playerCount / 4) * 4) / playerCount
+  const estimatedUniquePartners = Math.min(maxPossiblePartners, avgGamesPerPlayer * 0.8)
+  
+  let score = (estimatedUniquePartners / maxPossiblePartners) * 100
+  
+  // Boni für optimale Gruppengrößen
+  if (playerCount <= 12) score += 10
+  if (playerCount <= 8) score += 10
+  
+  // Strafen für zu große Gruppen
+  if (playerCount > 20) score -= (playerCount - 20) * 2
+  if (playerCount > 30) score -= (playerCount - 30) * 3
+  
+  return Math.max(20, Math.min(100, score))
+}
+
+const calculateOpponentVarietyFactor = (playerCount, rounds) => {
+  const maxPossibleOpponents = playerCount - 1
+  const avgGamesPerPlayer = (rounds * Math.floor(playerCount / 4) * 4) / playerCount
+  const estimatedUniqueOpponents = Math.min(maxPossibleOpponents, avgGamesPerPlayer * 1.5)
+  
+  let score = (estimatedUniqueOpponents / maxPossibleOpponents) * 100
+  
+  // Boni für mittlere Gruppengrößen
+  if (playerCount >= 8 && playerCount <= 16) score += 15
+  if (playerCount >= 12 && playerCount <= 20) score += 10
+  
+  // Strafen für extreme Größen
+  if (playerCount < 8) score -= 10
+  if (playerCount > 24) score -= (playerCount - 24) * 2
+  
+  return Math.max(20, Math.min(100, score))
+}
+
+const calculateRestFairnessFactor = (playerCount, playersPerRound, rounds) => {
+  if (playerCount <= playersPerRound) return 100
+  
+  const restingPlayersPerRound = playerCount - playersPerRound
+  const restRatio = restingPlayersPerRound / playerCount
+  
+  let score = (1 - restRatio) * 100
+  
+  const rotationPossible = rounds >= Math.ceil(playerCount / playersPerRound)
+  if (rotationPossible) score += 15
+  
+  if (restRatio > 0.3) score -= (restRatio - 0.3) * 100
+  
+  return Math.max(20, Math.min(100, score))
+}
+
+const generateRecommendations = (fairnessScore, playerCount, courts, rounds) => {
+  const recommendations = []
+  
+  if (fairnessScore < 60) {
+    recommendations.push("🔧 Weniger Spieler für bessere Durchmischung")
+  }
+  
+  if (fairnessScore < 75 && rounds < 8) {
+    recommendations.push("🔄 Mehr Runden für bessere Fairness")
+  }
+  
+  if (playerCount > courts * 6) {
+    recommendations.push("🏟️ Mehr Plätze oder weniger Spieler")
+  }
+  
+  return recommendations
+}
+
+const calculateOptimalPlayers = (courts, rounds) => {
+  const playersPerRound = courts * 4
+  const baseRecommended = playersPerRound + Math.min(courts, 4)
+  
+  let maxReasonable = baseRecommended
+  
+  // Finde Maximum mit akzeptabler Fairness (≥60%)
+  for (let players = baseRecommended; players <= 40; players += 2) {
+    const fairness = calculateFairnessScore(players, courts, rounds)
+    if (fairness.score >= 60) {
+      maxReasonable = players
+    } else {
+      break
+    }
+  }
+  
+  return {
+    optimal: baseRecommended,
+    maxReasonable: Math.max(maxReasonable, baseRecommended),
+    absoluteMax: maxReasonable + 4
+  }
+}
+
+// ============ MAIN COMPONENT ============
 
 export const EventForm = ({ 
   editingEvent, 
@@ -25,60 +208,57 @@ export const EventForm = ({
   const [showValidationErrors, setShowValidationErrors] = useState(false)
   
   // Quick Templates
-  // In EventForm.jsx, ersetzen Sie die templates Definition:
-
-const templates = {
-  americano: {
-    name: 'Americano',
-    startTime: '09:00',
-    endTime: '13:00',
-    courts: 4,
-    maxPlayers: 24,
-    roundDuration: 12,
-    spielmodus: 'garantie',
-    garantieSpiele: true,
-    mindestSpiele: 4,
-    eventInfo: ''
-  },
-  tournament: {
-    name: t('form.tournament'),
-    startTime: '09:00',
-    endTime: '18:00',
-    courts: 4,
-    maxPlayers: 32,
-    roundDuration: 15,
-    spielmodus: 'garantie',
-    garantieSpiele: true,
-    mindestSpiele: 5,
-    eventInfo: ''
-  },
-  league: {
-    name: t('form.league'),
-    startTime: '09:00',
-    endTime: '18:00',
-    courts: 4,
-    maxPlayers: 32,
-    roundDuration: 15,
-    spielmodus: 'garantie',
-    garantieMinuten: true,
-    mindestMinuten: 90,
-    breaks: [
-      { startTime: '12:00', duration: 60, name: t('form.lunchBreak') },
-      { startTime: '15:00', duration: 15, name: t('form.coffeBreak') }
-    ],
-    eventInfo: ''
+  const templates = {
+    americano: {
+      name: 'Americano',
+      startTime: '09:00',
+      endTime: '13:00',
+      courts: 4,
+      maxPlayers: 24,
+      roundDuration: 12,
+      spielmodus: 'garantie',
+      garantieSpiele: true,
+      mindestSpiele: 4,
+      eventInfo: ''
+    },
+    tournament: {
+      name: t('form.tournament'),
+      startTime: '09:00',
+      endTime: '18:00',
+      courts: 4,
+      maxPlayers: 32,
+      roundDuration: 15,
+      spielmodus: 'garantie',
+      garantieSpiele: true,
+      mindestSpiele: 5,
+      eventInfo: ''
+    },
+    league: {
+      name: t('form.league'),
+      startTime: '09:00',
+      endTime: '18:00',
+      courts: 4,
+      maxPlayers: 32,
+      roundDuration: 15,
+      spielmodus: 'garantie',
+      garantieMinuten: true,
+      mindestMinuten: 90,
+      breaks: [
+        { startTime: '12:00', duration: 60, name: t('form.lunchBreak') },
+        { startTime: '15:00', duration: 15, name: t('form.coffeBreak') }
+      ],
+      eventInfo: ''
+    }
   }
-  // social template entfernen
-}
 
-  // Sichere Standardwerte für alle Felder
+  // Sichere Standardwerte
   const getDefaultFormData = () => ({
     name: '',
     sport: 'padel',
     eventType: 'americano',
     genderMode: 'open',
     format: 'doubles',
-    date: new Date().toLocaleDateString('en-CA'), // Format: YYYY-MM-DD
+    date: new Date().toLocaleDateString('en-CA'),
     endDate: '',
     startTime: '09:00',
     endTime: '13:00',
@@ -103,7 +283,6 @@ const templates = {
     schedule: null
   })
 
-  // Merge initialData mit Defaults
   const mergeWithDefaults = (data) => {
     const defaults = getDefaultFormData()
     if (!data) return defaults
@@ -145,52 +324,47 @@ const templates = {
     }))
   }
 
-  // Hilfsfunktion für numerische Inputs
-const handleNumericInput = (fieldName, value, min = 1, max = 100, defaultValue = 1) => {
-  // Erlaube leeren String während der Eingabe
-  if (value === '') {
-    updateFormData({ [fieldName]: '' });
-    return;
+  // Numerische Input Handler
+  const handleNumericInput = (fieldName, value, min = 1, max = 100, defaultValue = 1) => {
+    if (value === '') {
+      updateFormData({ [fieldName]: '' })
+      return
+    }
+    
+    if (!/^\d*$/.test(value)) return
+    
+    const numValue = parseInt(value)
+    if (!isNaN(numValue) && numValue >= 0 && numValue <= max) {
+      updateFormData({ [fieldName]: numValue })
+    }
   }
-  
-  // Erlaube nur Zahlen
-  if (!/^\d*$/.test(value)) return;
-  
-  const numValue = parseInt(value);
-  if (!isNaN(numValue) && numValue >= 0 && numValue <= max) {
-    updateFormData({ [fieldName]: numValue });
-  }
-};
-    // Apply template
+
+  // Template anwenden
   const applyTemplate = (templateKey) => {
     const template = templates[templateKey]
     updateFormData(template)
     setSelectedTemplate(templateKey)
   }
 
-  // Neue Funktion zum Generieren der Event-Info
+  // Event-Info generieren
   const generateEventInfo = () => {
     const infos = []
     
-    // Teilnahmegebühr
     if (formData.entryFee && formData.entryFee > 0) {
       infos.push(`${t('form.entryFee')}: ${formData.entryFee}€`)
     }
     
-    // Anmeldeschluss
     if (formData.registrationDeadline) {
       const deadline = new Date(formData.registrationDeadline)
       infos.push(`${t('form.registrationDeadline')}: ${deadline.toLocaleString()}`)
     }
     
-    // Spielgarantien
     if (formData.garantieSpiele && formData.mindestSpiele) {
       infos.push(`${t('form.minGamesPerPlayer')}: ${formData.mindestSpiele}`)
     } else if (formData.garantieMinuten && formData.mindestMinuten) {
       infos.push(`${t('form.minPlayTime')}: ${formData.mindestMinuten} ${t('form.min')}`)
     }
     
-    // Pausen
     if (formData.breaks && formData.breaks.length > 0) {
       formData.breaks.forEach(breakItem => {
         infos.push(`${breakItem.name}: ${breakItem.startTime} (${breakItem.duration} ${t('form.min')})`)
@@ -229,7 +403,7 @@ const handleNumericInput = (fieldName, value, min = 1, max = 100, defaultValue =
     }
   }, [garantieMode])
 
-  // Live-Berechnungen bei jeder relevanten Änderung
+  // Live-Berechnungen
   useEffect(() => {
     if (formData.startTime && formData.endTime && formData.courts && formData.roundDuration) {
       const totalMinutes = calculateTotalMinutes(formData.startTime, formData.endTime, formData.breaks)
@@ -237,12 +411,10 @@ const handleNumericInput = (fieldName, value, min = 1, max = 100, defaultValue =
       const nettoMinutes = totalMinutes - breakMinutes
       const possibleRounds = Math.floor(nettoMinutes / formData.roundDuration)
       
-      // Berechne optimale Spieleranzahl basierend auf Courts
       const playersPerRound = formData.courts * 4
       const waitingPlayers = formData.courts >= 2 ? Math.min(formData.courts, 4) : 0
       const recommendedPlayers = playersPerRound + waitingPlayers
       
-      // Berechne maximale Spieleranzahl basierend auf Garantien
       let maxPossiblePlayers = recommendedPlayers
       
       if (formData.spielmodus === 'garantie') {
@@ -261,7 +433,6 @@ const handleNumericInput = (fieldName, value, min = 1, max = 100, defaultValue =
         )
       }
       
-      // Berechne garantierte Werte für aktuelle Spieleranzahl
       const currentPlayers = formData.maxPlayers || recommendedPlayers
       const totalGames = possibleRounds * formData.courts
       const gamesPerPlayer = Math.floor((totalGames * 4) / currentPlayers)
@@ -291,14 +462,14 @@ const handleNumericInput = (fieldName, value, min = 1, max = 100, defaultValue =
     formData.maxPlayers
   ])
 
-  // Auto-Update maxPlayers wenn sich Courts ändern
+  // Auto-Update maxPlayers
   useEffect(() => {
     if (!editingEvent) {
       updateFormData({ maxPlayers: liveCalculations.recommendedPlayers })
     }
   }, [liveCalculations.recommendedPlayers])
 
-  // Update formData.eventInfo wenn sich relevante Felder ändern
+  // Update eventInfo
   useEffect(() => {
     const newEventInfo = generateEventInfo()
     if (newEventInfo !== formData.eventInfo) {
@@ -306,7 +477,7 @@ const handleNumericInput = (fieldName, value, min = 1, max = 100, defaultValue =
     }
   }, [formData.entryFee, formData.registrationDeadline, formData.garantieSpiele, formData.mindestSpiele, formData.garantieMinuten, formData.mindestMinuten, formData.breaks])
 
-  // Automatisch Format auf Doppel setzen bei Americano
+  // Auto-Format bei Americano
   useEffect(() => {
     if (formData.eventType === 'americano') {
       updateFormData({ format: 'doubles' })
@@ -365,6 +536,24 @@ const handleNumericInput = (fieldName, value, min = 1, max = 100, defaultValue =
     
     if (!isValid) return
     
+    // Fairness check before submit
+    const fairnessCheck = calculateFairnessScore(
+      formData.maxPlayers,
+      formData.courts,
+      liveCalculations.possibleRounds,
+      formData.roundDuration
+    )
+    
+    if (fairnessCheck.score < 60) {
+      const proceed = window.confirm(
+        `⚠️ Fairness-Warnung:\n\n` +
+        `${fairnessCheck.message} (${fairnessCheck.score}% Fairness)\n\n` +
+        `Dies kann zu unausgewogenen Spielerfahrungen führen.\n\n` +
+        `Möchten Sie trotzdem fortfahren?`
+      )
+      if (!proceed) return
+    }
+    
     if (formData.maxPlayers > liveCalculations.maxPossiblePlayers) {
       const proceed = window.confirm(
         t('form.guaranteeWarning').replace('{players}', formData.maxPlayers) + '\n' +
@@ -384,10 +573,8 @@ const handleNumericInput = (fieldName, value, min = 1, max = 100, defaultValue =
       courts: parseInt(formData.courts) || 2,
       maxPlayers: parseInt(formData.maxPlayers) || 16,
       roundDuration: parseInt(formData.roundDuration) || 15,
-      // entryFee: parseFloat(formData.entryFee) || 0  // Removed - not in DB
     }
     
-    // Remove entryFee from submitData if it exists
     delete submitData.entryFee
     
     onSubmit(submitData)
@@ -486,15 +673,15 @@ const handleNumericInput = (fieldName, value, min = 1, max = 100, defaultValue =
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {Object.entries(templates).map(([key, template]) => {
                       const icons = {
-  americano: '🏆',
-  tournament: '🎯',
-  league: '📊'
-}
-const descriptions = {
-  americano: t('form.americanoDesc'),
-  tournament: t('form.tournamentDesc'),
-  league: t('form.leagueDesc')
-}
+                        americano: '🏆',
+                        tournament: '🎯',
+                        league: '📊'
+                      }
+                      const descriptions = {
+                        americano: t('form.americanoDesc'),
+                        tournament: t('form.tournamentDesc'),
+                        league: t('form.leagueDesc')
+                      }
                       
                       return (
                         <button
@@ -668,21 +855,21 @@ const descriptions = {
                         </Tooltip>
                       </label>
                       <input
-  type="number"
-  value={formData.courts === '' ? '' : (formData.courts || 2)}
-  onChange={(e) => handleNumericInput('courts', e.target.value, 1, 10, 2)}
-  onBlur={(e) => {
-    if (e.target.value === '' || parseInt(e.target.value) < 1) {
-      updateFormData({ courts: 2 });
-    }
-  }}
-  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
-  min="1"
-  max="10"
-  placeholder="2"
-  inputMode="numeric"
-  pattern="[0-9]*"
-/>
+                        type="number"
+                        value={formData.courts === '' ? '' : (formData.courts || 2)}
+                        onChange={(e) => handleNumericInput('courts', e.target.value, 1, 10, 2)}
+                        onBlur={(e) => {
+                          if (e.target.value === '' || parseInt(e.target.value) < 1) {
+                            updateFormData({ courts: 2 })
+                          }
+                        }}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
+                        min="1"
+                        max="10"
+                        placeholder="2"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                      />
                     </div>
                   </div>
                   
@@ -769,21 +956,21 @@ const descriptions = {
                         step="5"
                       />
                       <input
-  type="number"
-  value={formData.roundDuration === '' ? '' : (formData.roundDuration || 15)}
-  onChange={(e) => handleNumericInput('roundDuration', e.target.value, 5, 60, 15)}
-  onBlur={(e) => {
-    if (e.target.value === '' || parseInt(e.target.value) < 5) {
-      updateFormData({ roundDuration: 15 });
-    }
-  }}
-  className="w-20 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 text-center font-bold"
-  min="5"
-  max="60"
-  placeholder="15"
-  inputMode="numeric"
-  pattern="[0-9]*"
-/>
+                        type="number"
+                        value={formData.roundDuration === '' ? '' : (formData.roundDuration || 15)}
+                        onChange={(e) => handleNumericInput('roundDuration', e.target.value, 5, 60, 15)}
+                        onBlur={(e) => {
+                          if (e.target.value === '' || parseInt(e.target.value) < 5) {
+                            updateFormData({ roundDuration: 15 })
+                          }
+                        }}
+                        className="w-20 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 text-center font-bold"
+                        min="5"
+                        max="60"
+                        placeholder="15"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                      />
                       <span>{t('form.min')}</span>
                     </div>
                   </div>
@@ -927,14 +1114,13 @@ const descriptions = {
                     </div>
                   </details>
                   
-                  {/* Pausen Visual Scheduler */}
+                  {/* Pausen */}
                   <div className="mt-6">
                     <h4 className="font-medium mb-3 flex items-center gap-2">
                       <Coffee className="w-5 h-5 text-orange-600" />
                       {t('form.breaks')}
                     </h4>
                     
-                    {/* Simple Break List */}
                     <div className="space-y-2">
                       {formData.breaks.map((breakItem, index) => (
                         <div key={index} className="flex items-center gap-2 bg-orange-50 p-3 rounded-lg">
@@ -985,70 +1171,215 @@ const descriptions = {
               </div>
             )}
             
-            {/* STEP 4: Teilnehmer */}
+            {/* STEP 4: Enhanced Players mit Fairness */}
             {currentStep === 4 && (
               <div className="space-y-6 animate-in">
                 <div className="bg-orange-50 p-6 rounded-lg">
                   <h3 className="text-lg font-semibold mb-4 text-orange-900 flex items-center gap-2">
                     <Users className="w-5 h-5" />
-                    {t('form.maxPlayers')}
+                    {t('form.maxPlayers')} mit Fairness-Bewertung
                   </h3>
+                  
+                  {/* FAIRNESS FEEDBACK - NEUES FEATURE! */}
+                  {(() => {
+                    const fairnessData = calculateFairnessScore(
+                      formData.maxPlayers || 16,
+                      formData.courts || 2,
+                      liveCalculations.possibleRounds || 8,
+                      formData.roundDuration || 15
+                    )
+                    const optimalPlayers = calculateOptimalPlayers(
+                      formData.courts || 2,
+                      liveCalculations.possibleRounds || 8
+                    )
+                    
+                    return (
+                      <div className={`p-4 rounded-lg border-2 mb-6 ${
+                        fairnessData.color === 'green' ? 'bg-green-50 border-green-200' :
+                        fairnessData.color === 'blue' ? 'bg-blue-50 border-blue-200' :
+                        fairnessData.color === 'yellow' ? 'bg-yellow-50 border-yellow-200' :
+                        fairnessData.color === 'orange' ? 'bg-orange-50 border-orange-200' :
+                        'bg-red-50 border-red-200'
+                      }`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{fairnessData.icon}</span>
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                              <Target className="w-4 h-4" />
+                              Americano Fairness-Bewertung
+                            </h4>
+                          </div>
+                          <div className={`px-3 py-1 rounded-full text-sm font-bold ${
+                            fairnessData.color === 'green' ? 'bg-green-600 text-white' :
+                            fairnessData.color === 'blue' ? 'bg-blue-600 text-white' :
+                            fairnessData.color === 'yellow' ? 'bg-yellow-600 text-white' :
+                            fairnessData.color === 'orange' ? 'bg-orange-600 text-white' :
+                            'bg-red-600 text-white'
+                          }`}>
+                            {fairnessData.score}% Fairness
+                          </div>
+                        </div>
+                        
+                        <p className={`text-sm mb-3 ${
+                          fairnessData.color === 'green' ? 'text-green-700' :
+                          fairnessData.color === 'blue' ? 'text-blue-700' :
+                          fairnessData.color === 'yellow' ? 'text-yellow-700' :
+                          fairnessData.color === 'orange' ? 'text-orange-700' :
+                          'text-red-700'
+                        }`}>
+                          {fairnessData.message}
+                        </p>
+                        
+                        {/* Kritische Warnung bei sehr schlechter Fairness */}
+                        {fairnessData.score < 45 && (
+                          <div className="p-3 bg-red-100 border border-red-300 rounded-lg mb-3">
+                            <div className="flex items-center gap-2 text-red-800">
+                              <AlertCircle className="w-5 h-5" />
+                              <strong>Kritische Fairness-Warnung</strong>
+                            </div>
+                            <p className="text-sm text-red-700 mt-1">
+                              Diese Konfiguration führt zu sehr unausgewogenem Spielspaß. 
+                              Die meisten Spieler werden sich über unfaire Verteilung beschweren.
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Wartende Spieler Info */}
+                        {fairnessData.restingPlayersPerRound > 0 && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                            <Info className="w-4 h-4" />
+                            <span>
+                              Pro Runde pausieren {fairnessData.restingPlayersPerRound} Spieler
+                              ({Math.round((fairnessData.restingPlayersPerRound / (formData.maxPlayers || 16)) * 100)}% Ausfallzeit)
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Fairness-Details Expandable */}
+                        <details className="group">
+                          <summary className="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-800 flex items-center gap-1">
+                            <span className="group-open:rotate-90 transition-transform">▶</span>
+                            Detaillierte Fairness-Analyse
+                          </summary>
+                          <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                            <div className="space-y-2">
+                              <div className="flex justify-between">
+                                <span>Spiel-Balance:</span>
+                                <span className={`font-medium ${fairnessData.factors.gameBalance >= 70 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {fairnessData.factors.gameBalance}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Partner-Vielfalt:</span>
+                                <span className={`font-medium ${fairnessData.factors.partnerVariety >= 70 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {fairnessData.factors.partnerVariety}%
+                                </span>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex justify-between">
+                                <span>Gegner-Vielfalt:</span>
+                                <span className={`font-medium ${fairnessData.factors.opponentVariety >= 70 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {fairnessData.factors.opponentVariety}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Pausen-Fairness:</span>
+                                <span className={`font-medium ${fairnessData.factors.restFairness >= 70 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {fairnessData.factors.restFairness}%
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Recommendations */}
+                          {fairnessData.recommendations.length > 0 && (
+                            <div className="mt-3 p-2 bg-blue-50 rounded text-xs">
+                              <strong className="text-blue-800">Verbesserungsvorschläge:</strong>
+                              <ul className="mt-1 space-y-1">
+                                {fairnessData.recommendations.map((rec, idx) => (
+                                  <li key={idx} className="text-blue-700">• {rec}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </details>
+                      </div>
+                    )
+                  })()}
                   
                   {/* Smart Recommendations */}
                   <div className="p-4 bg-white rounded-lg border border-orange-200 mb-6">
                     <h4 className="font-medium mb-3 flex items-center gap-2">
-                      <Info className="w-4 h-4 text-orange-600" />
-                      {t('form.recommendations')}
+                      <Star className="w-4 h-4 text-orange-600" />
+                      Intelligente Empfehlungen
                     </h4>
                     
                     <div className="space-y-3">
                       {/* Optimal */}
-                      <div className="flex items-center justify-between p-3 bg-green-50 rounded">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">
-                            {liveCalculations.recommendedPlayers}
-                          </div>
-                          <div>
-                            <strong className="text-green-700">{t('form.optimal')}</strong>
-                            <p className="text-sm text-gray-600">{t('form.optimalDesc')}</p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => updateFormData({ maxPlayers: liveCalculations.recommendedPlayers })}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                        >
-                          {t('form.adopt')}
-                        </button>
-                      </div>
-                      
-                      {/* Maximum mit Garantien */}
-                      {formData.spielmodus === 'garantie' && (
-                        <div className="flex items-center justify-between p-3 bg-orange-50 rounded">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold">
-                              {liveCalculations.maxPossiblePlayers}
+                      {(() => {
+                        const optimalPlayers = calculateOptimalPlayers(
+                          formData.courts || 2,
+                          liveCalculations.possibleRounds || 8
+                        )
+                        
+                        return (
+                          <>
+                            <div className="flex items-center justify-between p-3 bg-green-50 rounded">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">
+                                  {optimalPlayers.optimal}
+                                </div>
+                                <div>
+                                  <strong className="text-green-700 flex items-center gap-1">
+                                    <Trophy className="w-4 h-4" />
+                                    Optimal für besten Spielspaß
+                                  </strong>
+                                  <p className="text-sm text-gray-600">Maximale Fairness und Durchmischung</p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => updateFormData({ maxPlayers: optimalPlayers.optimal })}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1"
+                              >
+                                <Check className="w-4 h-4" />
+                                Übernehmen
+                              </button>
                             </div>
-                            <div>
-                              <strong className="text-orange-700">{t('form.maximum')}</strong>
-                              <p className="text-sm text-gray-600">
-                                {t('form.withGuarantees')} ({formData.garantieSpiele ? `${formData.mindestSpiele} ${t('tournament.games')}` : `${formData.mindestMinuten} ${t('form.min')}`})
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => updateFormData({ maxPlayers: liveCalculations.maxPossiblePlayers })}
-                            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-                          >
-                            {t('form.adopt')}
-                          </button>
-                        </div>
-                      )}
+                            
+                            {/* Maximum mit akzeptabler Fairness */}
+                            {optimalPlayers.maxReasonable > optimalPlayers.optimal && (
+                              <div className="flex items-center justify-between p-3 bg-blue-50 rounded">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                                    {optimalPlayers.maxReasonable}
+                                  </div>
+                                  <div>
+                                    <strong className="text-blue-700 flex items-center gap-1">
+                                      <TrendingUp className="w-4 h-4" />
+                                      Maximum mit guter Fairness
+                                    </strong>
+                                    <p className="text-sm text-gray-600">Akzeptable Balance zwischen Teilnehmern und Fairness</p>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => updateFormData({ maxPlayers: optimalPlayers.maxReasonable })}
+                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"
+                                >
+                                  <Check className="w-4 h-4" />
+                                  Übernehmen
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
                     </div>
                   </div>
                   
-                  {/* Manual Input */}
+                  {/* Manual Input mit Live-Feedback */}
                   <div>
                     <label className="block mb-2 font-medium">
                       {t('form.maxPlayers')} *
@@ -1063,64 +1394,61 @@ const descriptions = {
                         onChange={(e) => updateFormData({ maxPlayers: parseInt(e.target.value) })}
                         className="flex-1"
                         min="4"
-                        max={Math.max(40, liveCalculations.maxPossiblePlayers + 8)}
+                        max="40"
                         step="2"
                       />
                       <input
-  type="number"
-  value={formData.maxPlayers === '' ? '' : (formData.maxPlayers || liveCalculations.recommendedPlayers)}
-  onChange={(e) => handleNumericInput('maxPlayers', e.target.value, 4, 100, 16)}
-  onBlur={(e) => {
-    if (e.target.value === '' || parseInt(e.target.value) < 4) {
-      updateFormData({ maxPlayers: liveCalculations.recommendedPlayers || 16 });
-    }
-  }}
-  className={`
-    w-20 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 text-center font-bold text-lg
-    ${formData.maxPlayers > liveCalculations.maxPossiblePlayers ? 'border-red-500 bg-red-50' : ''}
-  `}
-  min="4"
-  max="100"
-  step="2"
-  placeholder="16"
-  inputMode="numeric"
-  pattern="[0-9]*"
-/>
+                        type="number"
+                        value={formData.maxPlayers === '' ? '' : (formData.maxPlayers || liveCalculations.recommendedPlayers)}
+                        onChange={(e) => handleNumericInput('maxPlayers', e.target.value, 4, 100, 16)}
+                        onBlur={(e) => {
+                          if (e.target.value === '' || parseInt(e.target.value) < 4) {
+                            updateFormData({ maxPlayers: liveCalculations.recommendedPlayers || 16 })
+                          }
+                        }}
+                        className={`
+                          w-20 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 text-center font-bold text-lg
+                          ${(() => {
+                            const fairness = calculateFairnessScore(formData.maxPlayers || 16, formData.courts || 2, liveCalculations.possibleRounds || 8)
+                            return fairness.score < 60 ? 'border-red-500 bg-red-50' : 
+                                   fairness.score < 75 ? 'border-yellow-500 bg-yellow-50' : 
+                                   'border-green-500 bg-green-50'
+                          })()}
+                        `}
+                        min="4"
+                        max="100"
+                        step="2"
+                        placeholder="16"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                      />
                       <span>{t('player.players')}</span>
                     </div>
-                    
-                    {/* Warning */}
-                    {formData.maxPlayers > liveCalculations.maxPossiblePlayers && (
-                      <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                        <div className="text-sm text-red-700">
-                          <strong>{t('form.warning')}:</strong> {t('form.guaranteeWarning').replace('{players}', formData.maxPlayers)}
-                          {t('form.recommendedMax')}: {liveCalculations.maxPossiblePlayers}
-                        </div>
-                      </div>
-                    )}
                   </div>
                   
-                  {/* Preview Stats */}
+                  {/* Live Preview Stats */}
                   <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <h4 className="font-medium mb-2">{t('form.preview')} {formData.maxPlayers} {t('player.players')}:</h4>
+                    <h4 className="font-medium mb-2 flex items-center gap-2">
+                      <Info className="w-4 h-4 text-blue-600" />
+                      Vorschau mit {formData.maxPlayers} Spielern:
+                    </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                       <div>
-                        <span className="text-gray-600">{t('form.gamesPerPerson')}:</span>
+                        <span className="text-gray-600">Spiele/Person:</span>
                         <p className="font-bold text-lg">{liveCalculations.minGamesPerPlayer}</p>
                       </div>
                       <div>
-                        <span className="text-gray-600">{t('form.playTimePerPerson')}:</span>
+                        <span className="text-gray-600">Spielzeit/Person:</span>
                         <p className="font-bold text-lg">{liveCalculations.minMinutesPerPlayer} {t('form.min')}</p>
                       </div>
                       <div>
-                        <span className="text-gray-600">{t('form.breakTime')}:</span>
+                        <span className="text-gray-600">Pausenzeit:</span>
                         <p className="font-bold text-lg">
                           {Math.max(0, liveCalculations.nettoMinutes - liveCalculations.minMinutesPerPlayer)} {t('form.min')}
                         </p>
                       </div>
                       <div>
-                        <span className="text-gray-600">{t('form.utilization')}:</span>
+                        <span className="text-gray-600">Auslastung:</span>
                         <p className="font-bold text-lg">
                           {Math.round((liveCalculations.minMinutesPerPlayer / liveCalculations.nettoMinutes) * 100)}%
                         </p>
@@ -1219,12 +1547,41 @@ const descriptions = {
                   </div>
                 </div>
                 
-                {/* Final Summary */}
+                {/* Final Summary mit Fairness */}
                 <div className="bg-blue-100 p-6 rounded-lg">
                   <h3 className="text-lg font-semibold mb-4 text-blue-900 flex items-center gap-2">
                     <Trophy className="w-5 h-5" />
                     {t('form.summary')}
                   </h3>
+                  
+                  {/* Fairness Summary */}
+                  {(() => {
+                    const finalFairness = calculateFairnessScore(
+                      formData.maxPlayers || 16,
+                      formData.courts || 2,
+                      liveCalculations.possibleRounds || 8,
+                      formData.roundDuration || 15
+                    )
+                    
+                    return (
+                      <div className={`p-3 rounded-lg mb-4 ${
+                        finalFairness.color === 'green' ? 'bg-green-100 border border-green-300' :
+                        finalFairness.color === 'blue' ? 'bg-blue-100 border border-blue-300' :
+                        finalFairness.color === 'yellow' ? 'bg-yellow-100 border border-yellow-300' :
+                        'bg-red-100 border border-red-300'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">Finale Fairness-Bewertung:</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{finalFairness.icon}</span>
+                            <span className="font-bold">{finalFairness.score}%</span>
+                          </div>
+                        </div>
+                        <p className="text-sm mt-1">{finalFairness.message}</p>
+                      </div>
+                    )
+                  })()}
+                  
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div className="bg-white p-3 rounded">
                       <span className="text-sm text-gray-600">{t('event.title')}</span>
