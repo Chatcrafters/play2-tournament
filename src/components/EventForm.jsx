@@ -1,184 +1,246 @@
-﻿import { useState, useEffect } from 'react'
-import { Calendar, Clock, Users, Settings, Info, Check, AlertCircle, ChevronRight, ChevronLeft, Coffee, Plus, X, Trophy, Zap, Heart, Target, Star, TrendingUp } from 'lucide-react'
-import { useTranslation } from './LanguageSelector'
+﻿// ============ FAIRNESS CALCULATION SYSTEM ============
 
-// ============ FAIRNESS CALCULATION SYSTEM ============
+// ERSETZE die calculateFairnessScore Funktion in EventForm.jsx komplett durch diese robuste Version:
 
 const calculateFairnessScore = (playerCount, courts, rounds, roundDuration) => {
-  if (playerCount < 4) return { 
-    score: 0, 
-    status: 'invalid', 
-    message: 'Mindestens 4 Spieler erforderlich',
-    color: 'red',
-    icon: '❌'
-  }
-  
-  const matchesPerRound = Math.min(courts, Math.floor(playerCount / 4))
-  const playersPerRound = matchesPerRound * 4
-  const restingPlayersPerRound = Math.max(0, playerCount - playersPerRound)
-  
-  // Fairness-Faktoren berechnen
-  const gameBalance = calculateGameBalanceFactor(playerCount, playersPerRound, rounds)
-  const partnerVariety = calculatePartnerVarietyFactor(playerCount, rounds)
-  const opponentVariety = calculateOpponentVarietyFactor(playerCount, rounds)
-  const restFairness = calculateRestFairnessFactor(playerCount, playersPerRound, rounds)
-  
-  // Gewichtete Gesamtfairness
-  const fairnessScore = Math.round(
-    gameBalance * 0.25 + 
-    partnerVariety * 0.35 + 
-    opponentVariety * 0.25 + 
-    restFairness * 0.15
-  )
-  
-  // Status bestimmen
-  let status, message, color, icon
-  if (fairnessScore >= 85) {
-    status = 'excellent'
-    message = 'Exzellente Fairness - perfekt für Americano!'
-    color = 'green'
-    icon = '🎯'
-  } else if (fairnessScore >= 75) {
-    status = 'good'
-    message = 'Gute Fairness - empfohlen für optimalen Spielspaß'
-    color = 'blue'
-    icon = '👍'
-  } else if (fairnessScore >= 60) {
-    status = 'acceptable'
-    message = 'Akzeptable Fairness - mit kleineren Kompromissen'
-    color = 'yellow'
-    icon = '⚠️'
-  } else if (fairnessScore >= 45) {
-    status = 'poor'
-    message = 'Schlechte Fairness - nicht empfohlen'
-    color = 'orange'
-    icon = '📉'
-  } else {
-    status = 'terrible'
-    message = 'Sehr schlechte Fairness - ungeeignet für Americano'
-    color = 'red'
-    icon = '❌'
-  }
-  
-  return {
-    score: fairnessScore,
-    status,
-    message,
-    color,
-    icon,
-    factors: {
-      gameBalance: Math.round(gameBalance),
-      partnerVariety: Math.round(partnerVariety),
-      opponentVariety: Math.round(opponentVariety),
-      restFairness: Math.round(restFairness)
-    },
-    restingPlayersPerRound,
-    recommendations: generateRecommendations(fairnessScore, playerCount, courts, rounds)
-  }
-}
-
-const calculateGameBalanceFactor = (playerCount, playersPerRound, rounds) => {
-  if (playerCount % playersPerRound === 0) return 100
-  
-  const restingPlayers = playerCount % playersPerRound
-  const unevennessPenalty = (restingPlayers / playersPerRound) * 40
-  const roundsSufficient = rounds >= Math.ceil(playerCount / playersPerRound) * 2
-  
-  let score = 100 - unevennessPenalty
-  if (!roundsSufficient) score -= 20
-  
-  return Math.max(30, score)
-}
-
-const calculatePartnerVarietyFactor = (playerCount, rounds) => {
-  const maxPossiblePartners = playerCount - 1
-  const avgGamesPerPlayer = (rounds * Math.floor(playerCount / 4) * 4) / playerCount
-  const estimatedUniquePartners = Math.min(maxPossiblePartners, avgGamesPerPlayer * 0.8)
-  
-  let score = (estimatedUniquePartners / maxPossiblePartners) * 100
-  
-  // Boni für optimale Gruppengrößen
-  if (playerCount <= 12) score += 10
-  if (playerCount <= 8) score += 10
-  
-  // Strafen für zu große Gruppen
-  if (playerCount > 20) score -= (playerCount - 20) * 2
-  if (playerCount > 30) score -= (playerCount - 30) * 3
-  
-  return Math.max(20, Math.min(100, score))
-}
-
-const calculateOpponentVarietyFactor = (playerCount, rounds) => {
-  const maxPossibleOpponents = playerCount - 1
-  const avgGamesPerPlayer = (rounds * Math.floor(playerCount / 4) * 4) / playerCount
-  const estimatedUniqueOpponents = Math.min(maxPossibleOpponents, avgGamesPerPlayer * 1.5)
-  
-  let score = (estimatedUniqueOpponents / maxPossibleOpponents) * 100
-  
-  // Boni für mittlere Gruppengrößen
-  if (playerCount >= 8 && playerCount <= 16) score += 15
-  if (playerCount >= 12 && playerCount <= 20) score += 10
-  
-  // Strafen für extreme Größen
-  if (playerCount < 8) score -= 10
-  if (playerCount > 24) score -= (playerCount - 24) * 2
-  
-  return Math.max(20, Math.min(100, score))
-}
-
-const calculateRestFairnessFactor = (playerCount, playersPerRound, rounds) => {
-  if (playerCount <= playersPerRound) return 100
-  
-  const restingPlayersPerRound = playerCount - playersPerRound
-  const restRatio = restingPlayersPerRound / playerCount
-  
-  let score = (1 - restRatio) * 100
-  
-  const rotationPossible = rounds >= Math.ceil(playerCount / playersPerRound)
-  if (rotationPossible) score += 15
-  
-  if (restRatio > 0.3) score -= (restRatio - 0.3) * 100
-  
-  return Math.max(20, Math.min(100, score))
-}
-
-const generateRecommendations = (fairnessScore, playerCount, courts, rounds) => {
-  const recommendations = []
-  
-  if (fairnessScore < 60) {
-    recommendations.push("🔧 Weniger Spieler für bessere Durchmischung")
-  }
-  
-  if (fairnessScore < 75 && rounds < 8) {
-    recommendations.push("🔄 Mehr Runden für bessere Fairness")
-  }
-  
-  if (playerCount > courts * 6) {
-    recommendations.push("🏟️ Mehr Plätze oder weniger Spieler")
-  }
-  
-  return recommendations
-}
-
-const calculateOptimalPlayers = (courts, rounds) => {
-  const playersPerRound = courts * 4
-  const baseRecommended = playersPerRound + Math.min(courts, 4)
-  
-  let maxReasonable = baseRecommended
-  
-  // Finde Maximum mit akzeptabler Fairness (≥60%)
-  for (let players = baseRecommended; players <= 40; players += 2) {
-    const fairness = calculateFairnessScore(players, courts, rounds)
-    if (fairness.score >= 60) {
-      maxReasonable = players
-    } else {
-      break
+  // FIXED: Robuste Validierung und Fallback-Werte
+  if (!playerCount || playerCount < 4 || !courts || courts < 1 || !rounds || rounds < 1) {
+    return { 
+      score: 0, 
+      status: 'invalid', 
+      message: 'Mindestens 4 Spieler erforderlich',
+      color: 'red',
+      icon: '❌',
+      factors: {
+        gameBalance: 0,
+        partnerVariety: 0,
+        opponentVariety: 0,
+        restFairness: 0
+      },
+      restingPlayersPerRound: 0,
+      recommendations: []
     }
   }
   
+  try {
+    // FIXED: Sichere Berechnungen mit Fallback-Werten
+    const matchesPerRound = Math.min(courts, Math.floor(playerCount / 4))
+    const playersPerRound = matchesPerRound * 4
+    const restingPlayersPerRound = Math.max(0, playerCount - playersPerRound)
+    
+    // Realistische Amerikanisch-Fairness-Berechnung
+    let fairnessScore = 50 // Basis-Score für Americano
+    
+    // 1. Partner-Vielfalt (wichtigster Faktor)
+    const avgGamesPerPlayer = (rounds * matchesPerRound * 4) / playerCount
+    const maxPossiblePartners = playerCount - 1
+    const estimatedUniquePartners = Math.min(maxPossiblePartners, avgGamesPerPlayer * 0.8)
+    const partnerCoverage = maxPossiblePartners > 0 ? estimatedUniquePartners / maxPossiblePartners : 0
+    
+    // Partner-Score berechnen
+    let partnerScore = 0
+    if (playerCount <= 8) {
+      partnerScore = Math.min(85, 40 + (partnerCoverage * 50))
+    } else if (playerCount <= 16) {
+      partnerScore = Math.min(75, 30 + (partnerCoverage * 60))
+    } else if (playerCount <= 24) {
+      partnerScore = Math.min(65, 20 + (partnerCoverage * 55))
+    } else {
+      partnerScore = Math.min(55, 15 + (partnerCoverage * 45))
+    }
+    
+    // 2. Spiele-Balance (zweitwichtigster Faktor)
+    let gameBalance = 80
+    if (restingPlayersPerRound > 0) {
+      const restRatio = restingPlayersPerRound / playerCount
+      gameBalance -= restRatio * 100 // Strafe für wartende Spieler
+      
+      // Bonus wenn genug Runden für Rotation
+      if (rounds >= Math.ceil(playerCount / playersPerRound)) {
+        gameBalance += 20
+      }
+    }
+    gameBalance = Math.max(20, Math.min(100, gameBalance))
+    
+    // 3. Gegner-Vielfalt
+    const estimatedOpponents = Math.min(maxPossiblePartners, avgGamesPerPlayer * 1.5)
+    const opponentCoverage = maxPossiblePartners > 0 ? estimatedOpponents / maxPossiblePartners : 0
+    let opponentScore = Math.min(80, 30 + (opponentCoverage * 60))
+    
+    // 4. Court/Player Ratio
+    let courtRatioScore = 70
+    const courtPlayerRatio = courts / playerCount
+    if (courtPlayerRatio > 0.25) {
+      courtRatioScore += 20 // Viele Courts = bessere Rotation
+    } else if (courtPlayerRatio < 0.1) {
+      courtRatioScore -= 30 // Zu wenig Courts = schlechte Fairness
+    }
+    
+    // 5. Spiele pro Spieler
+    let gamesScore = 70
+    if (avgGamesPerPlayer < 3) {
+      gamesScore -= 30 // Zu wenig Spiele
+    } else if (avgGamesPerPlayer > 6) {
+      gamesScore += 15 // Viele Spiele = bessere Durchmischung
+    }
+    
+    // GEWICHTETE BERECHNUNG (ähnlich wie tournaments.js)
+    fairnessScore = Math.round(
+      partnerScore * 0.40 +      // Partner-Vielfalt wichtigster Faktor
+      gameBalance * 0.25 +       // Spiele-Balance
+      opponentScore * 0.20 +     // Gegner-Vielfalt  
+      courtRatioScore * 0.10 +   // Court-Ratio
+      gamesScore * 0.05          // Spiele pro Person
+    )
+    
+    // REALISTISCHE ANPASSUNGEN für Americano
+    if (playerCount > courts * 6) {
+      fairnessScore -= 15 // Zu viele Spieler für Courts
+    }
+    
+    if (rounds < 6) {
+      fairnessScore -= 10 // Zu wenig Runden
+    }
+    
+    // Bonus für optimale Größen
+    if (playerCount >= 8 && playerCount <= 20 && courts >= 2) {
+      fairnessScore += 5
+    }
+    
+    // Begrenze auf realistischen Bereich für Americano
+    fairnessScore = Math.max(10, Math.min(85, fairnessScore))
+    
+    // Status bestimmen (angepasst an realistische Americano-Werte)
+    let status, message, color, icon
+    if (fairnessScore >= 70) {
+      status = 'excellent'
+      message = 'Sehr gute Fairness - empfohlen für optimalen Spielspaß'
+      color = 'green'
+      icon = '🎯'
+    } else if (fairnessScore >= 60) {
+      status = 'good'
+      message = 'Gute Fairness - funktioniert gut für Americano'
+      color = 'blue'
+      icon = '👍'
+    } else if (fairnessScore >= 50) {
+      status = 'acceptable'
+      message = 'Akzeptable Fairness - mit kleineren Kompromissen'
+      color = 'yellow'
+      icon = '⚠️'
+    } else if (fairnessScore >= 40) {
+      status = 'poor'
+      message = 'Mäßige Fairness - kann zu Unzufriedenheit führen'
+      color = 'orange'
+      icon = '📉'
+    } else {
+      status = 'terrible'
+      message = 'Schlechte Fairness - nicht empfohlen für Americano'
+      color = 'red'
+      icon = '❌'
+    }
+    
+    // FIXED: Immer vollständiges Objekt zurückgeben
+    return {
+      score: fairnessScore,
+      status,
+      message,
+      color,
+      icon,
+      factors: {
+        gameBalance: Math.round(gameBalance) || 0,
+        partnerVariety: Math.round(partnerScore) || 0,
+        opponentVariety: Math.round(opponentScore) || 0,
+        restFairness: Math.round(courtRatioScore) || 0
+      },
+      restingPlayersPerRound: restingPlayersPerRound || 0,
+      recommendations: generateRecommendations(fairnessScore, playerCount, courts, rounds) || []
+    }
+    
+  } catch (error) {
+    console.error('Fairness calculation error:', error)
+    
+    // FIXED: Robuster Fallback bei Fehlern
+    return {
+      score: 30,
+      status: 'poor',
+      message: 'Fairness konnte nicht berechnet werden',
+      color: 'orange',
+      icon: '⚠️',
+      factors: {
+        gameBalance: 30,
+        partnerVariety: 30,
+        opponentVariety: 30,
+        restFairness: 30
+      },
+      restingPlayersPerRound: 0,
+      recommendations: ['🔧 Konfiguration prüfen']
+    }
+  }
+}
+
+// ERSETZE auch generateRecommendations für mehr Robustheit:
+const generateRecommendations = (fairnessScore, playerCount, courts, rounds) => {
+  try {
+    const recommendations = []
+    
+    // Sichere Validierung der Parameter
+    if (!fairnessScore || !playerCount || !courts || !rounds) {
+      return ['🔧 Parameter prüfen']
+    }
+    
+    if (fairnessScore < 50) {
+      recommendations.push("🔧 Weniger Spieler für bessere Durchmischung")
+    }
+    
+    if (fairnessScore < 60 && rounds < 8) {
+      recommendations.push("🔄 Mehr Runden für bessere Fairness")
+    }
+    
+    if (playerCount > courts * 6) {
+      recommendations.push("🏟️ Mehr Plätze oder weniger Spieler")
+    }
+    
+    if (fairnessScore < 55 && courts < 3) {
+      recommendations.push("🏟️ Mehr Courts für bessere Rotation")
+    }
+    
+    return recommendations
+    
+  } catch (error) {
+    console.error('Recommendations error:', error)
+    return ['🔧 Konfiguration prüfen']
+  }
+}
+
+
+const calculateOptimalPlayers = (courts, rounds) => {
+  const playersPerRound = courts * 4
+  
+  // Finde optimale Anzahl mit bester Fairness
+  let optimalPlayers = playersPerRound
+  let maxReasonable = playersPerRound
+  let bestScore = 0
+  
+  // Teste verschiedene Spielerzahlen
+  for (let players = 4; players <= 32; players += 2) {
+    const fairness = calculateFairnessScore(players, courts, rounds, 15)
+    
+    if (fairness.score > bestScore && fairness.score >= 60) {
+      optimalPlayers = players
+      bestScore = fairness.score
+    }
+    
+    if (fairness.score >= 50) {
+      maxReasonable = players
+    }
+  }
+  
+  // Fallback: Mindestens 4 mehr als Courts*4 für Rotation
+  const minRecommended = playersPerRound + Math.min(courts, 4)
+  
   return {
-    optimal: baseRecommended,
-    maxReasonable: Math.max(maxReasonable, baseRecommended),
+    optimal: Math.max(optimalPlayers, minRecommended),
+    maxReasonable: Math.max(maxReasonable, minRecommended),
     absoluteMax: maxReasonable + 4
   }
 }
@@ -193,8 +255,8 @@ export const EventForm = ({
   calculateTotalMinutes,
   calculateMaxPlayers
 }) => {
-  const { t } = useTranslation()
-  
+  const t = useTranslation()?.t || ((key) => key)
+
   // Wizard Steps
   const steps = [
     { id: 1, name: t('form.steps.basics'), icon: Info, color: 'blue' },

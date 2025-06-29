@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Calendar, Clock, MapPin, Trophy, Users, Play, Pause, RotateCcw, Check } from 'lucide-react'
 import { useTranslation } from './LanguageSelector'
 import { interpolate } from '../utils/translations'
@@ -45,7 +45,7 @@ const Timer = ({ isRunning, onTick, duration, currentTime }) => {
 }
 
 export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
-  const { t } = useTranslation()
+  const t = useTranslation()?.t || ((key) => key)
   
   // States
   const [currentRound, setCurrentRound] = useState(event.currentRound || 0)
@@ -115,7 +115,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
       return
     }
     
-    // Berechne Punkte: 2 für Sieg, 1 für Unentschieden, 0 für Niederlage
+    // Berechne Punkte: 2 fÃ¼r Sieg, 1 fÃ¼r Unentschieden, 0 fÃ¼r Niederlage
     const team1Points = score.team1Score > score.team2Score ? 2 : score.team1Score < score.team2Score ? 0 : 1
     const team2Points = score.team1Score < score.team2Score ? 2 : score.team1Score > score.team2Score ? 0 : 1
     
@@ -227,13 +227,13 @@ team2?.forEach(player => {
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          {/* WICHTIG: type="button" hinzugefügt um Form-Submit zu verhindern */}
+          {/* WICHTIG: type="button" hinzugefÃ¼gt um Form-Submit zu verhindern */}
           <button
             type="button"
             onClick={handleCancelClick}
             className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-2"
           >
-            ← {t('app.backToEventOverview')}
+            â† {t('app.backToEventOverview')}
           </button>
           
           <h1 className="text-3xl font-bold mb-2">{event.name}</h1>
@@ -315,7 +315,7 @@ team2?.forEach(player => {
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
                 >
-                  ← {t('tournament.previous')}
+                  â† {t('tournament.previous')}
                 </button>
                 
                 <button
@@ -327,7 +327,7 @@ team2?.forEach(player => {
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
                 >
-                  {t('tournament.next')} →
+                  {t('tournament.next')} â†’
                 </button>
               </div>
               
@@ -361,7 +361,7 @@ team2?.forEach(player => {
                         <div className="flex justify-between items-center mb-3">
                           <span className="font-semibold">{t('schedule.court')} {match.court}</span>
                           {result?.result && (
-                            <span className="text-green-600 font-semibold">✓ {t('results.resultEntered')}</span>
+                            <span className="text-green-600 font-semibold">âœ“ {t('results.resultEntered')}</span>
                           )}
                         </div>
                         
@@ -404,7 +404,7 @@ team2?.forEach(player => {
                                   onClick={() => handleScoreSubmit(matchIndex)}
                                   className="ml-2 bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
                                 >
-                                  ✓
+                                  âœ“
                                 </button>
                               </div>
                             )}
@@ -484,7 +484,7 @@ team2?.forEach(player => {
                   onClick={() => setShowResults(false)}
                   className="text-gray-500 hover:text-gray-700 text-2xl"
                 >
-                  ✕
+                  âœ•
                 </button>
               </div>
               
@@ -515,3 +515,4 @@ team2?.forEach(player => {
     </div>
   )
 }
+

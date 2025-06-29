@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Calendar, Clock, MapPin, Users, Trophy, Info } from 'lucide-react'
 import { useTranslation } from '../components/LanguageSelector'
@@ -19,7 +19,7 @@ export const EventRegistration = () => {
     email: '',
     phone: '',
     gender: 'male',
-    skillLevel: 'B', // Default für Padel
+    skillLevel: 'B', // Default fÃ¼r Padel
     agreeToTerms: false
   })
 
@@ -31,7 +31,7 @@ export const EventRegistration = () => {
   const loadEvent = async () => {
     try {
       setIsLoading(true)
-      // Hier würde normalerweise ein API-Call stehen
+      // Hier wÃ¼rde normalerweise ein API-Call stehen
       const eventData = JSON.parse(localStorage.getItem('events') || '[]')
       const foundEvent = eventData.find(e => e.id === eventId)
       
@@ -79,13 +79,13 @@ export const EventRegistration = () => {
       return
     }
 
-    // Prüfe ob Event voll ist
+    // PrÃ¼fe ob Event voll ist
     if (event.players.length >= event.maxPlayers) {
       alert(t('eventRegistration.eventFull'))
       return
     }
 
-    // Prüfe ob Spieler bereits angemeldet
+    // PrÃ¼fe ob Spieler bereits angemeldet
     const alreadyRegistered = event.players.some(
       p => p.email === formData.email || p.phone === formData.phone
     )
@@ -119,7 +119,7 @@ export const EventRegistration = () => {
         players: [...event.players, newPlayer]
       }
 
-      // Speichere in localStorage (später API-Call)
+      // Speichere in localStorage (spÃ¤ter API-Call)
       const events = JSON.parse(localStorage.getItem('events') || '[]')
       const eventIndex = events.findIndex(e => e.id === eventId)
       events[eventIndex] = updatedEvent
@@ -243,7 +243,7 @@ export const EventRegistration = () => {
             
             {event.genderMode !== 'open' && (
               <p className="text-sm text-blue-600 mt-2">
-                {event.genderMode === 'men' ? `👨 ${t('eventRegistration.onlyForMen')}` : `👩 ${t('eventRegistration.onlyForWomen')}`}
+                {event.genderMode === 'men' ? `ðŸ‘¨ ${t('eventRegistration.onlyForMen')}` : `ðŸ‘© ${t('eventRegistration.onlyForWomen')}`}
               </p>
             )}
           </div>
@@ -433,7 +433,7 @@ export const EventRegistration = () => {
               {event.players.map((player, index) => (
                 <div key={player.id || index} className="text-sm text-gray-600">
                   {player.name.split(' ')[0]} {player.name.split(' ')[1]?.[0]}.
-                  {player.gender === 'female' ? ' ♀️' : ' ♂️'}
+                  {player.gender === 'female' ? ' â™€ï¸' : ' â™‚ï¸'}
                 </div>
               ))}
             </div>

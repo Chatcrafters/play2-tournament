@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useTranslation } from '../components/LanguageSelector'
 
 export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase }) => {
-  const { t } = useTranslation()
+  const t = useTranslation()?.t || ((key) => key)
   const [newPlayerName, setNewPlayerName] = useState('')
-  const [playerSkillLevel, setPlayerSkillLevel] = useState('B') // Für Padel default
+  const [playerSkillLevel, setPlayerSkillLevel] = useState('B') // FÃ¼r Padel default
   const [playerGender, setPlayerGender] = useState('male')
   const [showSkillDialog, setShowSkillDialog] = useState(false)
 
@@ -35,14 +35,14 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
 
   const handleAddPlayer = () => {
     if (newPlayerName.trim() && players.length < maxPlayers) {
-      // Setze das richtige Default-Level basierend auf der Sportart beim Öffnen des Dialogs
+      // Setze das richtige Default-Level basierend auf der Sportart beim Ã–ffnen des Dialogs
       setPlayerSkillLevel(sport === 'padel' ? 'B' : 3.0)
       setShowSkillDialog(true)
     }
   }
 
   const confirmAddPlayer = () => {
-    // Generiere eine eindeutige ID mit mehreren Komponenten für maximale Eindeutigkeit
+    // Generiere eine eindeutige ID mit mehreren Komponenten fÃ¼r maximale Eindeutigkeit
     const uniqueId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${players.length}`
     
     const updatedEvent = {
@@ -98,7 +98,7 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
         </span>
       </div>
 
-      {/* Spieler hinzufügen */}
+      {/* Spieler hinzufÃ¼gen */}
       <div className="mb-4">
         <div className="flex gap-2">
           <input
@@ -134,7 +134,7 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
                 : 'bg-green-600 text-white hover:bg-green-700'
             }`}
           >
-            📚 {t('player.fromDatabase')}
+            ðŸ“š {t('player.fromDatabase')}
           </button>
         </div>
       </div>
@@ -238,7 +238,7 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
           </p>
         ) : (
           players.map((player) => {
-            // Hole das richtige Skill Level für die aktuelle Sportart
+            // Hole das richtige Skill Level fÃ¼r die aktuelle Sportart
             let displaySkillLevel = player.skillLevel // Fallback
             
             if (player.skillLevels) {
@@ -259,7 +259,7 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
                 <div>
                   <span className="font-medium">{player.name}</span>
                   <span className="ml-2 text-sm text-gray-600">
-                    {player.gender === 'female' ? '♀️' : '♂️'}
+                    {player.gender === 'female' ? 'â™€ï¸' : 'â™‚ï¸'}
                   </span>
                   <span className="ml-2 text-sm text-gray-600">
                     {t('player.level')}: {displaySkillLevel}
@@ -269,7 +269,7 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
                   onClick={() => handleRemovePlayer(player.id)}
                   className="text-red-500 hover:text-red-700"
                 >
-                  ✕
+                  âœ•
                 </button>
               </div>
             )
@@ -287,7 +287,7 @@ export const PlayerManagement = ({ event, onUpdateEvent, onOpenPlayerDatabase })
       {/* Info zu Geschlechts-Modus */}
       {genderMode !== 'open' && (
         <p className="mt-4 text-xs text-gray-600 text-center">
-          {genderMode === 'men' ? `👨 ${t('playerManagement.menOnly')}` : `👩 ${t('playerManagement.womenOnly')}`}
+          {genderMode === 'men' ? `ðŸ‘¨ ${t('playerManagement.menOnly')}` : `ðŸ‘© ${t('playerManagement.womenOnly')}`}
         </p>
       )}
     </div>

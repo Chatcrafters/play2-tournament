@@ -1,4 +1,4 @@
-// src/components/ScoreEntry.jsx
+﻿// src/components/ScoreEntry.jsx
 import { useState } from 'react'
 import { useTranslation } from './LanguageSelector'
 
@@ -7,11 +7,11 @@ export const ScoreEntry = ({
   schedule, 
   currentRound, 
   onScoreSubmit,
-  onRoundChange,  // NEU: Diese Prop hinzugefügt
+  onRoundChange,  // NEU: Diese Prop hinzugefÃ¼gt
   existingResults = {},
   showStandings = false
 }) => {
-  const { t } = useTranslation()
+  const t = useTranslation()?.t || ((key) => key)
   const [scores, setScores] = useState({})
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
   
@@ -166,7 +166,7 @@ export const ScoreEntry = ({
             })
           })
         } else if (match.team1 && match.team2) {
-          // Auch für Spiele ohne Ergebnis Partner/Gegner tracken
+          // Auch fÃ¼r Spiele ohne Ergebnis Partner/Gegner tracken
           match.team1.forEach((player, i) => {
             playerStats[player.id].gamesPlayed++
             
@@ -244,7 +244,7 @@ export const ScoreEntry = ({
             {standings.map((player, idx) => (
               <tr key={player.id} className={`border-b ${idx === 0 ? 'bg-yellow-50' : idx === 1 ? 'bg-gray-100' : idx === 2 ? 'bg-orange-50' : ''}`}>
                 <td className="py-3 px-2 font-semibold">
-                  {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
+                  {idx === 0 ? 'ðŸ¥‡' : idx === 1 ? 'ðŸ¥ˆ' : idx === 2 ? 'ðŸ¥‰' : idx + 1}
                 </td>
                 <td className="py-3 px-2 font-medium">{player.name}</td>
                 <td className="text-center py-3 px-2 font-bold text-lg">{player.points}</td>
@@ -324,7 +324,7 @@ export const ScoreEntry = ({
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
           >
-            ← {t('tournament.previousRound')}
+            â† {t('tournament.previousRound')}
           </button>
           
           <span className="font-semibold text-lg">
@@ -344,7 +344,7 @@ export const ScoreEntry = ({
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
           >
-            {t('tournament.nextRound')} →
+            {t('tournament.nextRound')} â†’
           </button>
         </div>
       )}
@@ -454,3 +454,4 @@ export const ScoreEntry = ({
     </div>
   )
 }
+

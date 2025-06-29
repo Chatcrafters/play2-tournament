@@ -1,4 +1,4 @@
-// src/components/Toast.jsx
+﻿// src/components/Toast.jsx
 import React, { createContext, useContext, useState, useCallback } from 'react'
 import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react'
 import { useTranslation } from './LanguageSelector'
@@ -96,7 +96,7 @@ const ToastContainer = () => {
 // Individual Toast Item
 const ToastItem = ({ toast }) => {
   const { removeToast } = useToast()
-  const { t } = useTranslation()
+  const t = useTranslation()?.t || ((key) => key)
 
   const getToastStyles = (type) => {
     const baseStyles = "flex items-start gap-3 p-4 rounded-lg shadow-lg border-l-4 bg-white animate-in slide-in-from-right-full duration-300"
@@ -179,8 +179,8 @@ export class ErrorBoundary extends React.Component {
               Oops! Etwas ist schiefgelaufen
             </h2>
             <p className="text-gray-600 mb-6">
-              Die Anwendung ist auf einen unerwarteten Fehler gestoßen. 
-              Bitte laden Sie die Seite neu oder versuchen Sie es später erneut.
+              Die Anwendung ist auf einen unerwarteten Fehler gestoÃŸen. 
+              Bitte laden Sie die Seite neu oder versuchen Sie es spÃ¤ter erneut.
             </p>
             <div className="space-y-3">
               <button

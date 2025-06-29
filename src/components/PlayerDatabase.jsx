@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { dbOperations } from '../lib/supabase'
 import { transformFromDB, transformToDB } from '../utils/dbHelpers'
 import { useTranslation } from '../components/LanguageSelector'
 import { interpolate } from '../utils/translations'
 
-// Helper-Funktionen für Level-Konvertierung
+// Helper-Funktionen fÃ¼r Level-Konvertierung
 const getPadelNumericValue = (level) => {
   const mapping = {
     'C': 2.0,
@@ -19,8 +19,8 @@ const getPadelNumericValue = (level) => {
 
 const getPadelLevelDescription = (level) => {
   const descriptions = {
-    'C': 'Anfänger',
-    'B-': 'Fortgeschrittener Anfänger',
+    'C': 'AnfÃ¤nger',
+    'B-': 'Fortgeschrittener AnfÃ¤nger',
     'B': 'Unteres Mittelstufe',
     'B+': 'Gutes Mittelstufe',
     'A-': 'Oberes Mittelstufe',
@@ -29,17 +29,17 @@ const getPadelLevelDescription = (level) => {
   return descriptions[level] || ''
 }
 
-// Helper-Funktion für Flaggen-Emoji
+// Helper-Funktion fÃ¼r Flaggen-Emoji
 const getFlagEmoji = (countryCode) => {
   const flags = {
-    'DE': '🇩🇪', 'ES': '🇪🇸', 'FR': '🇫🇷', 'IT': '🇮🇹', 'US': '🇺🇸',
-    'GB': '🇬🇧', 'AT': '🇦🇹', 'CH': '🇨🇭', 'NL': '🇳🇱', 'BE': '🇧🇪',
-    'PT': '🇵🇹', 'SE': '🇸🇪', 'DK': '🇩🇰', 'NO': '🇳🇴', 'PL': '🇵🇱'
+    'DE': 'ðŸ‡©ðŸ‡ª', 'ES': 'ðŸ‡ªðŸ‡¸', 'FR': 'ðŸ‡«ðŸ‡·', 'IT': 'ðŸ‡®ðŸ‡¹', 'US': 'ðŸ‡ºðŸ‡¸',
+    'GB': 'ðŸ‡¬ðŸ‡§', 'AT': 'ðŸ‡¦ðŸ‡¹', 'CH': 'ðŸ‡¨ðŸ‡­', 'NL': 'ðŸ‡³ðŸ‡±', 'BE': 'ðŸ‡§ðŸ‡ª',
+    'PT': 'ðŸ‡µðŸ‡¹', 'SE': 'ðŸ‡¸ðŸ‡ª', 'DK': 'ðŸ‡©ðŸ‡°', 'NO': 'ðŸ‡³ðŸ‡´', 'PL': 'ðŸ‡µðŸ‡±'
   }
-  return flags[countryCode] || '🏳️'
+  return flags[countryCode] || 'ðŸ³ï¸'
 }
 
-// Helper-Funktion für Altersberechnung
+// Helper-Funktion fÃ¼r Altersberechnung
 const calculateAge = (birthday) => {
   if (!birthday) return null
   const birthDate = new Date(birthday)
@@ -53,9 +53,9 @@ const calculateAge = (birthday) => {
 }
 
 const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = [], event }) => {
-  const { t } = useTranslation()  // <-- NUR t hier
+  const t = useTranslation()?.t || ((key) => key)  // <-- NUR t hier
   
-  // NEUE ZEILEN für Spielerlimit-Prüfung
+  // NEUE ZEILEN fÃ¼r Spielerlimit-PrÃ¼fung
   const remainingSlots = event?.maxPlayers - existingPlayers.length || 0;
   const canAddMore = remainingSlots > 0;
   
@@ -141,7 +141,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
             birthday: row['Geburtstag'] || row['birthday'] || '',
             city: row['Stadt'] || row['city'] || '',
             country: row['Land'] || row['country'] || '',
-            nationality: row['Nationalität'] || row['nationality'] || '',
+            nationality: row['NationalitÃ¤t'] || row['nationality'] || '',
             club: row['Verein'] || row['club'] || '',
             duprId: row['DUPR ID'] || row['duprId'] || ''
           }
@@ -157,7 +157,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
           return
         }
 
-        // Lade aktuelle Spieler für Duplikat-Check
+        // Lade aktuelle Spieler fÃ¼r Duplikat-Check
         const currentPlayers = await dbOperations.getPlayers()
         const existingNames = new Set(
           currentPlayers.map(p => p.name.toLowerCase().trim())
@@ -169,9 +169,9 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
         
         for (const player of playersToImport) {
           try {
-            // Prüfe auf Duplikate
+            // PrÃ¼fe auf Duplikate
             if (existingNames.has(player.name.toLowerCase().trim())) {
-              console.log(`Überspringe ${player.name} - bereits vorhanden`)
+              console.log(`Ãœberspringe ${player.name} - bereits vorhanden`)
               skipCount++
               continue
             }
@@ -181,7 +181,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
             console.log('Import Ergebnis:', result)
             if (result) {
               successCount++
-              // Füge zur Liste hinzu für weitere Duplikat-Checks
+              // FÃ¼ge zur Liste hinzu fÃ¼r weitere Duplikat-Checks
               existingNames.add(player.name.toLowerCase().trim())
             } else {
               errorCount++
@@ -194,9 +194,9 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
         }
 
         let message = `${t('database.importCompleted')}:\n`
-        message += `✅ ${successCount} ${t('database.newImported')}`
-        if (skipCount > 0) message += `\n⏭️ ${skipCount} ${t('database.skipped')}`
-        if (errorCount > 0) message += `\n❌ ${errorCount} ${t('database.errors')}`
+        message += `âœ… ${successCount} ${t('database.newImported')}`
+        if (skipCount > 0) message += `\nâ­ï¸ ${skipCount} ${t('database.skipped')}`
+        if (errorCount > 0) message += `\nâŒ ${errorCount} ${t('database.errors')}`
         
         console.log(message)
         alert(message)
@@ -209,7 +209,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
     reader.readAsBinaryString(file)
   }
 
-  // Prüft ob ein Spieler bereits im Event angemeldet ist
+  // PrÃ¼ft ob ein Spieler bereits im Event angemeldet ist
   const isPlayerAlreadyRegistered = (player) => {
     return existingPlayers.some(ep => 
       ep.name.toLowerCase() === player.name.toLowerCase()
@@ -219,7 +219,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // Validiere dass mindestens eine Sportart ausgewählt ist
+    // Validiere dass mindestens eine Sportart ausgewÃ¤hlt ist
     if (!formData.sports.padel && !formData.sports.pickleball && !formData.sports.spinxball) {
       alert(t('database.atLeastOneSport'))
       return
@@ -234,7 +234,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
         }
         await dbOperations.updatePlayer(editingPlayer.id, updatedPlayer)
       } else {
-        // Prüfe auf Duplikate vor dem Erstellen
+        // PrÃ¼fe auf Duplikate vor dem Erstellen
         const existingPlayers = players.filter(p => 
           p.name.toLowerCase().trim() === formData.name.toLowerCase().trim()
         )
@@ -318,7 +318,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
       await dbOperations.deletePlayer(playerId)
       await loadPlayers()
     } catch (error) {
-      console.error('Fehler beim Löschen:', error)
+      console.error('Fehler beim LÃ¶schen:', error)
       alert(t('navigation.delete'))
     }
   }
@@ -326,7 +326,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
   const togglePlayerSelection = (playerId) => {
     const player = players.find(p => p.id === playerId)
     
-    // Prüfe ob Spieler bereits angemeldet ist
+    // PrÃ¼fe ob Spieler bereits angemeldet ist
     if (isPlayerAlreadyRegistered(player)) {
       alert(interpolate(t('player.alreadyRegistered'), { name: player.name }))
       return
@@ -364,7 +364,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
     // NEU: Filtere nach Sportart des Events
     if (event?.sport) {
       filtered = filtered.filter(player => {
-        // Prüfe ob der Spieler diese Sportart spielt
+        // PrÃ¼fe ob der Spieler diese Sportart spielt
         switch(event.sport) {
           case 'padel':
             return player.sports?.padel === true;
@@ -408,7 +408,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
   
   const filteredPlayers = getFilteredPlayers();
 
-  // Zähle verfügbare Spieler
+  // ZÃ¤hle verfÃ¼gbare Spieler
   const availablePlayersCount = filteredPlayers.filter(p => !isPlayerAlreadyRegistered(p)).length
 
   if (!isOpen) return null
@@ -436,7 +436,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
           >
-            ✕
+            âœ•
           </button>
         </div>
 
@@ -479,7 +479,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
             + {t('database.newPlayer')}
           </button>
           <label className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
-            📊 {t('database.excelImport')}
+            ðŸ“Š {t('database.excelImport')}
             <input
               type="file"
               accept=".xlsx,.xls"
@@ -492,20 +492,20 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
               // Erstelle zwei Dateien: Vorlage und Anleitung
               
               // 1. Die eigentliche CSV-Vorlage
-              const template = `Name,Geschlecht,Padel,Pickleball,SpinXball,Padel Level,Pickleball Level,SpinXball Level,Telefon,Email,Geburtstag,Stadt,Land,Nationalität,Verein,DUPR ID
-Max Mustermann,male,x,,x,B+,,3.5,+49 123 456789,max@example.com,1985-03-15,München,Deutschland,DE,TC Blau-Weiß,
+              const template = `Name,Geschlecht,Padel,Pickleball,SpinXball,Padel Level,Pickleball Level,SpinXball Level,Telefon,Email,Geburtstag,Stadt,Land,NationalitÃ¤t,Verein,DUPR ID
+Max Mustermann,male,x,,x,B+,,3.5,+49 123 456789,max@example.com,1985-03-15,MÃ¼nchen,Deutschland,DE,TC Blau-WeiÃŸ,
 Anna Beispiel,female,x,x,,B,3.5,,+49 987 654321,anna@example.com,1990-07-22,Berlin,Deutschland,DE,Padel Club Berlin,
 Carlos Rodriguez,male,x,x,x,A-,4.0,4.5,+34 666 777888,carlos@example.com,1988-11-30,Madrid,Spanien,ES,Club Deportivo Madrid,12345-ABC
 Maria Schmidt,female,,x,,,3.0,,+49 555 123456,maria@example.com,1995-02-10,Hamburg,Deutschland,DE,Pickleball Hamburg,
-Peter Müller,male,x,x,x,A,5.0,4.5,+49 333 444555,peter@example.com,1982-08-05,Frankfurt,Deutschland,DE,Sportclub Frankfurt,98765-XYZ`
+Peter MÃ¼ller,male,x,x,x,A,5.0,4.5,+49 333 444555,peter@example.com,1982-08-05,Frankfurt,Deutschland,DE,Sportclub Frankfurt,98765-XYZ`
               
               // 2. Eine Anleitung als Text-Datei
 const anleitung = `PLAY2 TOURNAMENT - SPIELER IMPORT ANLEITUNG
 ==========================================
 
-SPALTEN-ERKLÄRUNG:
+SPALTEN-ERKLÃ„RUNG:
 -----------------
-Name: Vollständiger Name des Spielers (PFLICHT)
+Name: VollstÃ¤ndiger Name des Spielers (PFLICHT)
 Geschlecht: "male" oder "female" (PFLICHT)
 Padel/Pickleball/SpinXball: "x" wenn der Spieler diese Sportart spielt, sonst leer lassen
 
@@ -514,25 +514,25 @@ WEITERE PFLICHTFELDER:
 Geburtstag: Format YYYY-MM-DD (z.B. 1990-05-15) (PFLICHT)
 Stadt: Wohnort des Spielers (PFLICHT)
 Land: Land des Spielers (PFLICHT)
-Nationalität: 2-Buchstaben Code (DE, ES, FR, IT, US, etc.) (PFLICHT)
-Verein: Vereinszugehörigkeit (PFLICHT)
+NationalitÃ¤t: 2-Buchstaben Code (DE, ES, FR, IT, US, etc.) (PFLICHT)
+Verein: VereinszugehÃ¶rigkeit (PFLICHT)
 
 OPTIONALE FELDER:
 ----------------
-DUPR ID: Dynamic Universal Pickleball Rating ID (nur für Pickleball-Spieler, optional)
+DUPR ID: Dynamic Universal Pickleball Rating ID (nur fÃ¼r Pickleball-Spieler, optional)
 LEVEL-SYSTEME:
 -------------
 PADEL LEVEL:
-- C       = Anfänger (1.0-3.0)
-- B-      = Fortgeschrittener Anfänger (3.0-3.5)
+- C       = AnfÃ¤nger (1.0-3.0)
+- B-      = Fortgeschrittener AnfÃ¤nger (3.0-3.5)
 - B       = Unteres Mittelstufe (3.5-4.0)
 - B+      = Gutes Mittelstufe (4.0-4.5)
 - A-      = Oberes Mittelstufe (4.5-5.0)
 - A / A+  = Fortgeschritten/Profi (5.0-6.0)
 
 PICKLEBALL & SPINXBALL LEVEL:
-- 1.5     = Anfänger (1.0-2.0)
-- 2.5     = Fortgeschrittener Anfänger
+- 1.5     = AnfÃ¤nger (1.0-2.0)
+- 2.5     = Fortgeschrittener AnfÃ¤nger
 - 3.0     = Einsteiger mit Spielpraxis
 - 3.5     = Mittleres Niveau
 - 4.0     = Gutes Clubniveau
@@ -542,14 +542,14 @@ PICKLEBALL & SPINXBALL LEVEL:
 
 WICHTIGE HINWEISE:
 -----------------
-- PFLICHTFELDER: Name, Geschlecht, Geburtstag, Stadt, Land, Nationalität, Verein
+- PFLICHTFELDER: Name, Geschlecht, Geburtstag, Stadt, Land, NationalitÃ¤t, Verein
 - Mindestens eine Sportart muss mit "x" markiert sein
-- Level nur für markierte Sportarten angeben
+- Level nur fÃ¼r markierte Sportarten angeben
 - Telefon und Email sind optional (aber empfohlen)
-- DUPR ID ist nur für Pickleball-Spieler relevant (optional)
-- Die erste Zeile (Überschriften) nicht löschen!
-- Datei als .xlsx oder .xls speichern für Import
-- Keine leeren Zeilen zwischen den Einträgen`
+- DUPR ID ist nur fÃ¼r Pickleball-Spieler relevant (optional)
+- Die erste Zeile (Ãœberschriften) nicht lÃ¶schen!
+- Datei als .xlsx oder .xls speichern fÃ¼r Import
+- Keine leeren Zeilen zwischen den EintrÃ¤gen`
 
               // Download Vorlage
               const blob1 = new Blob([template], { type: 'text/csv;charset=utf-8;' })
@@ -571,7 +571,7 @@ WICHTIGE HINWEISE:
             }}
             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
           >
-            📥 {t('database.templateAndInstructions')}
+            ðŸ“¥ {t('database.templateAndInstructions')}
           </button>
           <button
             onClick={async () => {
@@ -592,7 +592,7 @@ WICHTIGE HINWEISE:
                 .filter(([_, group]) => group.length > 1)
               
               if (duplicates.length === 0) {
-                alert(`✅ ${t('database.noDuplicatesFound')}`)
+                alert(`âœ… ${t('database.noDuplicatesFound')}`)
                 return
               }
               
@@ -616,11 +616,11 @@ WICHTIGE HINWEISE:
                 setIsLoading(true)
                 let deletedCount = 0
                 
-                // Lösche alle außer dem besten Eintrag jeder Gruppe
+                // LÃ¶sche alle auÃŸer dem besten Eintrag jeder Gruppe
                 for (const [name, group] of duplicates) {
-                  // Sortiere nach Vollständigkeit der Daten (beste zuerst)
+                  // Sortiere nach VollstÃ¤ndigkeit der Daten (beste zuerst)
                   const sorted = group.sort((a, b) => {
-                    // Zähle ausgefüllte Felder
+                    // ZÃ¤hle ausgefÃ¼llte Felder
                     const scoreA = [
                       a.email, a.phone, a.birthday, a.city, 
                       a.country, a.nationality, a.club, a.duprId
@@ -631,21 +631,21 @@ WICHTIGE HINWEISE:
                       b.country, b.nationality, b.club, b.duprId
                     ].filter(field => field && field !== '').length
                     
-                    // Höhere Punktzahl = mehr Daten = besser
+                    // HÃ¶here Punktzahl = mehr Daten = besser
                     if (scoreB !== scoreA) return scoreB - scoreA
                     
-                    // Bei gleicher Punktzahl: älterer Eintrag gewinnt
+                    // Bei gleicher Punktzahl: Ã¤lterer Eintrag gewinnt
                     return new Date(a.createdAt || 0) - new Date(b.createdAt || 0)
                   })
                   
-                  // Lösche alle außer dem ersten (besten)
+                  // LÃ¶sche alle auÃŸer dem ersten (besten)
                   for (let i = 1; i < sorted.length; i++) {
                     try {
                       await dbOperations.deletePlayer(sorted[i].id)
                       deletedCount++
-                      console.log(`Gelöscht: ${sorted[i].name} (ID: ${sorted[i].id})`)
+                      console.log(`GelÃ¶scht: ${sorted[i].name} (ID: ${sorted[i].id})`)
                     } catch (error) {
-                      console.error(`Fehler beim Löschen von ${sorted[i].name}:`, error)
+                      console.error(`Fehler beim LÃ¶schen von ${sorted[i].name}:`, error)
                     }
                   }
                 }
@@ -655,7 +655,7 @@ WICHTIGE HINWEISE:
                 
               } catch (error) {
                 console.error('Fehler beim Bereinigen:', error)
-                alert(`❌ ${t('database.errorCleaning')}`)
+                alert(`âŒ ${t('database.errorCleaning')}`)
               } finally {
                 setIsLoading(false)
               }
@@ -663,7 +663,7 @@ WICHTIGE HINWEISE:
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
             disabled={isLoading}
           >
-            🧹 {t('database.cleanDuplicates')}
+            ðŸ§¹ {t('database.cleanDuplicates')}
           </button>
         </div>
 
@@ -682,7 +682,7 @@ WICHTIGE HINWEISE:
           }}
           className="text-gray-500 hover:text-gray-700 text-2xl"
         >
-          ✕
+          âœ•
         </button>
       </div>
       <div className="overflow-y-auto flex-1 pr-2">
@@ -770,7 +770,7 @@ WICHTIGE HINWEISE:
                 )}
               </div>
 
-              {/* Skill Level nur für ausgewählte Sportarten */}
+              {/* Skill Level nur fÃ¼r ausgewÃ¤hlte Sportarten */}
               {formData.sports.padel && (
                 <div>
                   <label className="block text-sm font-medium mb-1">{t('sports.padel')} {t('player.level')}</label>
@@ -868,7 +868,7 @@ WICHTIGE HINWEISE:
                   value={formData.city}
                   onChange={(e) => setFormData({...formData, city: e.target.value})}
                   className="w-full px-3 py-2 border rounded"
-                  placeholder="z.B. München"
+                  placeholder="z.B. MÃ¼nchen"
                   required
                 />
               </div>
@@ -894,21 +894,21 @@ WICHTIGE HINWEISE:
                   required
                 >
             
-                  <option value="DE">🇩🇪 Deutschland</option>
-                  <option value="ES">🇪🇸 España</option>
-                  <option value="FR">🇫🇷 France</option>
-                  <option value="IT">🇮🇹 Italia</option>
-                  <option value="US">🇺🇸 USA</option>
-                  <option value="GB">🇬🇧 Great Britain</option>
-                  <option value="AT">🇦🇹 Österreich</option>
-                  <option value="CH">🇨🇭 Schweiz</option>
-                  <option value="NL">🇳🇱 Nederland</option>
-                  <option value="BE">🇧🇪 België</option>
-                  <option value="PT">🇵🇹 Portugal</option>
-                  <option value="SE">🇸🇪 Sverige</option>
-                  <option value="DK">🇩🇰 Danmark</option>
-                  <option value="NO">🇳🇴 Norge</option>
-                  <option value="PL">🇵🇱 Polska</option>
+                  <option value="DE">ðŸ‡©ðŸ‡ª Deutschland</option>
+                  <option value="ES">ðŸ‡ªðŸ‡¸ EspaÃ±a</option>
+                  <option value="FR">ðŸ‡«ðŸ‡· France</option>
+                  <option value="IT">ðŸ‡®ðŸ‡¹ Italia</option>
+                  <option value="US">ðŸ‡ºðŸ‡¸ USA</option>
+                  <option value="GB">ðŸ‡¬ðŸ‡§ Great Britain</option>
+                  <option value="AT">ðŸ‡¦ðŸ‡¹ Ã–sterreich</option>
+                  <option value="CH">ðŸ‡¨ðŸ‡­ Schweiz</option>
+                  <option value="NL">ðŸ‡³ðŸ‡± Nederland</option>
+                  <option value="BE">ðŸ‡§ðŸ‡ª BelgiÃ«</option>
+                  <option value="PT">ðŸ‡µðŸ‡¹ Portugal</option>
+                  <option value="SE">ðŸ‡¸ðŸ‡ª Sverige</option>
+                  <option value="DK">ðŸ‡©ðŸ‡° Danmark</option>
+                  <option value="NO">ðŸ‡³ðŸ‡´ Norge</option>
+                  <option value="PL">ðŸ‡µðŸ‡± Polska</option>
                 </select>
               </div>
 
@@ -919,7 +919,7 @@ WICHTIGE HINWEISE:
                   value={formData.club}
                   onChange={(e) => setFormData({...formData, club: e.target.value})}
                   className="w-full px-3 py-2 border rounded"
-                  placeholder="z.B. TC Blau-Weiß München"
+                  placeholder="z.B. TC Blau-WeiÃŸ MÃ¼nchen"
                   required
                 />
               </div>
@@ -1041,16 +1041,16 @@ WICHTIGE HINWEISE:
                               )}
                             </p>
                             <div className="text-sm text-gray-600 flex gap-4">
-                              <span>{player.gender === 'female' ? '♀️' : '♂️'}</span>
+                              <span>{player.gender === 'female' ? 'â™€ï¸' : 'â™‚ï¸'}</span>
                               {player.sports?.padel && <span>{t('sports.padel')}: {player.padelSkill}</span>}
                               {player.sports?.pickleball && <span>{t('sports.pickleball')}: {player.pickleballSkill}</span>}
                               {player.sports?.spinxball && <span>{t('sports.spinxball')}: {player.spinxballSkill}</span>}
                             </div>
-                            {/* Neue Zeile für zusätzliche Infos */}
+                            {/* Neue Zeile fÃ¼r zusÃ¤tzliche Infos */}
                             <div className="text-xs text-gray-500 mt-1">
-                              {player.club && <span className="mr-3">🏛️ {player.club}</span>}
-                              {player.city && <span className="mr-3">📍 {player.city}</span>}
-                              {age && <span className="mr-3">🎂 {age} {t('database.age')}</span>}
+                              {player.club && <span className="mr-3">ðŸ›ï¸ {player.club}</span>}
+                              {player.city && <span className="mr-3">ðŸ“ {player.city}</span>}
+                              {age && <span className="mr-3">ðŸŽ‚ {age} {t('database.age')}</span>}
                               {player.duprId && player.sports?.pickleball && (
                                 <span className="mr-3">DUPR: {player.duprId}</span>
                               )}

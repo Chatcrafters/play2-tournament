@@ -1,9 +1,9 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTranslation } from '../components/LanguageSelector'
 
 export default function Auth() {
-  const { t } = useTranslation()
+  const t = useTranslation()?.t || ((key) => key)
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

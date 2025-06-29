@@ -1,4 +1,4 @@
-import { EventShare } from './EventShare'
+﻿import { EventShare } from './EventShare'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { generateAmericanoSchedule } from '../utils/tournaments'
 import { useTranslation } from './LanguageSelector'
@@ -14,7 +14,7 @@ export function EventDetailView({
   savedPlayers,
   onOpenPlayerDatabase
 }) {
-  const { t } = useTranslation()
+  const t = useTranslation()?.t || ((key) => key)
   
   // State Management
   const [localEvent, setLocalEvent] = useState(() => {
@@ -79,7 +79,7 @@ export function EventDetailView({
     return (
       <div className="max-w-7xl mx-auto px-4 py-6">
         <button onClick={onBack} className="mb-4 text-blue-600 hover:text-blue-800">
-          ← {t('app.backToOverview')}
+          â† {t('app.backToOverview')}
         </button>
         <p>{t('messages.eventNotLoaded')}</p>
       </div>
@@ -150,13 +150,13 @@ export function EventDetailView({
         // Berechne Fairness-Metriken
         const fairnessMetrics = calculateFairnessMetrics(result, localEvent.players)
         
-        // Konvertiere zum erwarteten Format für EventDetailView
+        // Konvertiere zum erwarteten Format fÃ¼r EventDetailView
         const newSchedule = result.schedule.map((round, index) => {
           const playingPlayerIds = new Set()
           const matches = []
           
           round.matches.forEach(match => {
-            // Sichere Überprüfung auf team1 und team2
+            // Sichere ÃœberprÃ¼fung auf team1 und team2
             if (match.team1 && match.team2 && match.team1.length === 2 && match.team2.length === 2) {
               match.team1.forEach(p => p && p.id && playingPlayerIds.add(p.id))
               match.team2.forEach(p => p && p.id && playingPlayerIds.add(p.id))
@@ -224,7 +224,7 @@ export function EventDetailView({
     const maxOpponentRepeats = Math.max(...Object.values(result.statistics.opponentMatrix)
       .map(row => Math.max(...Object.values(row))))
     
-    // Gleichmäßigkeit der Spiele (Standardabweichung)
+    // GleichmÃ¤ÃŸigkeit der Spiele (Standardabweichung)
     const avgGames = result.statistics.gamesPlayed.reduce((a, b) => a + b, 0) / playerCount
     const gameDeviation = Math.sqrt(
       result.statistics.gamesPlayed.reduce((sum, games) => 
@@ -255,7 +255,7 @@ export function EventDetailView({
     }
   }
 
-  // Spielplan-Option auswählen
+  // Spielplan-Option auswÃ¤hlen
   const handleSelectSchedule = (index) => {
     const selectedOption = scheduleOptions[index]
     
@@ -422,7 +422,7 @@ export function EventDetailView({
       })
     })
     
-    // Verwende Fairness-Score aus der Spielplan-Generierung wenn verfügbar
+    // Verwende Fairness-Score aus der Spielplan-Generierung wenn verfÃ¼gbar
     const standings = Object.values(playerStats).map(player => {
       const scheduleFairness = scheduleStats?.playerStats?.find(p => p.name === player.name)?.fairness
       
@@ -483,17 +483,17 @@ export function EventDetailView({
           onClick={onBack}
           className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-2"
         >
-          ← {t('app.backToOverview')}
+          â† {t('app.backToOverview')}
         </button>
         
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-3xl font-bold mb-2">{localEvent.name}</h2>
             <p className="text-gray-600">
-              {t(`sports.${localEvent.sport}`)} • {t(`event.type.${localEvent.eventType}`)} • {t(`event.format.${localEvent.format}`)}
+              {t(`sports.${localEvent.sport}`)} â€¢ {t(`event.type.${localEvent.eventType}`)} â€¢ {t(`event.format.${localEvent.format}`)}
             </p>
             <p className="text-sm text-gray-500 mt-1">
-              {localEvent.date ? new Date(localEvent.date).toLocaleDateString('de-DE') : t('event.noDate')} • 
+              {localEvent.date ? new Date(localEvent.date).toLocaleDateString('de-DE') : t('event.noDate')} â€¢ 
               {localEvent.location || t('event.noLocation')}
             </p>
           </div>
@@ -525,7 +525,7 @@ export function EventDetailView({
               }}
               className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
             >
-              📚 {t('player.fromDatabase')}
+              ðŸ“š {t('player.fromDatabase')}
             </button>
           </div>
         </div>
@@ -584,13 +584,13 @@ export function EventDetailView({
               <span className="font-medium">{player.name}</span>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">
-                  {player.gender === 'female' ? '♀' : '♂'} • {player.skillLevel || 'B'}
+                  {player.gender === 'female' ? 'â™€' : 'â™‚'} â€¢ {player.skillLevel || 'B'}
                 </span>
                 <button
                   onClick={() => handleRemovePlayer(player.id)}
                   className="text-red-600 hover:text-red-800"
                 >
-                  ✕
+                  âœ•
                 </button>
               </div>
             </div>
@@ -639,8 +639,8 @@ export function EventDetailView({
           <div className="mb-4 bg-white rounded-lg shadow-md p-4">
             <div className="flex justify-between items-center mb-2">
               <div className="text-sm text-gray-600">
-                <span className="font-medium">{schedule.length}</span> {t('schedule.rounds')} • 
-                <span className="font-medium"> {localEvent.players?.length || 0}</span> {t('player.players')} • 
+                <span className="font-medium">{schedule.length}</span> {t('schedule.rounds')} â€¢ 
+                <span className="font-medium"> {localEvent.players?.length || 0}</span> {t('player.players')} â€¢ 
                 <span className="font-medium"> {localEvent.courts || 1}</span> {t('schedule.courts')}
                 {localEvent.fairnessScore > 0 && (
                   <span className={`ml-3 px-3 py-1 rounded-full text-sm font-semibold ${getFairnessColor(localEvent.fairnessScore)}`}>
@@ -655,7 +655,7 @@ export function EventDetailView({
                   onClick={() => setShowTableSettings(!showTableSettings)}
                   className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
                 >
-                  ⚙️ {t('messages.tableSettings')}
+                  âš™ï¸ {t('messages.tableSettings')}
                 </button>
                 
                 {/* Regenerate Button mit Counter */}
@@ -675,7 +675,7 @@ export function EventDetailView({
                     }}
                     className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
                   >
-                    🔄 {t('schedule.regenerate')} ({localEvent.regenerateCount || 0}/2)
+                    ðŸ”„ {t('schedule.regenerate')} ({localEvent.regenerateCount || 0}/2)
                   </button>
                 )}
               </div>
@@ -777,7 +777,7 @@ export function EventDetailView({
                                   <span className="font-bold text-lg">{result.result.team2Score}</span>
                                   <button
                                     onClick={() => {
-                                      // Ergebnis löschen
+                                      // Ergebnis lÃ¶schen
                                       const newResults = { ...matchResults }
                                       delete newResults[matchKey]
                                       setMatchResults(newResults)
@@ -785,7 +785,7 @@ export function EventDetailView({
                                     }}
                                     className="ml-2 text-xs text-red-600 hover:text-red-800"
                                   >
-                                    ✕
+                                    âœ•
                                   </button>
                                 </div>
                               ) : (
@@ -815,7 +815,7 @@ export function EventDetailView({
                                     disabled={score.team1Score === undefined || score.team2Score === undefined}
                                     className="ml-2 text-green-600 hover:text-green-800 disabled:text-gray-400"
                                   >
-                                    ✓
+                                    âœ“
                                   </button>
                                 </div>
                               )}
@@ -872,7 +872,7 @@ export function EventDetailView({
                         idx === 2 ? 'bg-orange-50' : ''
                       }`}>
                         <td className="py-3 px-2 font-semibold">
-                          {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
+                          {idx === 0 ? 'ðŸ¥‡' : idx === 1 ? 'ðŸ¥ˆ' : idx === 2 ? 'ðŸ¥‰' : idx + 1}
                         </td>
                         <td className="py-3 px-2 font-medium">{player.name}</td>
                         <td className="text-center py-3 px-2 font-bold text-lg">{player.points}</td>
@@ -925,7 +925,7 @@ export function EventDetailView({
         </>
       )}
 
-      {/* Modal für Spielplan-Optionen */}
+      {/* Modal fÃ¼r Spielplan-Optionen */}
       {showScheduleOptions && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -938,7 +938,7 @@ export function EventDetailView({
                 }}
                 className="text-gray-500 hover:text-gray-700 text-2xl"
               >
-                ✕
+                âœ•
               </button>
             </div>
             
@@ -1000,7 +1000,7 @@ export function EventDetailView({
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">{t('schedule.gameBalance')}:</span>
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">±{option.fairness.gameBalance}</span>
+                            <span className="font-medium">Â±{option.fairness.gameBalance}</span>
                             <div className={`text-xs px-2 py-1 rounded ${getFairnessColor(option.fairness.balanceScore)}`}>
                               {option.fairness.balanceScore}%
                             </div>
@@ -1039,7 +1039,7 @@ export function EventDetailView({
               </div>
             </div>
             
-            {/* Erklärung */}
+            {/* ErklÃ¤rung */}
             <div className="mt-6 p-4 bg-gray-50 rounded text-sm">
               <p className="font-semibold mb-2">{t('schedule.fairnessRating')}:</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
@@ -1065,7 +1065,7 @@ export function EventDetailView({
         </div>
       )}
 
-      {/* Player Database Modal - Nur als Fallback für Demo */}
+      {/* Player Database Modal - Nur als Fallback fÃ¼r Demo */}
       {showPlayerDatabase && !onOpenPlayerDatabase && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -1075,7 +1075,7 @@ export function EventDetailView({
                 onClick={() => setShowPlayerDatabase(false)}
                 className="text-gray-500 hover:text-gray-700 text-2xl"
               >
-                ✕
+                âœ•
               </button>
             </div>
             
@@ -1099,12 +1099,12 @@ export function EventDetailView({
                     <div>
                       <span className="font-medium">{player.name}</span>
                       <span className="ml-3 text-sm text-gray-600">
-                        {player.gender === 'female' ? '♀' : '♂'} • {player.skillLevel}
+                        {player.gender === 'female' ? 'â™€' : 'â™‚'} â€¢ {player.skillLevel}
                       </span>
                     </div>
                     <button
                       onClick={() => {
-                        // Prüfe ob Spieler bereits angemeldet
+                        // PrÃ¼fe ob Spieler bereits angemeldet
                         const exists = localEvent.players.some(p => 
                           p.name.toLowerCase() === player.name.toLowerCase()
                         )
@@ -1114,7 +1114,7 @@ export function EventDetailView({
                           return
                         }
                         
-                        // Füge Spieler hinzu
+                        // FÃ¼ge Spieler hinzu
                         const newPlayer = {
                           ...player,
                           id: `imported_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -1142,7 +1142,7 @@ export function EventDetailView({
                     <div>
                       <span className="font-medium">{player.name}</span>
                       <span className="ml-3 text-sm text-gray-600">
-                        {player.gender === 'female' ? '♀' : '♂'} • Level {player.skillLevel}
+                        {player.gender === 'female' ? 'â™€' : 'â™‚'} â€¢ Level {player.skillLevel}
                       </span>
                     </div>
                     <button

@@ -1,4 +1,4 @@
-import { Calendar, Clock, MapPin, Trophy, Users, Edit, Play, BarChart3, RefreshCw } from 'lucide-react'
+﻿import { Calendar, Clock, MapPin, Trophy, Users, Edit, Play, BarChart3, RefreshCw } from 'lucide-react'
 import { EventShare } from './EventShare'
 import { useTranslation } from './LanguageSelector'
 import { interpolate } from '../utils/translations'
@@ -6,7 +6,7 @@ import { generateAmericanoSchedule } from '../utils/tournaments'
 import { useState, useMemo, useCallback } from 'react'
 
 export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, canManageEvent = false }) => {
-  const { t, language } = useTranslation()
+  const translationHook = useTranslation() || {}; const { t = (key) => key, language = "de" } = translationHook
   const [showScheduleOptions, setShowScheduleOptions] = useState(false)
   const [scheduleOptions, setScheduleOptions] = useState([])
   const [selectedScheduleIndex, setSelectedScheduleIndex] = useState(null)
@@ -160,7 +160,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
     const maxOpponentRepeats = Math.max(...Object.values(result.statistics.opponentMatrix)
       .map(row => Math.max(...Object.values(row))))
     
-    // Gleichmäßigkeit der Spiele (Standardabweichung)
+    // GleichmÃ¤ÃŸigkeit der Spiele (Standardabweichung)
     const avgGames = result.statistics.gamesPlayed.reduce((a, b) => a + b, 0) / playerCount
     const gameDeviation = Math.sqrt(
       result.statistics.gamesPlayed.reduce((sum, games) => 
@@ -352,11 +352,11 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
             <h2 className="text-2xl font-bold mb-2">{safeEvent.title || safeEvent.name || t('event.unnamed')}</h2>
             <p className="text-gray-600">{safeEvent.description}</p>
             
-            {/* Event-Kopfinfo mit Übersetzungen */}
+            {/* Event-Kopfinfo mit Ãœbersetzungen */}
             {(safeEvent.price || safeEvent.registrationDeadline || safeEvent.minGamesPerPlayer) && (
               <div className="mt-3 text-sm text-gray-600">
                 {safeEvent.price && (
-                  <span>{t('event.participationFee')}: {safeEvent.price}€ </span>
+                  <span>{t('event.participationFee')}: {safeEvent.price}â‚¬ </span>
                 )}
                 {safeEvent.registrationDeadline && (
                   <span>{t('event.registrationDeadline')}: {formatRegistrationDeadline(safeEvent.registrationDeadline)} </span>
@@ -448,10 +448,10 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
 
             {safeEvent.price && (
               <div className="flex items-center gap-3">
-                <span className="text-xl">💰</span>
+                <span className="text-xl">ðŸ’°</span>
                 <div>
                   <p className="text-sm text-gray-500">{t('event.participationFee')}</p>
-                  <p className="font-medium">{safeEvent.price}€</p>
+                  <p className="font-medium">{safeEvent.price}â‚¬</p>
                 </div>
               </div>
             )}
@@ -513,11 +513,11 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
         {/* Status and Actions */}
         {safeEvent.status === 'completed' ? (
           <div className="bg-green-100 text-green-800 px-4 py-3 rounded-lg">
-            <p className="font-semibold">✅ {t('messages.tournamentComplete')}</p>
+            <p className="font-semibold">âœ… {t('messages.tournamentComplete')}</p>
           </div>
         ) : isEventPast ? (
           <div className="bg-yellow-100 text-yellow-800 px-4 py-3 rounded-lg">
-            <p className="font-semibold">⚠️ {t('messages.eventDatePast')}</p>
+            <p className="font-semibold">âš ï¸ {t('messages.eventDatePast')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -565,7 +565,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
         )}
       </div>
 
-      {/* Live-Tabelle mit korrekten Übersetzungen */}
+      {/* Live-Tabelle mit korrekten Ãœbersetzungen */}
       {hasSchedule && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
@@ -581,7 +581,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                 }}
                 className="flex items-center gap-2 px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
               >
-                {safeEvent.showLiveTable !== false ? '👁️ ' + t('table.hide') : '👁️‍🗨️ ' + t('table.show')}
+                {safeEvent.showLiveTable !== false ? 'ðŸ‘ï¸ ' + t('table.hide') : 'ðŸ‘ï¸â€ðŸ—¨ï¸ ' + t('table.show')}
               </button>
             )}
           </div>
@@ -609,7 +609,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                       idx === 2 ? 'bg-orange-50' : ''
                     }`}>
                       <td className="py-2 px-3 font-semibold">
-                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
+                        {idx === 0 ? 'ðŸ¥‡' : idx === 1 ? 'ðŸ¥ˆ' : idx === 2 ? 'ðŸ¥‰' : idx + 1}
                       </td>
                       <td className="py-2 px-3">{player.name}</td>
                       <td className="text-center py-2 px-3 font-bold">{player.points || 0}</td>
@@ -630,7 +630,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
         </div>
       )}
 
-      {/* Modal für Spielplan-Optionen */}
+      {/* Modal fÃ¼r Spielplan-Optionen */}
       {showScheduleOptions && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -643,7 +643,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                 }}
                 className="text-gray-500 hover:text-gray-700 text-2xl"
               >
-                ✕
+                âœ•
               </button>
             </div>
             
@@ -705,7 +705,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">{t('schedule.gameBalance')}:</span>
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">±{option.fairness.gameBalance}</span>
+                            <span className="font-medium">Â±{option.fairness.gameBalance}</span>
                             <div className={`text-xs px-2 py-1 rounded ${getFairnessColor(option.fairness.balanceScore)}`}>
                               {option.fairness.balanceScore}%
                             </div>
@@ -749,7 +749,7 @@ export const EventDetail = ({ event, onEdit, onUpdateEvent, onStartTournament, c
               </div>
             </div>
             
-            {/* Erklärung */}
+            {/* ErklÃ¤rung */}
             <div className="mt-6 p-4 bg-gray-50 rounded text-sm">
               <p className="font-semibold mb-2">{t('schedule.fairnessRating')}:</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">

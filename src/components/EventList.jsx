@@ -3,7 +3,7 @@ import { useTranslation } from './LanguageSelector'
 import { useRef, useMemo, useCallback } from 'react'
 
 export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent, canManageEvents }) => {
-  const { t } = useTranslation()
+  const t = useTranslation()?.t || ((key) => key)
   const touchStartTime = useRef(0)
   const touchStartY = useRef(0)
   

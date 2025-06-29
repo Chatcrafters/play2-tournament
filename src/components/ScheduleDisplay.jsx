@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useTranslation } from './LanguageSelector'
 
 export const ScheduleDisplay = ({ 
@@ -19,7 +19,7 @@ export const ScheduleDisplay = ({
   sharePlayerSchedule,
   highlightRound
 }) => {
-  const { t } = useTranslation()
+  const t = useTranslation()?.t || ((key) => key)
   const [activeDay, setActiveDay] = useState(0)
   
   // Gruppiere Runden nach Tagen
@@ -65,7 +65,7 @@ export const ScheduleDisplay = ({
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
-            {showResults ? `✓ ${t('results.results')}` : t('results.results')}
+            {showResults ? `âœ“ ${t('results.results')}` : t('results.results')}
           </button>
           
           <div className="relative">
@@ -73,7 +73,7 @@ export const ScheduleDisplay = ({
               onClick={() => setShowExportMenu(!showExportMenu)}
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
             >
-              {t('buttons.export')} ↓
+              {t('buttons.export')} â†“
             </button>
             
             {showExportMenu && (
@@ -85,7 +85,7 @@ export const ScheduleDisplay = ({
                   }}
                   className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                 >
-                  📄 {t('buttons.exportPDF')}
+                  ðŸ“„ {t('buttons.exportPDF')}
                 </button>
                 <button
                   onClick={() => {
@@ -94,7 +94,7 @@ export const ScheduleDisplay = ({
                   }}
                   className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                 >
-                  💬 {t('buttons.shareResults')}
+                  ðŸ’¬ {t('buttons.shareResults')}
                 </button>
               </div>
             )}
@@ -102,7 +102,7 @@ export const ScheduleDisplay = ({
         </div>
       </div>
 
-      {/* Tabs für mehrtägige Events */}
+      {/* Tabs fÃ¼r mehrtÃ¤gige Events */}
       {days.length > 1 && (
         <div className="flex space-x-1 mb-6 border-b">
           {days.map((day, index) => (
@@ -127,7 +127,7 @@ export const ScheduleDisplay = ({
         </div>
       )}
 
-      {/* Spielplan für aktiven Tag */}
+      {/* Spielplan fÃ¼r aktiven Tag */}
       <div className="space-y-4">
         {(days[activeDay] || days[0]).rounds.map((round, roundIndex) => {
           const actualRoundIndex = schedule.rounds.findIndex(r => r === round)
@@ -155,7 +155,7 @@ export const ScheduleDisplay = ({
                 </div>
               )}
 
-              {/* Tag-Info nur bei eintägigen Events */}
+              {/* Tag-Info nur bei eintÃ¤gigen Events */}
               {days.length === 1 && roundIndex === 0 && (
                 <div className="text-sm text-gray-500 mb-2">
                   {round.dayName}, {new Date(round.date).toLocaleDateString('de-DE')}
@@ -308,7 +308,7 @@ export const ScheduleDisplay = ({
                         }}
                         className="text-blue-600 hover:text-blue-800 text-sm"
                       >
-                        📅 {t('schedule.playerSchedule')}
+                        ðŸ“… {t('schedule.playerSchedule')}
                       </button>
                     </td>
                   </tr>
