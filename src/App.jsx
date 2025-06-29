@@ -14,6 +14,8 @@ import { LanguageProvider, LanguageSelector, useTranslation } from './components
 import { transformToDB, transformFromDB, cleanEventData } from './utils/dbHelpers'
 import { ToastProvider, useToast, ErrorBoundary } from './components/Toast'
 import { withErrorHandling, createNetworkStatusHandler, handleSupabaseError, validateForm } from './utils/errorHandling'
+// GEÄNDERT: Neuer einheitlicher Import für Turnier-Algorithmen
+import { generateTournament, generateAmericanoSchedule } from './utils/tournaments'
 import './App.css'
 
 // Date validation utility
@@ -523,6 +525,7 @@ function AppContent() {
     }
   }, [selectedEvent, handleUpdateEvent, toast, t])
 
+  // GEÄNDERT: Verwende den neuen einheitlichen Turnier-Generator
   const handleStartTournament = useCallback((event) => {
     // Validation before start
     if (!event.players || event.players.length < 4) {
@@ -530,8 +533,38 @@ function AppContent() {
       return
     }
     
-    setRunningTournament(event)
-    toast.showSuccess(t('tournament.started') || 'Turnier gestartet!')
+    try {
+      // Generiere Turnier mit dem neuen System
+      const tournamentConfig = {
+        format: event.eventType || 'americano',
+        players: event.players,
+        courts: event.courts || 1,
+        roundDuration: event.averageGameTime || 15,
+        startTime: event.startTime || '09:00',
+        endTime: event.endTime || '18:00',
+        breaks: event.breaks || [],
+        options: {
+          regenerateCount: 0
+        }
+      }
+      
+      const tournament = generateTournament(tournamentConfig)
+      
+      // Erweitere Event mit Turnier-Daten
+      const enhancedEvent = {
+        ...event,
+        tournament,
+        schedule: tournament.schedule,
+        tournamentStats: tournament.statistics
+      }
+      
+      setRunningTournament(enhancedEvent)
+      toast.showSuccess(t('tournament.started') || 'Turnier gestartet!')
+      
+    } catch (error) {
+      console.error('Tournament generation failed:', error)
+      toast.showError(`Turnier-Generierung fehlgeschlagen: ${error.message}`)
+    }
   }, [toast, t])
 
   const handleTournamentComplete = useCallback(async (results) => {
