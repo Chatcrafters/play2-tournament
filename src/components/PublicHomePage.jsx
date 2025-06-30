@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
+import { fixEncoding } from '../utils/encoding';
 import { supabase } from '../lib/supabase'
 import { formatTimeRange } from '../utils/timeFormat'
 
@@ -325,8 +326,8 @@ function EventDetailModal({ event, onClose }) {
   const getPlayerName = (player) => {
     if (!player) return 'TBD'
     // Wenn player bereits ein Objekt mit name ist
-    if (typeof player === 'object' && player.name) {
-      return player.name
+    if (typeof player === 'object' && fixEncoding(player.name)) {
+      return fixEncoding(player.name)
     }
     // Wenn player eine ID ist
     if (typeof player === 'string') {
@@ -383,7 +384,7 @@ function EventDetailModal({ event, onClose }) {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {event.players.map((player, index) => (
                   <div key={player.id || index} className="bg-gray-100 rounded px-3 py-2 text-sm">
-                    {player.name}
+                    {fixEncoding(fixEncoding(player.name))}
                     {player.skill && (
                       <span className="text-gray-500 ml-1">({player.skill})</span>
                     )}
@@ -483,7 +484,7 @@ function EventDetailModal({ event, onClose }) {
                       .map((player, index) => (
                         <tr key={index} className="hover:bg-gray-50">
                           <td className="border p-2">{index + 1}</td>
-                          <td className="border p-2">{player.name}</td>
+                          <td className="border p-2">{fixEncoding(fixEncoding(player.name))}</td>
                           <td className="border p-2 text-center">{player.games || 0}</td>
                           <td className="border p-2 text-center font-semibold">{player.points || 0}</td>
                           <td className="border p-2 text-center">
@@ -508,3 +509,4 @@ function EventDetailModal({ event, onClose }) {
     </div>
   )
 }
+

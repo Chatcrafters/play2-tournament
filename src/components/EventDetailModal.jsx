@@ -1,4 +1,5 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
+import { fixEncoding } from '../utils/encoding';
 import { formatTimeRange } from '../utils/timeFormat'
 
 export function EventDetailModal({ event, onClose }) {
@@ -144,7 +145,7 @@ export function EventDetailModal({ event, onClose }) {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {event.players.map((player, index) => (
                   <div key={player.id || index} className="bg-gray-100 rounded px-3 py-2 text-sm">
-                    {player.name}
+                    {fixEncoding(fixEncoding(player.name))}
                     {player.skill && (
                       <span className="text-gray-500 ml-1">({player.skill})</span>
                     )}

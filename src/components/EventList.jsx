@@ -1,6 +1,8 @@
 ﻿import { Calendar, Clock, Users, MapPin } from 'lucide-react'
+import { fixEncoding } from '../utils/encoding';
 import { useTranslation } from './LanguageSelector'
 import { useRef, useMemo, useCallback } from 'react'
+import { fixEncoding } from '../utils/encoding';
 
 export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent, canManageEvents }) => {
   const t = useTranslation()?.t || ((key) => key)
@@ -334,4 +336,5 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
     </div>
   );
 };
+
 
