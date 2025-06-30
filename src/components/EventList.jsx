@@ -2,8 +2,6 @@
 import { fixEncoding } from '../utils/encoding';
 import { useTranslation } from './LanguageSelector'
 import { useRef, useMemo, useCallback } from 'react'
-import { fixEncoding } from '../utils/encoding';
-
 export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent, canManageEvents }) => {
   const t = useTranslation()?.t || ((key) => key)
   const touchStartTime = useRef(0)
@@ -336,6 +334,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
     </div>
   );
 };
+
 
 
 
