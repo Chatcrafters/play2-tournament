@@ -3,6 +3,7 @@ import { dbOperations } from '../lib/supabase'
 import { transformFromDB, transformToDB } from '../utils/dbHelpers'
 import { useTranslation } from '../components/LanguageSelector'
 import { interpolate } from '../utils/translations'
+import { fixEncoding } from '../utils/encoding';
 
 // Helper-Funktionen fÃ¼r Level-Konvertierung
 const getPadelNumericValue = (level) => {
@@ -170,7 +171,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
         for (const player of playersToImport) {
           try {
             // PrÃ¼fe auf Duplikate
-            if (existingNames.has(player.name.toLowerCase().trim())) {
+            if (existingNames.has(fixEncoding(player.name).toLowerCase().trim())) {
               // removed console.log
               skipCount++
               continue
@@ -182,7 +183,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
             if (result) {
               successCount++
               // FÃ¼ge zur Liste hinzu fÃ¼r weitere Duplikat-Checks
-              existingNames.add(player.name.toLowerCase().trim())
+              existingNames.add(fixEncoding(player.name).toLowerCase().trim())
             } else {
               errorCount++
               // removed console.error
@@ -212,7 +213,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
   // PrÃ¼ft ob ein Spieler bereits im Event angemeldet ist
   const isPlayerAlreadyRegistered = (player) => {
     return existingPlayers.some(ep => 
-      ep.name.toLowerCase() === player.name.toLowerCase()
+      ep.name.toLowerCase() === fixEncoding(player.name).toLowerCase()
     )
   }
 
@@ -287,7 +288,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
   const handleEdit = (player) => {
     setEditingPlayer(player)
     setFormData({
-      name: player.name || '',
+      name: fixEncoding(player.name) || '',
       gender: player.gender || 'male',
       sports: player.sports || {
         padel: false,
@@ -300,10 +301,10 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
       phone: player.phone || '',
       email: player.email || '',
       birthday: player.birthday || '',
-      city: player.city || '',
+      city: fixEncoding(player.city) || '',
       country: player.country || '',
       nationality: player.nationality || 'DE',
-      club: player.club || '',
+      club: fixEncoding(player.club) || '',
       duprId: player.duprId || ''
     })
     setShowAddForm(true)
@@ -328,7 +329,7 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
     
     // PrÃ¼fe ob Spieler bereits angemeldet ist
     if (isPlayerAlreadyRegistered(player)) {
-      alert(interpolate(t('player.alreadyRegistered'), { name: player.name }))
+      alert(interpolate(t('player.alreadyRegistered'), { name: fixEncoding(player.name) }))
       return
     }
     
@@ -395,11 +396,11 @@ const PlayerDatabase = ({ onSelectPlayers, isOpen, onClose, existingPlayers = []
     // Existierende Suchfilter anwenden
     if (searchTerm) {
       filtered = filtered.filter(player =>
-        player.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        fixEncoding(player.name)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         player.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         player.phone?.includes(searchTerm) ||
-        player.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        player.club?.toLowerCase().includes(searchTerm.toLowerCase())
+        fixEncoding(player.city)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        fixEncoding(player.club)?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
@@ -580,7 +581,7 @@ WICHTIGE HINWEISE:
               
               // Gruppiere Spieler nach Namen
               players.forEach(player => {
-                const key = player.name.toLowerCase().trim()
+                const key = fixEncoding(player.name).toLowerCase().trim()
                 if (!duplicateGroups.has(key)) {
                   duplicateGroups.set(key, [])
                 }
@@ -688,7 +689,7 @@ WICHTIGE HINWEISE:
       <div className="overflow-y-auto flex-1 pr-2">
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">{t('player.name')} *</label>
+                <label className="block text-sm font-medium mb-1">{t('fixEncoding(player.name)')} *</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -1032,7 +1033,7 @@ WICHTIGE HINWEISE:
                           />
                           <div>
                             <p className={`font-semibold ${isRegistered ? 'line-through text-gray-500' : ''}`}>
-                              {player.name}
+                              {fixEncoding(player.name)}
                               {player.nationality && (
                                 <span className="ml-2">{getFlagEmoji(player.nationality)}</span>
                               )}
@@ -1048,8 +1049,8 @@ WICHTIGE HINWEISE:
                             </div>
                             {/* Neue Zeile fÃ¼r zusÃ¤tzliche Infos */}
                             <div className="text-xs text-gray-500 mt-1">
-                              {player.club && <span className="mr-3">ðŸ›ï¸ {player.club}</span>}
-                              {player.city && <span className="mr-3">ðŸ“ {player.city}</span>}
+                              {fixEncoding(player.club) && <span className="mr-3">ðŸ›ï¸ {fixEncoding(player.club)}</span>}
+                              {fixEncoding(player.city) && <span className="mr-3">ðŸ“ {fixEncoding(player.city)}</span>}
                               {age && <span className="mr-3">ðŸŽ‚ {age} {t('database.age')}</span>}
                               {player.duprId && player.sports?.pickleball && (
                                 <span className="mr-3">DUPR: {player.duprId}</span>
@@ -1118,4 +1119,5 @@ WICHTIGE HINWEISE:
 }
 
 export default PlayerDatabase
+
 

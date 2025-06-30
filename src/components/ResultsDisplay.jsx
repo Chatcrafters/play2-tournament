@@ -1,4 +1,5 @@
-import React from 'react'
+﻿import React from 'react'
+import { fixEncoding } from '../utils/encoding';
 import { Trophy, Medal, Award } from 'lucide-react'
 
 export const ResultsDisplay = ({ results, players }) => {
@@ -111,9 +112,9 @@ export const ResultsDisplay = ({ results, players }) => {
                   </td>
                   <td className="py-3 px-4">
                     <div>
-                      <p className="font-medium">{player.name}</p>
+                      <p className="font-medium">{fixEncoding(player.name)}</p>
                       <p className="text-xs text-gray-500">
-                        {player.gender === 'female' ? '♀' : '♂'} • Level {player.skillLevel}
+                        {player.gender === 'female' ? 'â™€' : 'â™‚'} â€¢ Level {player.skillLevel}
                       </p>
                     </div>
                   </td>
@@ -146,13 +147,13 @@ export const ResultsDisplay = ({ results, players }) => {
           </p>
         </div>
         <div className="bg-green-50 p-4 rounded-lg text-center">
-          <p className="text-sm text-gray-600">Höchste Punktzahl</p>
+          <p className="text-sm text-gray-600">HÃ¶chste Punktzahl</p>
           <p className="text-2xl font-bold text-green-700">
             {standings[0]?.points || 0}
           </p>
         </div>
         <div className="bg-purple-50 p-4 rounded-lg text-center">
-          <p className="text-sm text-gray-600">Ø Punkte/Spieler</p>
+          <p className="text-sm text-gray-600">Ã˜ Punkte/Spieler</p>
           <p className="text-2xl font-bold text-purple-700">
             {standings.length > 0 
               ? (standings.reduce((sum, p) => sum + p.points, 0) / standings.length).toFixed(1)
@@ -164,3 +165,4 @@ export const ResultsDisplay = ({ results, players }) => {
     </div>
   )
 }
+

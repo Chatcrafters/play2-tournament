@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { generateAmericanoSchedule } from '../utils/tournaments'
 import { useTranslation } from './LanguageSelector'
 import { interpolate } from '../utils/translations'
+import { fixEncoding } from '../utils/encoding';
 
 // removed console.log;
 
@@ -269,7 +270,7 @@ export function EventDetailView({
         const fairness = maxPossiblePartners > 0 ? Math.round((partnerCount / maxPossiblePartners) * 100) : 100
         
         return {
-          name: player.name,
+          name: fixEncoding(player.name),
           games,
           uniquePartners: partnerCount,
           uniqueOpponents: opponentCount,
@@ -424,7 +425,7 @@ export function EventDetailView({
     
     // Verwende Fairness-Score aus der Spielplan-Generierung wenn verfÃ¼gbar
     const standings = Object.values(playerStats).map(player => {
-      const scheduleFairness = scheduleStats?.playerStats?.find(p => p.name === player.name)?.fairness
+      const scheduleFairness = scheduleStats?.playerStats?.find(p => p.name === fixEncoding(player.name))?.fairness
       
       // Berechne Fairness basierend auf verschiedenen Partnern/Gegnern
       const maxPossiblePartners = Math.max(1, localEvent.players.length - 1)
@@ -535,7 +536,7 @@ export function EventDetailView({
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <input
                 type="text"
-                placeholder={t('player.name')}
+                placeholder={t('fixEncoding(player.name)')}
                 value={newPlayer.name}
                 onChange={(e) => setNewPlayer({...newPlayer, name: e.target.value})}
                 className="px-3 py-2 border rounded"
@@ -581,7 +582,7 @@ export function EventDetailView({
         <div className="space-y-2">
           {localEvent.players?.map(player => (
             <div key={player.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-              <span className="font-medium">{player.name}</span>
+              <span className="font-medium">{fixEncoding(player.name)}</span>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">
                   {player.gender === 'female' ? 'â™€' : 'â™‚'} â€¢ {player.skillLevel || 'B'}
@@ -763,7 +764,7 @@ export function EventDetailView({
                           <div className="flex-1 flex items-center justify-center gap-4">
                             <div className="text-right flex-1">
                               <span className="font-medium">
-                                {match.team1?.map(p => p.name).join(' & ')}
+                                {match.team1?.map(p => fixEncoding(p.name)).join(' & ')}
                               </span>
                             </div>
                             
@@ -823,7 +824,7 @@ export function EventDetailView({
                             
                             <div className="text-left flex-1">
                               <span className="font-medium">
-                                {match.team2?.map(p => p.name).join(' & ')}
+                                {match.team2?.map(p => fixEncoding(p.name)).join(' & ')}
                               </span>
                             </div>
                           </div>
@@ -834,7 +835,7 @@ export function EventDetailView({
                       <div className="p-3 bg-yellow-50 rounded">
                         <span className="font-medium text-sm">{t('player.waitingPlayers')}: </span>
                         <span className="text-sm">
-                          {round.waitingPlayers.map(p => p.name).join(', ')}
+                          {round.waitingPlayers.map(p => fixEncoding(p.name)).join(', ')}
                         </span>
                       </div>
                     )}
@@ -874,7 +875,7 @@ export function EventDetailView({
                         <td className="py-3 px-2 font-semibold">
                           {idx === 0 ? 'ðŸ¥‡' : idx === 1 ? 'ðŸ¥ˆ' : idx === 2 ? 'ðŸ¥‰' : idx + 1}
                         </td>
-                        <td className="py-3 px-2 font-medium">{player.name}</td>
+                        <td className="py-3 px-2 font-medium">{fixEncoding(player.name)}</td>
                         <td className="text-center py-3 px-2 font-bold text-lg">{player.points}</td>
                         <td className="text-center py-3 px-2">{player.gamesWon}</td>
                         <td className="text-center py-3 px-2">{player.gamesPlayed}</td>
@@ -1097,7 +1098,7 @@ export function EventDetailView({
                 ].map(player => (
                   <div key={player.id} className="p-3 bg-gray-50 rounded flex justify-between items-center">
                     <div>
-                      <span className="font-medium">{player.name}</span>
+                      <span className="font-medium">{fixEncoding(player.name)}</span>
                       <span className="ml-3 text-sm text-gray-600">
                         {player.gender === 'female' ? 'â™€' : 'â™‚'} â€¢ {player.skillLevel}
                       </span>
@@ -1106,11 +1107,11 @@ export function EventDetailView({
                       onClick={() => {
                         // PrÃ¼fe ob Spieler bereits angemeldet
                         const exists = localEvent.players.some(p => 
-                          p.name.toLowerCase() === player.name.toLowerCase()
+                          p.name.toLowerCase() === fixEncoding(player.name).toLowerCase()
                         )
                         
                         if (exists) {
-                          alert(interpolate(t('player.alreadyRegistered'), { name: player.name }))
+                          alert(interpolate(t('player.alreadyRegistered'), { name: fixEncoding(player.name) }))
                           return
                         }
                         
@@ -1140,7 +1141,7 @@ export function EventDetailView({
                 ].map(player => (
                   <div key={player.id} className="p-3 bg-gray-50 rounded flex justify-between items-center">
                     <div>
-                      <span className="font-medium">{player.name}</span>
+                      <span className="font-medium">{fixEncoding(player.name)}</span>
                       <span className="ml-3 text-sm text-gray-600">
                         {player.gender === 'female' ? 'â™€' : 'â™‚'} â€¢ Level {player.skillLevel}
                       </span>
@@ -1148,11 +1149,11 @@ export function EventDetailView({
                     <button
                       onClick={() => {
                         const exists = localEvent.players.some(p => 
-                          p.name.toLowerCase() === player.name.toLowerCase()
+                          p.name.toLowerCase() === fixEncoding(player.name).toLowerCase()
                         )
                         
                         if (exists) {
-                          alert(interpolate(t('player.alreadyRegistered'), { name: player.name }))
+                          alert(interpolate(t('player.alreadyRegistered'), { name: fixEncoding(player.name) }))
                           return
                         }
                         
@@ -1196,4 +1197,6 @@ export function EventDetailView({
     </div>
   )
 }
+
+
 
