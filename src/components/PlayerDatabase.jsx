@@ -689,7 +689,7 @@ WICHTIGE HINWEISE:
       <div className="overflow-y-auto flex-1 pr-2">
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">{t('fixEncoding(player.name)')} *</label>
+                <label className="block text-sm font-medium mb-1">{t('player.name')} *</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -1119,5 +1119,6 @@ WICHTIGE HINWEISE:
 }
 
 export default PlayerDatabase
+
 
 

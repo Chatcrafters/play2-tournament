@@ -536,7 +536,7 @@ export function EventDetailView({
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <input
                 type="text"
-                placeholder={t('fixEncoding(player.name)')}
+                placeholder={t('player.name')}
                 value={newPlayer.name}
                 onChange={(e) => setNewPlayer({...newPlayer, name: e.target.value})}
                 className="px-3 py-2 border rounded"
@@ -1197,6 +1197,7 @@ export function EventDetailView({
     </div>
   )
 }
+
 
 
 
