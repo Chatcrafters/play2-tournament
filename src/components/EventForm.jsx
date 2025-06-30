@@ -1,4 +1,10 @@
-﻿// ============ FAIRNESS CALCULATION SYSTEM ============
+﻿import React, { useState, useEffect } from 'react'
+import { 
+  Calendar, Clock, Users, MapPin, Trophy, Edit, Play, BarChart3, 
+  Info, Settings, Check, Plus, X, Coffee, Zap, Heart, Star, 
+  ChevronLeft, ChevronRight, Target, AlertCircle, TrendingUp 
+} from 'lucide-react'
+// ============ FAIRNESS CALCULATION SYSTEM ============
 
 // ERSETZE die calculateFairnessScore Funktion in EventForm.jsx komplett durch diese robuste Version:
 
@@ -1802,4 +1808,5 @@ const [isSubmitting, setIsSubmitting] = useState(false)
     </div>
   )
 }
+
 
