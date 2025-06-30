@@ -260,7 +260,7 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
               >
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-semibold text-lg">
-                    {event.title || event.name || t('event.unnamed') || 'Unbenanntes Event'}
+                    {fixEncoding(event.title || event.name) || t('event.unnamed') || 'Unbenanntes Event'}
                   </h3>
                   <span className={`text-sm font-medium ${getStatusColor(status)}`}>
                     {status}
@@ -336,5 +336,6 @@ export const EventList = ({ events, selectedEvent, onSelectEvent, onDeleteEvent,
     </div>
   );
 };
+
 
 
