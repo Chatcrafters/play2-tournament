@@ -94,8 +94,57 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        // Optimierte Asset-Namen für bessere MIME-Type Erkennung
+        assetFileNames: (assetInfo) => {
+          const info = assetInfo.name.split('.')
+          const ext = info[info.length - 1]
+          if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext)) {
+            return `assets/images/[name]-[hash][extname]`
+          }
+          if (/css/i.test(ext)) {
+            return `assets/styles/[name]-[hash][extname]`
+          }
+          return `assets/[name]-[hash][extname]`
+        },
+        chunkFileNames: 'assets/js/[name]-[hash].js',
+        entryFileNames: 'assets/js/[name]-[hash].js',
+        // Bessere Chunk-Aufteilung für kleinere Bundles
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          utils: ['lodash']
+        }
+      }
+    },
+    // Optimierungen für Production
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    },
+    // Source Maps für besseres Debugging
+    sourcemap: false,
+    // Chunk-Size-Warning erhöhen (du hattest Warnings)
+    chunkSizeWarningLimit: 1000
+  },
   server: {
     port: 5173,
-    host: true
+    host: true,
+    // Explizite MIME-Types für Development
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8'
+    }
+  },
+  preview: {
+    port: 4173,
+    host: true,
+    // Explizite MIME-Types auch für Preview
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8'
+    }
   }
 })
