@@ -1,8 +1,12 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Calendar, Clock, MapPin, Trophy, Users, Play, Pause, RotateCcw, Check, Edit2, X, ArrowLeft, Grid3X3 } from 'lucide-react'
 
-// Tournament Overview Component
-const TournamentOverview = ({ event, results, onUpdateResults, onBack, onCompleteTournament }) => {
+// Complete Tournament Schedule Component
+const CompleteTournamentSchedule = ({ event, results, onUpdateResults, onBack, onCompleteTournament }) => {
+  const [editingMatch, setEditingMatch] = useState(null);
+  const [editScores, setEditScores] = useState({ team1Score: '', team2Score: '' });
+  const [newScores, setNewScores] = useState({});
+
   // Simple translation fallback
   const t = (key) => {
     const translations = {
@@ -10,62 +14,80 @@ const TournamentOverview = ({ event, results, onUpdateResults, onBack, onComplet
       'schedule.court': 'Platz',
       'results.resultEntered': 'Eingegeben',
       'results.liveStandings': 'Live-Tabelle',
-      'results.hide': 'Ausblenden',
-      'results.allResults': 'Alle Ergebnisse',
-      'results.rank': 'Rang',
-      'results.player': 'Spieler',
-      'results.points': 'Punkte',
-      'results.gamesWon': 'Spiele gewonnen',
-      'results.gamesPlayed': 'Gespielt',
-      'player.waitingPlayers': 'Wartende Spieler',
       'tournament.readyToComplete': 'Turnier bereit zum Abschluss',
       'tournament.allMatchesCompleted': 'Alle Spiele wurden gespielt',
       'buttons.completeTournament': 'Turnier abschließen'
-    }
-    return translations[key] || key
+    };
+    return translations[key] || key;
+  };
+
+  // Safety check for event
+  if (!event || !event.players || !event.schedule) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Event-Daten werden geladen...</p>
+        </div>
+      </div>
+    );
   }
-  const [editingMatch, setEditingMatch] = useState(null);
-  const [editScores, setEditScores] = useState({ team1Score: '', team2Score: '' });
-  const [activeTab, setActiveTab] = useState(0);
+
+  // Calculate match times based on round duration
+  const calculateMatchTime = (roundIdx, matchIdx) => {
+    const startTime = event?.startTime || '09:00';
+    const roundDuration = event?.roundDuration || 15;
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    
+    // Each round starts after previous round + round duration
+    const totalMinutes = (startHour * 60 + startMin) + (roundIdx * roundDuration);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
 
   // Calculate standings
   const calculateStandings = () => {
     const playerStats = {};
     
-    // Initialize all players
-    event.players.forEach(player => {
-      playerStats[player.id] = {
-        ...player,
-        points: 0,
-        gamesWon: 0,
-        gamesPlayed: 0
-      };
-    });
+    // Initialize all players with safety check
+    if (event?.players) {
+      event.players.forEach(player => {
+        playerStats[player.id] = {
+          ...player,
+          points: 0,
+          gamesWon: 0,
+          gamesPlayed: 0
+        };
+      });
+    }
     
-    // Process all results
-    Object.entries(results).forEach(([matchKey, matchData]) => {
-      if (!matchData.result) return;
-      
-      const { team1, team2, result } = matchData;
-      
-      // Update team 1
-      team1?.forEach(player => {
-        if (player && player.id && playerStats[player.id]) {
-          playerStats[player.id].gamesPlayed++;
-          playerStats[player.id].gamesWon += result.team1Score;
-          playerStats[player.id].points += result.team1Points;
-        }
-      });
+    // Process all results with safety check
+    if (results) {
+      Object.entries(results).forEach(([matchKey, matchData]) => {
+        if (!matchData?.result) return;
+        
+        const { team1, team2, result } = matchData;
+        
+        // Update team 1
+        team1?.forEach(player => {
+          if (player && player.id && playerStats[player.id]) {
+            playerStats[player.id].gamesPlayed++;
+            playerStats[player.id].gamesWon += result.team1Score;
+            playerStats[player.id].points += result.team1Points;
+          }
+        });
 
-      // Update team 2
-      team2?.forEach(player => {
-        if (player && player.id && playerStats[player.id]) {
-          playerStats[player.id].gamesPlayed++;
-          playerStats[player.id].gamesWon += result.team2Score;
-          playerStats[player.id].points += result.team2Points;
-        }
+        // Update team 2
+        team2?.forEach(player => {
+          if (player && player.id && playerStats[player.id]) {
+            playerStats[player.id].gamesPlayed++;
+            playerStats[player.id].gamesWon += result.team2Score;
+            playerStats[player.id].points += result.team2Points;
+          }
+        });
       });
-    });
+    }
     
     return Object.values(playerStats).sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
@@ -74,9 +96,10 @@ const TournamentOverview = ({ event, results, onUpdateResults, onBack, onComplet
   };
 
   const allMatchesComplete = () => {
+    if (!event?.schedule) return false;
     return event.schedule.every((round, roundIdx) => 
       round.matches.every((_, matchIdx) => 
-        results[`${roundIdx}-${matchIdx}`]?.result
+        results?.[`${roundIdx}-${matchIdx}`]?.result
       )
     );
   };
@@ -126,20 +149,79 @@ const TournamentOverview = ({ event, results, onUpdateResults, onBack, onComplet
     setEditScores({ team1Score: '', team2Score: '' });
   };
 
-  const handleScoreSubmit = (roundIdx, matchIdx) => {
+  const handleNewScoreSubmit = (roundIdx, matchIdx) => {
     const matchKey = `${roundIdx}-${matchIdx}`;
+    const scores = newScores[matchKey];
     
-    if (!editScores.team1Score || !editScores.team2Score) {
+    if (!scores?.team1Score || !scores?.team2Score) {
       alert('Bitte beide Ergebnisse eingeben');
       return;
     }
     
-    handleSaveEdit(roundIdx, matchIdx);
+    const match = event.schedule[roundIdx].matches[matchIdx];
+    
+    const team1Score = parseInt(scores.team1Score) || 0;
+    const team2Score = parseInt(scores.team2Score) || 0;
+    
+    // Calculate points
+    const team1Points = team1Score > team2Score ? 2 : team1Score < team2Score ? 0 : 1;
+    const team2Points = team1Score < team2Score ? 2 : team1Score > team2Score ? 0 : 1;
+    
+    const result = {
+      ...match,
+      result: {
+        team1Score,
+        team2Score,
+        team1Points,
+        team2Points
+      }
+    };
+    
+    const updatedResults = {
+      ...results,
+      [matchKey]: result
+    };
+    
+    onUpdateResults(updatedResults);
+    
+    // Clear the inputs
+    setNewScores(prev => {
+      const updated = { ...prev };
+      delete updated[matchKey];
+      return updated;
+    });
+  };
+
+  const handleScoreChange = (matchKey, team, value) => {
+    setNewScores(prev => ({
+      ...prev,
+      [matchKey]: {
+        ...prev[matchKey],
+        [`team${team}Score`]: value
+      }
+    }));
   };
 
   const standings = calculateStandings();
-  const completedMatches = Object.values(results).filter(r => r.result).length;
-  const totalMatches = event.schedule.reduce((total, round) => total + round.matches.length, 0);
+  const completedMatches = results ? Object.values(results).filter(r => r?.result).length : 0;
+  const totalMatches = event?.schedule ? event.schedule.reduce((total, round) => total + round.matches.length, 0) : 0;
+
+  // Create flat list of all matches with times
+  const allMatches = [];
+  if (event?.schedule) {
+    event.schedule.forEach((round, roundIdx) => {
+      round.matches.forEach((match, matchIdx) => {
+        allMatches.push({
+          ...match,
+          roundIdx,
+          matchIdx,
+          roundName: `Runde ${roundIdx + 1}`,
+          time: calculateMatchTime(roundIdx, matchIdx),
+          result: results?.[`${roundIdx}-${matchIdx}`]?.result
+        });
+      });
+    });
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -156,8 +238,8 @@ const TournamentOverview = ({ event, results, onUpdateResults, onBack, onComplet
                 Zurück
               </button>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">{event.name}</h1>
-                <p className="text-gray-600">Spielplan-Übersicht & Ergebnisse</p>
+                <h1 className="text-3xl font-bold text-gray-900">{event?.name || 'Tournament'}</h1>
+                <p className="text-gray-600">Kompletter Spielplan mit Uhrzeiten</p>
               </div>
             </div>
             
@@ -227,353 +309,154 @@ const TournamentOverview = ({ event, results, onUpdateResults, onBack, onComplet
             </div>
           </div>
 
-          {/* Main Content - Tournament Schedule */}
+          {/* Main Content - Complete Match List */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-lg shadow-md">
-              
-              {/* Round Tabs */}
-              <div className="border-b">
-                <div className="flex flex-wrap">
-                  {event.schedule.map((round, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setActiveTab(idx)}
-                      className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === idx
-                          ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      Runde {idx + 1}
-                      <span className="ml-2 text-xs">
-                        ({round.matches.filter((_, matchIdx) => results[`${idx}-${matchIdx}`]?.result).length}/{round.matches.length})
-                      </span>
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setActiveTab(-1)}
-                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                      activeTab === -1
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Alle Runden
-                  </button>
-                </div>
+              <div className="p-6 border-b">
+                <h3 className="text-xl font-semibold flex items-center gap-2">
+                  <Clock className="w-5 h-5" />
+                  Alle Spiele - Kompletter Spielplan
+                  <span className="text-sm font-normal text-gray-500 ml-2">
+                    ({completedMatches}/{totalMatches} abgeschlossen)
+                  </span>
+                </h3>
               </div>
-
-              {/* Round Content */}
+              
               <div className="p-6">
-                {activeTab === -1 ? (
-                  // All Rounds View
-                  <div className="space-y-8">
-                    {event.schedule.map((round, roundIdx) => (
-                      <div key={roundIdx} className="border-b pb-6 last:border-b-0">
-                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                          <Clock className="w-5 h-5" />
-                          Runde {roundIdx + 1}
-                          <span className="text-sm font-normal text-gray-500">
-                            ({round.matches.filter((_, matchIdx) => results[`${roundIdx}-${matchIdx}`]?.result).length}/{round.matches.length} Spiele)
-                          </span>
-                        </h3>
-                        
-                        <div className="grid gap-4 md:grid-cols-2">
-                          {round.matches.map((match, matchIdx) => {
-                            const matchKey = `${roundIdx}-${matchIdx}`;
-                            const result = results[matchKey];
-                            const isEditing = editingMatch === matchKey;
-                            
-                            return (
-                              <div key={matchIdx} className="border rounded-lg p-4 bg-gray-50">
-                                <div className="flex justify-between items-center mb-3">
-                                  <span className="font-semibold text-sm">Platz {match.court}</span>
-                                  <div className="flex items-center gap-2">
-                                    {result?.result && !isEditing && (
-                                      <button
-                                        onClick={() => handleEditClick(roundIdx, matchIdx, result.result)}
-                                        className="text-blue-600 hover:text-blue-800 p-1"
-                                        title="Ergebnis bearbeiten"
-                                      >
-                                        <Edit2 className="w-4 h-4" />
-                                      </button>
-                                    )}
-                                    {result?.result && (
-                                      <span className="text-green-600 text-sm font-medium">✓ Eingegeben</span>
-                                    )}
-                                  </div>
-                                </div>
-                                
-                                <div className="grid grid-cols-3 gap-2 items-center text-sm">
-                                  {/* Team 1 */}
-                                  <div className="text-right">
-                                    <p className="font-medium">
-                                      {match.team1?.map(p => p.name).join(' & ')}
-                                    </p>
-                                  </div>
-                                  
-                                  {/* Score */}
-                                  <div className="text-center">
-                                    {isEditing ? (
-                                      <div className="flex items-center justify-center gap-1">
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          max="99"
-                                          value={editScores.team1Score}
-                                          onChange={(e) => setEditScores(prev => ({...prev, team1Score: e.target.value}))}
-                                          className="w-12 text-center border rounded px-1 py-1 text-xs"
-                                        />
-                                        <span>-</span>
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          max="99"
-                                          value={editScores.team2Score}
-                                          onChange={(e) => setEditScores(prev => ({...prev, team2Score: e.target.value}))}
-                                          className="w-12 text-center border rounded px-1 py-1 text-xs"
-                                        />
-                                        <button
-                                          onClick={() => handleSaveEdit(roundIdx, matchIdx)}
-                                          className="text-green-600 hover:text-green-800 p-1 ml-1"
-                                        >
-                                          <Check className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                          onClick={handleCancelEdit}
-                                          className="text-red-600 hover:text-red-800 p-1"
-                                        >
-                                          <X className="w-4 h-4" />
-                                        </button>
-                                      </div>
-                                    ) : result?.result ? (
-                                      <div className="text-lg font-bold">
-                                        {result.result.team1Score} - {result.result.team2Score}
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center justify-center gap-1">
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          max="99"
-                                          value={editingMatch === matchKey ? editScores.team1Score : ''}
-                                          onChange={(e) => {
-                                            if (editingMatch !== matchKey) {
-                                              setEditingMatch(matchKey);
-                                              setEditScores({ team1Score: e.target.value, team2Score: '' });
-                                            } else {
-                                              setEditScores(prev => ({...prev, team1Score: e.target.value}));
-                                            }
-                                          }}
-                                          className="w-12 text-center border rounded px-1 py-1 text-xs"
-                                          placeholder="0"
-                                        />
-                                        <span>-</span>
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          max="99"
-                                          value={editingMatch === matchKey ? editScores.team2Score : ''}
-                                          onChange={(e) => {
-                                            if (editingMatch !== matchKey) {
-                                              setEditingMatch(matchKey);
-                                              setEditScores({ team1Score: '', team2Score: e.target.value });
-                                            } else {
-                                              setEditScores(prev => ({...prev, team2Score: e.target.value}));
-                                            }
-                                          }}
-                                          className="w-12 text-center border rounded px-1 py-1 text-xs"
-                                          placeholder="0"
-                                        />
-                                        {editingMatch === matchKey && editScores.team1Score && editScores.team2Score && (
-                                          <button
-                                            onClick={() => handleScoreSubmit(roundIdx, matchIdx)}
-                                            className="text-green-600 hover:text-green-800 p-1 ml-1"
-                                          >
-                                            <Check className="w-4 h-4" />
-                                          </button>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  {/* Team 2 */}
-                                  <div className="text-left">
-                                    <p className="font-medium">
-                                      {match.team2?.map(p => p.name).join(' & ')}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Waiting Players */}
-                        {round.waitingPlayers?.length > 0 && (
-                          <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
-                            <p className="font-medium text-yellow-800 text-sm mb-1">Wartende Spieler:</p>
-                            <p className="text-yellow-700 text-sm">
-                              {round.waitingPlayers.map(p => p.name).join(', ')}
+                <div className="space-y-3">
+                  {allMatches.map((match, idx) => {
+                    const matchKey = `${match.roundIdx}-${match.matchIdx}`;
+                    const isEditing = editingMatch === matchKey;
+                    const currentScores = newScores[matchKey] || {};
+                    
+                    return (
+                      <div key={idx} className={`border rounded-lg p-4 transition-all ${
+                        match.result ? 'bg-green-50 border-green-200' : 'bg-gray-50'
+                      }`}>
+                        <div className="grid grid-cols-12 gap-4 items-center">
+                          
+                          {/* Time & Round */}
+                          <div className="col-span-2 text-center">
+                            <div className="font-bold text-lg text-blue-600">{match.time}</div>
+                            <div className="text-sm font-semibold text-gray-700">Platz {match.court}</div>
+                            <div className="text-xs text-gray-500">{match.roundName}</div>
+                          </div>
+                          
+                          {/* Team 1 */}
+                          <div className="col-span-3 text-right">
+                            <p className="font-medium text-sm">
+                              {match.team1?.map(p => p.name).join(' & ')}
                             </p>
                           </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  // Single Round View
-                  <div>
-                    <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                      <Clock className="w-5 h-5" />
-                      Runde {activeTab + 1}
-                      <span className="text-sm font-normal text-gray-500 ml-2">
-                        ({event.schedule[activeTab].matches.filter((_, matchIdx) => results[`${activeTab}-${matchIdx}`]?.result).length}/{event.schedule[activeTab].matches.length} Spiele abgeschlossen)
-                      </span>
-                    </h3>
-                    
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                      {event.schedule[activeTab].matches.map((match, matchIdx) => {
-                        const matchKey = `${activeTab}-${matchIdx}`;
-                        const result = results[matchKey];
-                        const isEditing = editingMatch === matchKey;
-                        
-                        return (
-                          <div key={matchIdx} className="border rounded-lg p-4 bg-gray-50">
-                            <div className="flex justify-between items-center mb-3">
-                              <span className="font-semibold">Platz {match.court}</span>
-                              <div className="flex items-center gap-2">
-                                {result?.result && !isEditing && (
-                                  <button
-                                    onClick={() => handleEditClick(activeTab, matchIdx, result.result)}
-                                    className="text-blue-600 hover:text-blue-800 p-1"
-                                    title="Ergebnis bearbeiten"
-                                  >
-                                    <Edit2 className="w-4 h-4" />
-                                  </button>
-                                )}
-                                {result?.result && (
-                                  <span className="text-green-600 font-semibold">✓ Eingegeben</span>
-                                )}
+                          
+                          {/* Score */}
+                          <div className="col-span-2 text-center">
+                            {isEditing ? (
+                              <div className="flex items-center justify-center gap-1">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="99"
+                                  value={editScores.team1Score}
+                                  onChange={(e) => setEditScores(prev => ({...prev, team1Score: e.target.value}))}
+                                  className="w-12 text-center border rounded px-1 py-1 text-sm"
+                                />
+                                <span>-</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="99"
+                                  value={editScores.team2Score}
+                                  onChange={(e) => setEditScores(prev => ({...prev, team2Score: e.target.value}))}
+                                  className="w-12 text-center border rounded px-1 py-1 text-sm"
+                                />
                               </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-3 gap-4 items-center">
-                              {/* Team 1 */}
-                              <div className="text-right">
-                                <p className="font-medium">
-                                  {match.team1?.map(p => p.name).join(' & ')}
-                                </p>
+                            ) : match.result ? (
+                              <div className="text-xl font-bold text-green-600">
+                                {match.result.team1Score} - {match.result.team2Score}
                               </div>
-                              
-                              {/* Score */}
-                              <div className="text-center">
-                                {isEditing ? (
-                                  <div className="flex items-center justify-center gap-2">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max="99"
-                                      value={editScores.team1Score}
-                                      onChange={(e) => setEditScores(prev => ({...prev, team1Score: e.target.value}))}
-                                      className="w-16 text-center border rounded px-2 py-1"
-                                    />
-                                    <span className="text-xl">-</span>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max="99"
-                                      value={editScores.team2Score}
-                                      onChange={(e) => setEditScores(prev => ({...prev, team2Score: e.target.value}))}
-                                      className="w-16 text-center border rounded px-2 py-1"
-                                    />
-                                    <button
-                                      onClick={() => handleSaveEdit(activeTab, matchIdx)}
-                                      className="text-green-600 hover:text-green-800 p-1"
-                                    >
-                                      <Check className="w-5 h-5" />
-                                    </button>
-                                    <button
-                                      onClick={handleCancelEdit}
-                                      className="text-red-600 hover:text-red-800 p-1"
-                                    >
-                                      <X className="w-5 h-5" />
-                                    </button>
-                                  </div>
-                                ) : result?.result ? (
-                                  <div className="text-2xl font-bold">
-                                    {result.result.team1Score} - {result.result.team2Score}
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center justify-center gap-2">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max="99"
-                                      value={editingMatch === matchKey ? editScores.team1Score : ''}
-                                      onChange={(e) => {
-                                        if (editingMatch !== matchKey) {
-                                          setEditingMatch(matchKey);
-                                          setEditScores({ team1Score: e.target.value, team2Score: '' });
-                                        } else {
-                                          setEditScores(prev => ({...prev, team1Score: e.target.value}));
-                                        }
-                                      }}
-                                      className="w-16 text-center border rounded px-2 py-1"
-                                      placeholder="0"
-                                    />
-                                    <span className="text-xl">-</span>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max="99"
-                                      value={editingMatch === matchKey ? editScores.team2Score : ''}
-                                      onChange={(e) => {
-                                        if (editingMatch !== matchKey) {
-                                          setEditingMatch(matchKey);
-                                          setEditScores({ team1Score: '', team2Score: e.target.value });
-                                        } else {
-                                          setEditScores(prev => ({...prev, team2Score: e.target.value}));
-                                        }
-                                      }}
-                                      className="w-16 text-center border rounded px-2 py-1"
-                                      placeholder="0"
-                                    />
-                                    {editingMatch === matchKey && editScores.team1Score && editScores.team2Score && (
-                                      <button
-                                        onClick={() => handleScoreSubmit(activeTab, matchIdx)}
-                                        className="text-green-600 hover:text-green-800 p-1"
-                                      >
-                                        <Check className="w-5 h-5" />
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
+                            ) : (
+                              <div className="flex items-center justify-center gap-1">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="99"
+                                  placeholder="0"
+                                  value={currentScores.team1Score || ''}
+                                  onChange={(e) => handleScoreChange(matchKey, 1, e.target.value)}
+                                  className="w-12 text-center border rounded px-1 py-1 text-sm"
+                                />
+                                <span>-</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="99"
+                                  placeholder="0"
+                                  value={currentScores.team2Score || ''}
+                                  onChange={(e) => handleScoreChange(matchKey, 2, e.target.value)}
+                                  className="w-12 text-center border rounded px-1 py-1 text-sm"
+                                />
                               </div>
-                              
-                              {/* Team 2 */}
-                              <div className="text-left">
-                                <p className="font-medium">
-                                  {match.team2?.map(p => p.name).join(' & ')}
-                                </p>
-                              </div>
-                            </div>
+                            )}
                           </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Waiting Players */}
-                    {event.schedule[activeTab].waitingPlayers?.length > 0 && (
-                      <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
-                        <p className="font-semibold text-yellow-800 mb-2">Wartende Spieler:</p>
-                        <p className="text-yellow-700">
-                          {event.schedule[activeTab].waitingPlayers.map(p => p.name).join(', ')}
-                        </p>
+                          
+                          {/* Team 2 */}
+                          <div className="col-span-3 text-left">
+                            <p className="font-medium text-sm">
+                              {match.team2?.map(p => p.name).join(' & ')}
+                            </p>
+                          </div>
+                          
+                          {/* Actions */}
+                          <div className="col-span-2 flex items-center justify-end gap-2">
+                            {isEditing ? (
+                              <>
+                                <button
+                                  onClick={() => handleSaveEdit(match.roundIdx, match.matchIdx)}
+                                  className="text-green-600 hover:text-green-800 p-1"
+                                  title="Speichern"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="text-red-600 hover:text-red-800 p-1"
+                                  title="Abbrechen"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </>
+                            ) : match.result ? (
+                              <>
+                                <span className="text-green-600 text-xs font-medium">✓ Eingegeben</span>
+                                <button
+                                  onClick={() => handleEditClick(match.roundIdx, match.matchIdx, match.result)}
+                                  className="text-blue-600 hover:text-blue-800 p-1 ml-1"
+                                  title="Bearbeiten"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => handleNewScoreSubmit(match.roundIdx, match.matchIdx)}
+                                className={`p-2 rounded transition-colors ${
+                                  currentScores.team1Score && currentScores.team2Score
+                                    ? 'text-green-600 hover:text-green-800 bg-green-100 hover:bg-green-200'
+                                    : 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                                }`}
+                                title="Ergebnis speichern"
+                                disabled={!currentScores.team1Score || !currentScores.team2Score}
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -664,7 +547,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
   const [currentTime, setCurrentTime] = useState(0)
   const [matchResults, setMatchResults] = useState(event.results || {})
   const [showResults, setShowResults] = useState(false)
-  const [showOverview, setShowOverview] = useState(false)
+  const [showCompleteSchedule, setShowCompleteSchedule] = useState(false)
   const [scores, setScores] = useState({})
   
   // Refs
@@ -853,8 +736,8 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
     }
   }
 
-  // Handle overview results update
-  const handleOverviewResultsUpdate = (updatedResults) => {
+  // Handle complete schedule results update
+  const handleCompleteScheduleResultsUpdate = (updatedResults) => {
     setMatchResults(updatedResults)
   }
   
@@ -871,14 +754,14 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
   const currentSchedule = event.schedule[currentRound]
   const standings = calculateStandings()
 
-  // Show Tournament Overview if requested
-  if (showOverview) {
+  // Show Complete Tournament Schedule if requested
+  if (showCompleteSchedule) {
     return (
-      <TournamentOverview
+      <CompleteTournamentSchedule
         event={event}
         results={matchResults}
-        onUpdateResults={handleOverviewResultsUpdate}
-        onBack={() => setShowOverview(false)}
+        onUpdateResults={handleCompleteScheduleResultsUpdate}
+        onBack={() => setShowCompleteSchedule(false)}
         onCompleteTournament={handleCompleteTournament}
       />
     )
@@ -993,13 +876,13 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
                 </button>
               </div>
 
-              {/* Spielplan-Übersicht Button */}
+              {/* Kompletter Spielplan Button */}
               <button
-                onClick={() => setShowOverview(true)}
+                onClick={() => setShowCompleteSchedule(true)}
                 className="w-full mb-4 bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 flex items-center justify-center gap-2 font-semibold"
               >
-                <Grid3X3 className="w-5 h-5" />
-                📋 Spielplan-Übersicht
+                <Clock className="w-5 h-5" />
+                ⏰ Kompletter Spielplan
               </button>
               
               {/* ================================ */}
