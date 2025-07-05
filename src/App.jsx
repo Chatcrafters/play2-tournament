@@ -870,20 +870,53 @@ function AppContent() {
     }
   }, [toast, t])
 
-  const handleTournamentComplete = useCallback(async (results) => {
-    if (runningTournament) {
-      const updatedEvent = {
-        ...runningTournament,
-        results: results || {},
-        status: 'completed',
-        completed_at: new Date().toISOString()
-      }
-      
-      await handleUpdateEvent(updatedEvent)
-      setRunningTournament(null)
-      toast.showSuccess(t('tournament.completed') || 'Turnier erfolgreich abgeschlossen!')
+ const handleTournamentComplete = useCallback(async (completionData) => {
+  console.log('🔧 handleTournamentComplete called with:', completionData)
+  
+  if (!runningTournament) {
+    console.warn('⚠️ No running tournament found')
+    return
+  }
+
+  // Prüfe ob es eine echte Tournament Completion ist
+  if (completionData && completionData.action === 'TOURNAMENT_COMPLETED' && completionData.completed) {
+    console.log('✅ Valid tournament completion detected')
+    
+    // Tournament erfolgreich abgeschlossen
+    const updatedEvent = {
+      ...runningTournament,
+      results: completionData.results || {},
+      summary: completionData.summary || {},
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      winner: completionData.summary?.winner || null,
+      finalStandings: completionData.summary?.finalStandings || []
     }
-  }, [runningTournament, handleUpdateEvent, toast, t])
+    
+    console.log('💾 Saving completed tournament:', updatedEvent)
+    
+    // Speichere das abgeschlossene Tournament
+    await handleUpdateEvent(updatedEvent)
+    
+    // Beende das laufende Tournament (wichtig!)
+    setRunningTournament(null)
+    
+    // Zeige Success Message mit Details
+    const winner = completionData.summary?.winner
+    const successMessage = winner 
+      ? `🏆 Turnier abgeschlossen! Gewinner: ${winner.name}`
+      : t('tournament.completed') || 'Turnier erfolgreich abgeschlossen!'
+    
+    toast.showSuccess(successMessage)
+    
+    console.log('🎉 Tournament completion process finished successfully')
+    
+  } else {
+    // Fallback für unerwartete Calls (z.B. Cancel)
+    console.log('⚠️ Tournament completion cancelled or invalid data')
+    setRunningTournament(null)
+  }
+}, [runningTournament, handleUpdateEvent, toast, t])
 
   const calculateTotalMinutes = useCallback((start, end, breaks = []) => {
     const startStr = String(start || '00:00')

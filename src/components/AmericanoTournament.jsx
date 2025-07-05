@@ -115,7 +115,7 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
       return
     }
     
-    // Berechne Punkte: 2 fÃ¼r Sieg, 1 fÃ¼r Unentschieden, 0 fÃ¼r Niederlage
+    // Berechne Punkte: 2 für Sieg, 1 für Unentschieden, 0 für Niederlage
     const team1Points = score.team1Score > score.team2Score ? 2 : score.team1Score < score.team2Score ? 0 : 1
     const team2Points = score.team1Score < score.team2Score ? 2 : score.team1Score > score.team2Score ? 0 : 1
     
@@ -142,19 +142,6 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
     })
   }
   
-  const handleCompleteTournament = () => {
-    onComplete(matchResults)
-  }
-  
-  // WICHTIGER FIX: Button mit type="button" um Form-Submit zu verhindern
-  const handleCancelClick = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (onCancel) {
-      onCancel()
-    }
-  }
-  
   // Calculate standings
   const calculateStandings = () => {
     const playerStats = {}
@@ -176,23 +163,23 @@ export const AmericanoTournament = ({ event, onComplete, onCancel }) => {
       const { team1, team2, result } = matchData
       
       // Update team 1
-team1?.forEach(player => {
-  if (player && player.id && playerStats[player.id]) {
-    playerStats[player.id].gamesPlayed++
-    playerStats[player.id].gamesWon += result.team1Score
-    playerStats[player.id].points += result.team1Points
-  }
-})
+      team1?.forEach(player => {
+        if (player && player.id && playerStats[player.id]) {
+          playerStats[player.id].gamesPlayed++
+          playerStats[player.id].gamesWon += result.team1Score
+          playerStats[player.id].points += result.team1Points
+        }
+      })
 
-// Update team 2
-team2?.forEach(player => {
-  if (player && player.id && playerStats[player.id]) {
-    playerStats[player.id].gamesPlayed++
-    playerStats[player.id].gamesWon += result.team2Score
-    playerStats[player.id].points += result.team2Points
-  }
-})
-}) 
+      // Update team 2
+      team2?.forEach(player => {
+        if (player && player.id && playerStats[player.id]) {
+          playerStats[player.id].gamesPlayed++
+          playerStats[player.id].gamesWon += result.team2Score
+          playerStats[player.id].points += result.team2Points
+        }
+      })
+    }) 
     
     // Sort by points, then games won
     return Object.values(playerStats).sort((a, b) => {
@@ -207,6 +194,51 @@ team2?.forEach(player => {
         matchResults[`${roundIdx}-${matchIdx}`]?.result
       )
     )
+  }
+  
+  // ================================
+  // TOURNAMENT COMPLETION FIX
+  // ================================
+  const handleCompleteTournament = () => {
+    console.log('🏆 Tournament completion initiated')
+    
+    // 1. Berechne finale Standings
+    const finalStandings = calculateStandings()
+    console.log('📊 Final standings calculated:', finalStandings)
+    
+    // 2. Erstelle Tournament Summary
+    const tournamentSummary = {
+      eventId: event.id,
+      eventName: event.name,
+      completedAt: new Date().toISOString(),
+      totalRounds: event.schedule.length,
+      totalPlayers: event.players.length,
+      finalStandings: finalStandings,
+      allResults: matchResults,
+      winner: finalStandings[0], // Erster Platz
+      podium: finalStandings.slice(0, 3) // Top 3
+    }
+    
+    console.log('🏆 Tournament Summary:', tournamentSummary)
+    
+    // 3. Rufe onComplete mit eindeutigem Completion-Objekt auf
+    if (onComplete) {
+      onComplete({
+        action: 'TOURNAMENT_COMPLETED', // Eindeutiger Action-Typ
+        completed: true,
+        results: matchResults,
+        summary: tournamentSummary
+      })
+    }
+  }
+  
+  // WICHTIGER FIX: Button mit type="button" um Form-Submit zu verhindern
+  const handleCancelClick = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (onCancel) {
+      onCancel()
+    }
   }
   
   // Auto-save periodically
@@ -227,13 +259,13 @@ team2?.forEach(player => {
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          {/* WICHTIG: type="button" hinzugefÃ¼gt um Form-Submit zu verhindern */}
+          {/* WICHTIG: type="button" hinzugefügt um Form-Submit zu verhindern */}
           <button
             type="button"
             onClick={handleCancelClick}
             className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-2"
           >
-            â† {t('app.backToEventOverview')}
+            ← {t('app.backToEventOverview')}
           </button>
           
           <h1 className="text-3xl font-bold mb-2">{event.name}</h1>
@@ -315,7 +347,7 @@ team2?.forEach(player => {
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
                 >
-                  â† {t('tournament.previous')}
+                  ← {t('tournament.previous')}
                 </button>
                 
                 <button
@@ -327,19 +359,45 @@ team2?.forEach(player => {
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
                 >
-                  {t('tournament.next')} â†’
+                  {t('tournament.next')} →
                 </button>
               </div>
               
-              {/* Tournament Complete Button */}
+              {/* ================================ */}
+              {/* VERBESSERTER TOURNAMENT COMPLETE BUTTON */}
+              {/* ================================ */}
               {allMatchesComplete() && (
-                <button
-                  onClick={handleCompleteTournament}
-                  className="w-full mt-4 bg-green-600 text-white px-4 py-3 rounded hover:bg-green-700 flex items-center justify-center gap-2 font-semibold"
-                >
-                  <Check className="w-5 h-5" />
-                  {t('buttons.completeTournament')}
-                </button>
+                <div className="mt-4 space-y-3">
+                  {/* Completion Summary */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+                      <Trophy className="w-5 h-5" />
+                      {t('tournament.readyToComplete') || 'Turnier bereit zum Abschluss'}
+                    </h4>
+                    <div className="text-green-700 text-sm space-y-1">
+                      <p>{t('tournament.allMatchesCompleted') || 'Alle Spiele wurden gespielt'}</p>
+                      <p className="font-medium">
+                        🏆 Gewinner: <strong>{calculateStandings()[0]?.name}</strong> 
+                        ({calculateStandings()[0]?.points} Punkte)
+                      </p>
+                      {calculateStandings()[1] && (
+                        <p>🥈 2. Platz: <strong>{calculateStandings()[1]?.name}</strong></p>
+                      )}
+                      {calculateStandings()[2] && (
+                        <p>🥉 3. Platz: <strong>{calculateStandings()[2]?.name}</strong></p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Complete Button */}
+                  <button
+                    onClick={handleCompleteTournament}
+                    className="w-full bg-green-600 text-white px-4 py-4 rounded-lg hover:bg-green-700 flex items-center justify-center gap-3 font-semibold text-lg transition-all transform hover:scale-[1.02]"
+                  >
+                    <Trophy className="w-6 h-6" />
+                    {t('buttons.completeTournament') || 'Turnier abschließen'}
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -361,7 +419,7 @@ team2?.forEach(player => {
                         <div className="flex justify-between items-center mb-3">
                           <span className="font-semibold">{t('schedule.court')} {match.court}</span>
                           {result?.result && (
-                            <span className="text-green-600 font-semibold">âœ“ {t('results.resultEntered')}</span>
+                            <span className="text-green-600 font-semibold">✓ {t('results.resultEntered')}</span>
                           )}
                         </div>
                         
@@ -404,7 +462,7 @@ team2?.forEach(player => {
                                   onClick={() => handleScoreSubmit(matchIndex)}
                                   className="ml-2 bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
                                 >
-                                  âœ“
+                                  ✓
                                 </button>
                               </div>
                             )}
@@ -484,7 +542,7 @@ team2?.forEach(player => {
                   onClick={() => setShowResults(false)}
                   className="text-gray-500 hover:text-gray-700 text-2xl"
                 >
-                  âœ•
+                  ✕
                 </button>
               </div>
               
@@ -515,4 +573,3 @@ team2?.forEach(player => {
     </div>
   )
 }
-
